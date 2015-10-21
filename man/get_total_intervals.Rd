@@ -7,7 +7,7 @@
 get_total_intervals(coef)
 }
 \arguments{
-\item{D}{Input matrix, where each row represent a single vector of coeficients.}
+\item{coef}{Input matrix, where each row represent a single vector of coeficients.}
 }
 \value{
 The number of intervals found.

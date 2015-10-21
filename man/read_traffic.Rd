@@ -13,6 +13,9 @@ read_traffic(filename, use.power2len = TRUE, use.expfactor = 1,
 \item{use.power2len}{Length padded with zeroes to power of 2.}
 
 \item{use.expfactor}{How should the time be stretched (for debugging)}
+
+\item{aggregation_function}{Function to be applied on all samples that
+correspond to the same second.}
 }
 \value{
 Time-series object which contains the regularized time series.

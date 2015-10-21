@@ -6,6 +6,8 @@
 #' @param filename The traffic data will be read from this file.
 #' @param use.power2len Length padded with zeroes to power of 2.
 #' @param use.expfactor How should the time be stretched (for debugging)
+#' @param aggregation_function Function to be applied on all samples that
+#'   correspond to the same second.
 #' @return Time-series object which contains the regularized time series.
 #' 
 #' @import zoo

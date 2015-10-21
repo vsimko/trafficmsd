@@ -13,23 +13,19 @@ plot_spectrum(D, show.emits = TRUE, show.spectrum = TRUE,
 \item{show.emits}{If TRUE, renders a separate image depicting places where
 packets are emitted.}
 
-\item{show.spectrum}{If TRUE, renders a nice image showing the spectrum based.
-The spectrum is constructed from the coeficients.}
+\item{show.spectrum}{If TRUE, renders a nice image showing the spectrum
+based. The spectrum is constructed from the coeficients.}
 
 \item{show.contour}{If TRUE, contours are rendered within the spectrum.}
 
 \item{show.istats}{If TRUE, renders additional information about intervals.}
 
 \item{show.hmlegend}{Renders the "heatmap legend" in the spectrogram.}
-
-\item{show.cwt}{If TRUE, renders a spectrum using continuous wavelet transformation.}
 }
 \description{
 Plot spectrum of the decomposition.
 }
 \examples{
-traffic <- read_traffic(filename)
- D <- decompose(traffic)
- plot_spectrum(D)
+plot_spectrum( decompose(sample32) )
 }
 

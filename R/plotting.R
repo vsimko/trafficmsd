@@ -37,30 +37,25 @@ plot_traffic <- function(ts, newts=c(0), area.color="black") {
 #' Plot spectrum of the decomposition.
 #'
 #' @param D The input matrix with decomposed coeficients.
-#' @param show.emits
-#'  If TRUE, renders a separate image depicting places where 
-#'  packets are emitted.
-#' @param show.spectrum
-#'  If TRUE, renders a nice image showing the spectrum based.
-#'  The spectrum is constructed from the coeficients.
+#' @param show.emits If TRUE, renders a separate image depicting places where 
+#'   packets are emitted.
+#' @param show.spectrum If TRUE, renders a nice image showing the spectrum
+#'   based. The spectrum is constructed from the coeficients.
 #' @param show.contour If TRUE, contours are rendered within the spectrum.
 #' @param show.istats If TRUE, renders additional information about intervals.
-#' @param show.cwt If TRUE, renders a spectrum using continuous wavelet transformation.
 #' @param show.hmlegend Renders the "heatmap legend" in the spectrogram.
 #' 
 #' @examples
-#'  traffic <- read_traffic(filename)
-#'  D <- decompose(traffic)
-#'  plot_spectrum(D)
+#'  plot_spectrum( decompose(sample32) )
 #' 
 #' @import fields
 #' @export
 plot_spectrum <- function(D,
-                            show.emits = TRUE,
-                            show.spectrum = TRUE,
-                            show.contour = TRUE,
-                            show.istats = TRUE,
-                            show.hmlegend = TRUE) {
+                          show.emits = TRUE,
+                          show.spectrum = TRUE,
+                          show.contour = TRUE,
+                          show.istats = TRUE,
+                          show.hmlegend = TRUE) {
   if( ! is.matrix(D) ) {
     D <- D$coef
   }

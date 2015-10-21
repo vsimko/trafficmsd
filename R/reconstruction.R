@@ -28,7 +28,7 @@ reconstruct <- function(D) {
 }
 
 #' Count non-empty intervals in the matrix of coeficients.
-#' @param D Input matrix, where each row represent a single vector of coeficients.
+#' @param coef Input matrix, where each row represent a single vector of coeficients.
 #' @return The number of intervals found.
 #' @export
 get_total_intervals <- function(coef) {
