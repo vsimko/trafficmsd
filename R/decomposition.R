@@ -275,7 +275,7 @@ cluster_by_amplitude <- function(ts, num.cl) {
   num.cl <- min(num.cl, ts.len)
   
   out <- list()
-  out$data   <- zoo(ts)
+  out$data   <- ts
   out$num.cl <- num.cl
   
   out$cfit <- kmeans(out$data, num.cl)  # K-Means Cluster Analysis
@@ -292,7 +292,7 @@ cluster_by_amplitude <- function(ts, num.cl) {
   out$MAE       <- mean(out$abserrors)
   
   assert_that(out$MAE >= 0)
-  assert_that(length(out$abserrors) == length(out$ts))
+  assert_that(length(out$abserrors) == length(out$data))
   return(out)
 }
 

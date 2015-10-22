@@ -66,7 +66,16 @@ test_that("Estimating number of clusters", {
   
 })
 
-test_that("Model size", {
+test_that("Clustering by amplitude", {
+  sample32 %>% cluster_by_amplitude(num.cl = 4) -> cl
+  expect_equal(cl$num.cl, 4)
+  expect_equal(cl$data, sample32)
+  expect_equal(length(cl$thdata), length(sample32))
+  expect_equal(length(cl$abserrors), length(sample32))
+  expect_true(is.numeric(cl$MAE))
+})
+
+pretest_that("Model size", {
   sample32 %>% decompose %>% .$coef %>% get_total_intervals %>% expect_equal(6)
   sample(100) %>% decompose %>% .$coef %>% get_total_intervals %>% expect_more_than(10)
 })
