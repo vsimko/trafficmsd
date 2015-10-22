@@ -34,6 +34,33 @@ plot_traffic <- function(ts, newts=c(0), area.color="black") {
   lines(newts, type="s", col=rgb(1, 0, 0, 0.4), lwd=3)
 }
 
+#' Plotting density of a traffic time series.
+#' 
+#' @param ts.list List of time series
+#' @param area.colors List of colors
+#' 
+#' @export
+plot_traffic_densities <- function(ts.list, area.colors = index(ts.list) ) {
+  plot(c(0), type="n",
+       xlim=c(0,1), ylim=c(0,1),
+       xlab="Normalized transfer sizes",
+       ylab="Norm. Density" )
+  
+  color.index <- 0
+  for(ts in ts.list) {
+    color.index <- color.index + 1
+    ts <- ts[ts != 0] # keep only non-zero packets that were emitted
+    ts <- ts / max(ts) # normalized transfer sizes
+    d <- density(ts, bw = .02)
+    d <- list( x=d$x, y=d$y / max(d$y) )
+    d$x[1] <- 0
+    d$y[1] <- 0
+    area.color <- alpha(area.colors[color.index], 0.4)
+    polygon(d, col=area.color, lwd=2)
+  }
+}
+
+
 #' Plot spectrum of the decomposition.
 #'
 #' @param D The input matrix with decomposed coeficients.
