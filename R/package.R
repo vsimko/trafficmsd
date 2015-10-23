@@ -3,6 +3,15 @@
 #' @import scales
 NULL
 
+.onAttach <- function(libname, pkgname) {
+  packageStartupMessage(
+    paste("trafficmsd",
+          utils::packageDescription("trafficmsd", field="Version"),
+          "loaded." ),
+    appendLF=TRUE )
+}
+
+
 #' Simple traffic example of 32 samples for debugging
 "sample32"
 
