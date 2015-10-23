@@ -26,6 +26,6 @@ based. The spectrum is constructed from the coeficients.}
 Plot spectrum of the decomposition.
 }
 \examples{
-plot_spectrum( decompose(sample32) )
+plot_spectrum( decompose_traffic(sample32) )
 }
 

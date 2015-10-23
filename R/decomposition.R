@@ -72,7 +72,7 @@ read_traffic <- function(filename,
 #' @param cutoff.fraction How strongly to optimize the coeficients.
 #' @return A structure \code{list(length, maxscale, coef)}
 #' @export
-decompose <- function(ts, cutoff.fraction=0.004) {
+decompose_traffic <- function(ts, cutoff.fraction=0.004) {
   
   # some assertions about input parameters
   assert_that(is.vector(ts) || is.ts(ts) || is.zoo(ts))

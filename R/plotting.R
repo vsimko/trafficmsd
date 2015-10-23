@@ -73,7 +73,7 @@ plot_traffic_densities <- function(ts.list, area.colors = index(ts.list) ) {
 #' @param show.hmlegend Renders the "heatmap legend" in the spectrogram.
 #' 
 #' @examples
-#'  plot_spectrum( decompose(sample32) )
+#'  plot_spectrum( decompose_traffic(sample32) )
 #' 
 #' @import fields
 #' @export

@@ -14,7 +14,7 @@
 #'   series.
 #'   
 #' @export
-reconstruct <- function(D) {
+reconstruct_traffic <- function(D) {
   # For convenience...
   if (!is.matrix(D)) {
     D <- D$coef

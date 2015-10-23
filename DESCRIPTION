@@ -1,7 +1,7 @@
 Package: trafficmsd
 Type: Package
 Title: Multiscale Decomposition of Network Traffic
-Version: 1.0
+Version: 1.1
 Date: 2015-10-16
 Author: Viliam Simko
 Maintainer: Viliam Simko <viliam.simko@gmail.com>

@@ -15,7 +15,7 @@ test_that("Padding signal to power of two", {
 })
 
 test_that("Plotting of spectrum", {
-  1:32 %>% decompose %>% plot_spectrum
+  1:32 %>% decompose_traffic %>% plot_spectrum
 })
 
 test_that("Plotting of traffic", {
@@ -75,15 +75,15 @@ test_that("Clustering by amplitude", {
   expect_true(is.numeric(cl$MAE))
 })
 
-pretest_that("Model size", {
-  sample32 %>% decompose %>% .$coef %>% get_total_intervals %>% expect_equal(6)
-  sample(100) %>% decompose %>% .$coef %>% get_total_intervals %>% expect_more_than(10)
+test_that("Model size", {
+  sample32 %>% decompose_traffic %>% .$coef %>% get_total_intervals %>% expect_equal(6)
+  sample(100) %>% decompose_traffic %>% .$coef %>% get_total_intervals %>% expect_more_than(10)
 })
 
 test_that("Reconstruction", {
   
   # preparing
-  sample32 %>% decompose %>% reconstruct -> out
+  sample32 %>% decompose_traffic %>% reconstruct_traffic -> out
   sample32 %>% sum -> s1 # sum of original signal
   out %>% sum -> s2 # sum of reconstructed signal
   
