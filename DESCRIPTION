@@ -1,11 +1,12 @@
 Package: trafficmsd
 Type: Package
 Title: Multiscale Decomposition of Network Traffic
-Version: 1.1
-Date: 2015-10-16
+Version: 0.0.1
+Date: 2015-10-28
 Author: Viliam Simko
 Maintainer: Viliam Simko <viliam.simko@gmail.com>
-Description: Multiscale decomposition of network traffic suitable for simulation such as using Queuing Petri Nets.
+Description: Multiscale decomposition of network traffic suitable for simulation
+    such as using Queuing Petri Nets.
 License: MIT License + file LICENSE
 LazyData: true
 Imports: assertthat, zoo, scales, fields, reshape2, biwavelet
