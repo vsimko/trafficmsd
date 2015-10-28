@@ -84,3 +84,13 @@ test_that("Reconstruction", {
   expect_less_than( abs(s1 - s2) / s1, .2)
   
 })
+
+test_that("print_stats", {
+  capture.output({
+    sample32 %>% decompose_traffic %>% print_stats
+  }) %>% expect_output("Total number of intervals: *6")
+})
+
+test_that("plot_traffic_densities", {
+  plot_traffic_densities(list(sample_regsignal, sample_vidstream))
+})
