@@ -11,3 +11,4 @@ License: MIT License + file LICENSE
 LazyData: true
 Imports: assertthat, zoo, scales, fields, reshape2, biwavelet
 Depends: R (>= 2.10)
+Suggests: testthat

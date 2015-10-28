@@ -1,10 +1,3 @@
-library(testthat)
-library(assertthat)
-library(scales)
-library(reshape2)
-suppressMessages(library(fields))
-suppressMessages(library(zoo))
-suppressMessages(library(biwavelet))
 suppressMessages(library(dplyr))
 
 pdf(NULL)
