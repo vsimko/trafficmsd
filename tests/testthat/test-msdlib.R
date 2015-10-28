@@ -1,5 +1,4 @@
 suppressMessages(library(dplyr))
-
 pdf(NULL)
 
 test_that("Padding signal to power of two", {
