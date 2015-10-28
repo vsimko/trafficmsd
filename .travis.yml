@@ -13,8 +13,7 @@ notifications:
     on_success: change
     on_failure: change
 
-before_install:
-  - pip install codecov
-
+r_packages:
+  - covr
 after_success:
-  - codecov
+  - Rscript -e 'covr::codecov()'
