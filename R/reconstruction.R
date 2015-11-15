@@ -19,11 +19,11 @@ reconstruct_traffic <- function(D) {
   if (!is.matrix(D)) {
     D <- D$coef
   }
-  
+
   # reconstruct the original signal
   C <- compute_emits(D)
   C[is.na(C)] <- 0 # remove NA values
-  
+
   return(colSums(C))
 }
 
@@ -32,17 +32,17 @@ reconstruct_traffic <- function(D) {
 #' @return The number of intervals found.
 #' @export
 get_total_intervals <- function(coef) {
-  
+
   # preconditions
   assert_that(is.matrix(coef))
   assert_that(nrow(coef) > 1)
   assert_that(ncol(coef) > 1)
-  
+
   total <- 0
   for(row in 1:nrow(coef)) {
     total <- total + get_interval_count(coef[row, ])
   }
-  
+
   return(total)
 }
 
@@ -54,20 +54,20 @@ print_stats <- function(D) {
   if (!is.matrix(D)) {
     D <- D$coef
   }
-  
+
   cat(sep = "\n",
       paste("Length of the time series:", ncol(D)),
       paste("Number of scales:", nrow(D)),
       paste("Number of intervals per scale:")
   )
-  
+
   # counting the intervals
   total.count <- 0
   for(row in 1:nrow(D)) {
-    
+
     icount <- get_interval_count(D[row, ])
     total.count <- total.count + icount
-    
+
     scale <- row - 1
     if (scale == 0) {
       scale <- paste( scale, "(remainder)" )
