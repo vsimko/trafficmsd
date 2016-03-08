@@ -1,0 +1,140 @@
+Automated Extraction of Network Traffic Models Suitable for Performance Simulation
+========================================================
+author: Viliam Simko
+date: 16.10.2015
+autosize: true
+
+[FZI]: http://www.fzi.de "Forschungszentrum Informatik"
+[UWU]: http://https://www.uni-wuerzburg.de "Universität Würzburg"
+[ZfT]: http://www.telematik-zentrum.de "ZfT Zentrum für Telematik"
+
+Authors             | Institutions
+--------------------|----------------------------------------
+Viliam Simko        | [FZI Forschungszentrum Informatik][FZI]
+Piotr Rygielski     | [Universität Würzburg][UWU]
+Samuel Kounev       | [Universität Würzburg][UWU]
+Klaus Schilling     | [Universität Würzburg][UWU]
+Felix Sittner       | [ZfT Zentrum für Telematik][ZfT]
+Doris Aschenbrenner | [ZfT Zentrum für Telematik][ZfT]
+
+
+Context and Motivation
+========================================================
+**Nowadays data centers**
+- Increasingly dynamic due to virtualization
+- High intra-data-center traffic (migration of VMs)
+
+**We focused on**
+- Modeling performance of network in a data center
+- Network throughput
+- Assuming signals with some periodic component
+
+**Currently**
+- Architecture derived automatically
+- **Traffic models created manually**
+
+
+Requirements
+========================================================
+- Derive automatically
+- Decompose into generators / intervals
+- Minimize the model size
+- Preserve signal shape
+- Tunable trade-off: precision / model size
+
+
+High-level overview
+========================================================
+TODO Image $\rightarrow$ Simulation
+
+
+DML + DNI (Descartes Modeling Language)
+========================================================
+High-level language → simulation models
+
+**Simulators**: OMNeT++, 2 x QPN
+- Each simulator uses different abstractions
+- Each requires specific knowledge
+
+**Tradeoff**: accuracy vs. simulation overhead
+
+
+Related Work
+========================================================
+**Probabilistic models**
+- TODO link
+- TODO link
+- TODO link
+
+**LIMBO**
+- A load Intensity modeling platform
+
+
+Typical traffic dumps
+========================================================
+```{r, echo=FALSE}
+library(trafficmsd)
+par(mfrow=c(4,1), mar=c(2,4,0,1), oma=c(.5, .5, .5, .5))
+plot_traffic(sample_vidstream, area.color = "black")
+plot_traffic(sample_linkcap, area.color = "red")
+plot_traffic(sample_withoutliers, area.color = "green")
+plot_traffic(sample_regsignal, area.color = "blue")
+```
+
+
+Typical traffic dumps - densities
+========================================================
+```{r, echo=FALSE}
+plot_traffic_densities(
+  list(sample_vidstream, sample_linkcap, sample_withoutliers, sample_regsignal),
+  c("black", "red", "green", "blue") )
+```
+
+
+Model of a simple traffic generator
+========================================================
+$G = (scale, amplitude, begin, end)$
+
+Parameter     | Description
+--------------|-------------------------------------------------
+**scale**     | Generator emits packets every $2^{scale}$ seconds.
+**amplitude** | Size of the packet to be emitted.
+**begin**     | Beginning of the activity
+**end**       | End of the activity
+
+
+Decomposition into traffic generators
+========================================================
+TODO Image
+
+
+Example: 10 minutes of traffic - before optimization
+========================================================
+```{r, echo=FALSE}
+library(dplyr)
+par(mfrow=c(4,1), mar=c(2,4,0,1), oma=c(.5, .5, .5, .5))
+sample_linkcap -> s1
+s1 %>% decompose -> D
+D  %>% reconstruct -> s2
+
+plot_traffic(s1, s2)
+plot_spectrum(D$coef, show.spectrum = FALSE)
+plot_scaleogram(s1, title = "Original Signal")
+plot_scaleogram(s2, title = "Reconstructed Signal")
+```
+
+Example: 10 minutes of traffic - moderate optimization
+========================================================
+```{r, echo=FALSE}
+
+sample_linkcap -> s1
+s1 %>% cluster_by_amplitude(num.cl = 5) %>% .$thdata -> sc
+sc %>% decompose(cutoff.fraction = 0.02) -> D
+D  %>% reconstruct -> s2
+
+par(mfrow=c(4,1), mar=c(2,4,0,1), oma=c(.5, .5, .5, .5))
+plot_traffic(s1, s2)
+plot_spectrum(D$coef, show.spectrum = FALSE)
+plot_scaleogram(s1, title = "Original Signal")
+plot_scaleogram(s2, title = "Reconstructed Signal")
+```
