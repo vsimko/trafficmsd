@@ -1,3 +1,8 @@
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='images-gen/',
+                      dpi=100, echo=FALSE, warning=FALSE, message=FALSE)
+```
+
 Automated Extraction of Network Traffic Models Suitable for Performance Simulation
 ========================================================
 author: Viliam Simko
@@ -72,7 +77,7 @@ Related Work
 
 Typical traffic dumps
 ========================================================
-```{r, echo=FALSE}
+```{r dumps}
 library(trafficmsd)
 par(mfrow=c(4,1), mar=c(2,4,0,1), oma=c(.5, .5, .5, .5))
 plot_traffic(sample_vidstream, area.color = "black")
@@ -84,7 +89,7 @@ plot_traffic(sample_regsignal, area.color = "blue")
 
 Typical traffic dumps - densities
 ========================================================
-```{r, echo=FALSE}
+```{r densities, fig.height=4}
 plot_traffic_densities(
   list(sample_vidstream, sample_linkcap, sample_withoutliers, sample_regsignal),
   c("black", "red", "green", "blue") )

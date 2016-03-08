@@ -1,3 +1,5 @@
+
+
 Automated Extraction of Network Traffic Models Suitable for Performance Simulation
 ========================================================
 author: Viliam Simko
@@ -72,12 +74,12 @@ Related Work
 
 Typical traffic dumps
 ========================================================
-![plot of chunk unnamed-chunk-1](msd-paper-presentation-figure/unnamed-chunk-1-1.png)
+![plot of chunk dumps](images-gen/dumps-1.png)
 
 
 Typical traffic dumps - densities
 ========================================================
-![plot of chunk unnamed-chunk-2](msd-paper-presentation-figure/unnamed-chunk-2-1.png)
+![plot of chunk densities](images-gen/densities-1.png)
 
 
 Model of a simple traffic generator
