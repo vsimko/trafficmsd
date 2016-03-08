@@ -1,5 +1,7 @@
+context("plotting")
 suppressMessages(library(dplyr))
-pdf(NULL)
+
+pdf(NULL) # suppress generating any PDFs
 
 test_that("Padding signal to power of two", {
    expect_equal( pad_power2(1:16) , 1:16 )
