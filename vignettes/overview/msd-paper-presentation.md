@@ -48,6 +48,7 @@ Requirements
 High-level overview
 ========================================================
 TODO Image $\rightarrow$ Simulation
+![](images/overview-schema.png)
 
 
 DML + DNI (Descartes Modeling Language)
