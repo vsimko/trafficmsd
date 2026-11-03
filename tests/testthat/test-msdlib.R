@@ -98,3 +98,38 @@ test_that("print_stats", {
 test_that("plot_traffic_densities", {
   plot_traffic_densities(list(sample_regsignal, sample_vidstream))
 })
+
+
+test_that("Signal validation and padding preserve numeric data", {
+  expect_error(decompose_traffic(1:17), "power of two")
+  expect_error(decompose_traffic(c(rep(1, 15), NA_real_)), "finite")
+  expect_error(decompose_traffic(c(rep(1, 15), Inf)), "finite")
+  expect_equal(pad_power2(rep(1.25, 17)), c(rep(1.25, 17), rep(0, 15)))
+  expect_equal(sum(decompose_traffic(rep(1.25, 16))$coef), 20)
+})
+
+test_that("Cluster estimation handles degenerate signals", {
+  expect_equal(estimate_clusters(rep(0, 64)), 1)
+  expect_equal(estimate_clusters(rep(3.5, 64)), 1)
+  expect_error(estimate_clusters(c(1, NA_real_)), "finite")
+  expect_error(estimate_clusters(rep(1, 64), max.cl = 2))
+})
+
+test_that("Clustering is reproducible and does not change caller RNG state", {
+  set.seed(123)
+  before <- .Random.seed
+  a <- cluster_by_amplitude(rep(1:8, each = 8), 3, seed = 42)
+  expect_identical(.Random.seed, before)
+  b <- cluster_by_amplitude(rep(1:8, each = 8), 3, seed = 42)
+  expect_equal(a$cfit$cluster, b$cfit$cluster)
+  expect_equal(a$cfit$centers, b$cfit$centers)
+  expect_error(cluster_by_amplitude(1:10, 0))
+  expect_error(cluster_by_amplitude(1:10, 2.5))
+})
+
+test_that("Decomposition preserves fractional input precision", {
+  signal <- rep(1.25, 32)
+  result <- decompose_traffic(signal)
+  expect_type(result$coef, "double")
+  expect_equal(sum(result$coef), sum(signal), tolerance = 1e-10)
+})
