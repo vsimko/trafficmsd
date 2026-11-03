@@ -42,16 +42,17 @@ jobs:
         shell: bash
         run: |
           PACKAGE_TARBALL=$(ls -1 trafficmsd_*.tar.gz | head -n 1)
-          R CMD INSTALL --library="${R_LIBS_USER}" "${PACKAGE_TARBALL}"
-          Rscript -e 'library(trafficmsd); packageVersion("trafficmsd")'
+          R_LIB=$(Rscript -e 'cat(.libPaths()[1])')
+          R CMD INSTALL --library="${R_LIB}" "${PACKAGE_TARBALL}"
+          Rscript -e 'library(trafficmsd, lib.loc = .libPaths()[1]); packageVersion("trafficmsd")'
 
       - name: Verify installation from GitHub
         env:
           GITHUB_PAT: ${{ github.token }}
           REF: ${{ inputs.ref }}
         run: |
-          Rscript -e 'remotes::install_github(paste0("vsimko/trafficmsd@", Sys.getenv("REF")), lib = Sys.getenv("R_LIBS_USER"), upgrade = "never")'
-          Rscript -e 'library(trafficmsd, lib.loc = Sys.getenv("R_LIBS_USER")); packageVersion("trafficmsd")'
+          Rscript -e 'lib <- .libPaths()[1]; remotes::install_github(paste0("vsimko/trafficmsd@", Sys.getenv("REF")), lib = lib, upgrade = "never")'
+          Rscript -e 'library(trafficmsd, lib.loc = .libPaths()[1]); packageVersion("trafficmsd")'
 
       - name: Check source package
         shell: bash
