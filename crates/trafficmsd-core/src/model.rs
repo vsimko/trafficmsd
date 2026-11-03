@@ -47,7 +47,9 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
                 errors.push("decomposition_sample_count must be a power of two >= 16".to_owned());
             }
             if o > n {
-                errors.push("observed_sample_count cannot exceed decomposition_sample_count".to_owned());
+                errors.push(
+                    "observed_sample_count cannot exceed decomposition_sample_count".to_owned(),
+                );
             }
             (Some(o), Some(n))
         }
@@ -59,7 +61,10 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
 
     if let (Some(o), Some(n), Some(p)) = (observed, extent, padding_count) {
         if n.checked_sub(o) != Some(p) {
-            errors.push("padding_sample_count must equal decomposition_sample_count - observed_sample_count".to_owned());
+            errors.push(
+                "padding_sample_count must equal decomposition_sample_count - observed_sample_count"
+                    .to_owned(),
+            );
         }
     } else if padding_count.is_none() {
         errors.push("padding_sample_count must be a non-negative integer".to_owned());
@@ -106,11 +111,15 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
             errors.push(format!("components[{index}].amplitude must be finite and non-negative"));
         }
         if scale > max_scale {
-            errors.push(format!("components[{index}].scale_index exceeds the model's maximum scale"));
+            errors.push(format!(
+                "components[{index}].scale_index exceeds the model's maximum scale"
+            ));
             continue;
         }
         if start >= n || window == 0 || start.checked_add(window).map_or(true, |end| end > n) {
-            errors.push(format!("components[{index}] window lies outside the decomposition extent"));
+            errors.push(format!(
+                "components[{index}] window lies outside the decomposition extent"
+            ));
             continue;
         }
         if !seen.insert((scale, start)) {
@@ -119,7 +128,9 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
 
         if scale == 0 {
             if window != 1 || emission != start {
-                errors.push(format!("components[{index}] scale-zero component must use a one-sample window and emit at its start"));
+                errors.push(format!(
+                    "components[{index}] scale-zero component must use a one-sample window and emit at its start"
+                ));
             } else {
                 residual_seen.insert(start);
             }
@@ -127,19 +138,28 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
             let expected_window = 1_u64 << scale;
             let expected_emission = start + expected_window / 2 - 1;
             if window != expected_window {
-                errors.push(format!("components[{index}] window_length_samples must equal 2^scale_index"));
+                errors.push(format!(
+                    "components[{index}] window_length_samples must equal 2^scale_index"
+                ));
             }
             if start % expected_window != 0 {
-                errors.push(format!("components[{index}] window_start_sample is not globally aligned"));
+                errors.push(format!(
+                    "components[{index}] window_start_sample is not globally aligned"
+                ));
             }
             if emission != expected_emission {
-                errors.push(format!("components[{index}] emission_sample_index must be the globally aligned center-left sample"));
+                errors.push(format!(
+                    "components[{index}] emission_sample_index must be the globally aligned center-left sample"
+                ));
             }
         }
     }
 
     if residual_seen.len() as u64 != n {
-        errors.push("scale-zero residual must contain exactly one component for every sample index".to_owned());
+        errors.push(
+            "scale-zero residual must contain exactly one component for every sample index"
+                .to_owned(),
+        );
     }
 
     if errors.is_empty() {
@@ -161,7 +181,9 @@ pub fn reconstruct_model_v1(model: &Value) -> Result<Vec<f64>, Vec<String>> {
         .as_u64()
         .expect("validated sample count");
     let Ok(n) = usize::try_from(n) else {
-        return Err(vec!["decomposition_sample_count exceeds this platform's addressable size".to_owned()]);
+        return Err(vec![
+            "decomposition_sample_count exceeds this platform's addressable size".to_owned(),
+        ]);
     };
     let mut output = Vec::new();
     if output.try_reserve_exact(n).is_err() {
