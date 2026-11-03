@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "model_id": "illustrative-linkcap-reconstruction-v1",
+  "model_kind": "multiscale_reconstruction",
+  "provenance": {
+    "dataset_id": "trafficmsd:data-raw/02-heatup-and-linkcap.csv",
+    "source_reference": "Bundled repository trace; source provenance not yet established",
+    "license_status": "unknown",
+    "license_reference": null,
+    "extracted_at": null,
+    "extracted_with": "trafficmsd (illustrative structure only; no decomposition results supplied)",
+    "preprocessing": [
+      "Legacy read_traffic-compatible integer-time aggregation",
+      "sum of Length values per bin"
+    ]
+  },
+  "observation": {
+    "quantity": "sum_of_length",
+    "aggregation": "sum",
+    "sampling_interval": 1,
+    "time_unit": "second",
+    "time_unit_status": "legacy_interpretation_unverified",
+    "time_origin": 0,
+    "value_unit": null,
+    "value_unit_status": "unknown",
+    "bin_convention": "left_closed_right_open"
+  },
+  "coverage": {
+    "observed_start_bin": null,
+    "observed_end_bin_exclusive": null,
+    "observed_sample_count": 1,
+    "decomposition_sample_count": 1,
+    "empty_bin_value": 0,
+    "padding_sample_count": 0
+  },
+  "extraction": {
+    "algorithm": "trafficmsd_multiscale_decomposition",
+    "algorithm_version": "not-yet-recorded",
+    "cutoff_fraction": 0.004
+  },
+  "components": []
+}
