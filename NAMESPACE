@@ -3,6 +3,7 @@
 export(cluster_by_amplitude)
 export(decompose_traffic)
 export(estimate_clusters)
+export(export_model_v1)
 export(get_interval_count)
 export(get_total_intervals)
 export(pad_power2)
