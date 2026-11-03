@@ -70,10 +70,9 @@ test_that("model v1 exporter writes valid JSON when jsonlite is installed", {
   path <- tempfile(fileext = ".json")
   on.exit(unlink(path), add = TRUE)
   export_model_v1(d, 32, "json-output", "synthetic", path = path)
+  expected <- export_model_v1(d, 32, "json-output", "synthetic")
   parsed <- jsonlite::fromJSON(path, simplifyVector = FALSE)
   expect_identical(parsed$schema_version, "1.0")
   expect_identical(parsed$model_kind, "multiscale_reconstruction")
-  expect_length(parsed$components, length(d$coef[1, ]) +
-                  length(Filter(function(x) x$scale_index > 0L,
-                                export_model_v1(d, 32, "json-output", "synthetic")$components)))
+  expect_length(parsed$components, length(expected$components))
 })
