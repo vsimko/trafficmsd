@@ -45,6 +45,14 @@ jobs:
           PACKAGE_TARBALL=$(ls -1 trafficmsd_*.tar.gz | head -n 1)
           R CMD INSTALL --library="${RUNNER_TEMP}/R-library" "${PACKAGE_TARBALL}"
 
+      - name: Verify installation from GitHub
+        env:
+          R_LIBS_USER: ${{ runner.temp }}/R-library-github
+        run: |
+          mkdir -p "${R_LIBS_USER}"
+          Rscript -e 'remotes::install_github("vsimko/trafficmsd@${{ inputs.ref }}", lib = Sys.getenv("R_LIBS_USER"), upgrade = "never")'
+          Rscript -e 'library(trafficmsd, lib.loc = Sys.getenv("R_LIBS_USER")); packageVersion("trafficmsd")'
+
       - name: Check source package
         shell: bash
         run: |
