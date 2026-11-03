@@ -38,3 +38,23 @@ Sources:
 - https://www.scitepress.org/papers/2016/57407/57407.pdf
 
 The schema is in `schemas/model/v1/model.schema.json`.
+
+
+## Semantic validation and reconstruction fidelity
+
+The Rust core provides a semantic validator in `trafficmsd_core::model` in addition to JSON Schema validation. The semantic validator checks:
+
+- observed and decomposition sample counts, power-of-two extent, and padding arithmetic;
+- scale/window length consistency and global window alignment;
+- center-left emission position for each higher-scale component;
+- uniqueness of each scale/window component;
+- exactly one scale-zero residual component for every sample index.
+
+The model is a deterministic reconstruction description, but it is **not necessarily a lossless encoding of the observed signal**. The R extraction algorithm applies `optimize_intervals()` to higher-scale candidate vectors and to the final residual vector. It also subtracts selected higher-scale amplitudes from the residual at their emission positions (clamped at zero). Consequently, interval optimization can change coefficient values and reconstruction can differ from the input signal. The existing R test suite checks output shape and finiteness and permits a relative difference in total sum; it does not establish sample-wise equality.
+
+Therefore:
+- semantic validation answers whether a model is internally well-formed;
+- reconstruction produces the signal defined by the serialized components;
+- reconstruction quality must be evaluated separately against the original observation using explicit metrics and tolerances (tracked in issue #28).
+
+Do not describe a semantically valid model as exact or lossless unless a particular extraction result has independently passed a sample-wise conformance check.
