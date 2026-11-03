@@ -32,26 +32,17 @@ jobs:
           extra-packages: any::rcmdcheck, any::covr, any::lintr
           cache-version: 1
 
-      - name: Run unit tests
-        run: Rscript -e 'testthat::test_local(reporter = "summary")'
-
       - name: Run R CMD check
         uses: r-lib/actions/check-r-package@v2
         with:
           args: ' c("--no-manual", "--as-cran")'
           error-on: '"error"'
 
-      - name: Generate test coverage
-        if: always()
-        run: |
-          Rscript -e 'cov <- covr::package_coverage(); print(cov); covr::report(cov, file = "coverage.html")'
-
-      - name: Upload check and coverage reports
+      - name: Upload check reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: r-check-reports
           path: |
             **/00check.log
-            coverage.html
           if-no-files-found: ignore
