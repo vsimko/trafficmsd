@@ -26,12 +26,15 @@ Treat this file as an undocumented personal development fixture only. It may sup
 
 ### Candidate for reproducible experiments
 
-The UNB CIC VPN-nonVPN dataset (ISCXVPN2016) is a candidate because its documented traffic categories include YouTube/Vimeo streaming and the release includes PCAP captures plus derived flow CSV files. UNB's dataset FAQ states that datasets may be redistributed, republished, and mirrored provided the dataset and associated paper are cited. This is a dataset-specific reuse statement, not an SPDX license identifier; preserve the source terms and citation with any derived artifact.
+The UNB CIC VPN-nonVPN dataset (ISCXVPN2016) is a candidate because its documented traffic categories include YouTube/Vimeo streaming and the release includes PCAP captures plus derived flow CSV files. The original paper describes 28 GB of captures generated with Wireshark/tcpdump, and the official page describes YouTube HTML5/Flash and Vimeo streaming captured using Chrome and Firefox. UNB's dataset FAQ states that datasets may be redistributed, republished, and mirrored provided the dataset and associated paper are cited. This is the publisher's stated reuse condition, not an SPDX license identifier; preserve the source terms and citation with any derived artifact.
 
-Before adoption, inspect the PCAP/CSV contents and confirm that packet timestamps and captured lengths support a defensible fixed-interval byte-volume series. Record the exact subset, download date/version, citation, source URL, transformations, and any applicable terms. Do not commit the full dataset or assume the flow CSV is a substitute for packet-level aggregation.
+Important limitations: the dataset is not guaranteed to be a clean YouTube-only trace; exact application/session-to-file mapping is not documented by UNB; and flow CSVs are derived flow-level data, not a substitute for packet-level time series. The PCAP's captured packet length must not be mislabeled as application payload bytes or wire bytes without checking truncation and link-layer semantics. The official download form returned a server error during the initial assessment, so no files have yet been downloaded or inspected.
+
+Before adoption, inspect the archive and identify exact files from metadata rather than filename guesses. Confirm packet timestamps, captured/original lengths, link-layer type, and background traffic. Define direction policy and fixed-bin aggregation explicitly. Keep raw PCAPs outside Git. The detailed assessment and extraction gates are in [docs/datasets/iscxvpn2016-assessment.md](datasets/iscxvpn2016-assessment.md), tracked by [issue #42](https://github.com/vsimko/trafficmsd/issues/42).
 
 Sources:
 - https://www.unb.ca/cic/datasets/vpn.html
 - https://www.unb.ca/cic/datasets/
+- https://www.scitepress.org/papers/2016/57407/57407.pdf
 
 The schema is in `schemas/model/v1/model.schema.json`.
