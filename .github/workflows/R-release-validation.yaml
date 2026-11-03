@@ -40,10 +40,13 @@ jobs:
 
       - name: Install source package
         shell: bash
+        env:
+          R_LIBS_USER: ${{ runner.temp }}/R-library
         run: |
-          mkdir -p "${RUNNER_TEMP}/R-library"
+          mkdir -p "${R_LIBS_USER}"
           PACKAGE_TARBALL=$(ls -1 trafficmsd_*.tar.gz | head -n 1)
-          R CMD INSTALL --library="${RUNNER_TEMP}/R-library" "${PACKAGE_TARBALL}"
+          R CMD INSTALL --library="${R_LIBS_USER}" "${PACKAGE_TARBALL}"
+          Rscript -e 'library(trafficmsd); packageVersion("trafficmsd")'
 
       - name: Verify installation from GitHub
         env:
