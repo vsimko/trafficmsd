@@ -1,6 +1,10 @@
 #' @import assertthat
 #' @import reshape2
 #' @import scales
+#' @importFrom grDevices col2rgb colorRampPalette rgb
+#' @importFrom graphics axis box contour image legend lines polygon text
+#' @importFrom stats aggregate as.ts density
+#' @importFrom utils read.csv
 NULL
 
 .onAttach <- function(libname, pkgname) {
