@@ -11,6 +11,7 @@
 #' @param model_id Stable non-empty identifier for this model.
 #' @param dataset_id Stable dataset or fixture identifier.
 #' @param path Optional JSON output path. Requires the jsonlite package.
+#' @param extracted_at Optional ISO 8601 extraction timestamp; NULL keeps output reproducible.
 #' @param time_unit One of second, millisecond, microsecond, nanosecond, unknown.
 #' @param time_unit_status Verification status for the time unit.
 #' @param sampling_interval Positive sampling interval in the declared time unit.
@@ -29,6 +30,7 @@ export_model_v1 <- function(decomposition,
                             model_id,
                             dataset_id,
                             path = NULL,
+                            extracted_at = NULL,
                             time_unit = "unknown",
                             time_unit_status = "unknown",
                             sampling_interval = 1,
@@ -114,6 +116,11 @@ export_model_v1 <- function(decomposition,
        is.na(value_unit) || !nzchar(trimws(value_unit)))) {
     stop("`value_unit` must be NULL or a non-empty string.", call. = FALSE)
   }
+  if (!is.null(extracted_at) &&
+      (!is.character(extracted_at) || length(extracted_at) != 1L ||
+       is.na(extracted_at) || !grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", extracted_at))) {
+    stop("`extracted_at` must be NULL or an ISO 8601 UTC timestamp.", call. = FALSE)
+  }
   if (!is.null(path) &&
       (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path))) {
     stop("`path` must be NULL or a non-empty file path.", call. = FALSE)
@@ -167,7 +174,7 @@ export_model_v1 <- function(decomposition,
       source_reference = source_reference,
       license_status = license_status,
       license_reference = license_reference,
-      extracted_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+      extracted_at = extracted_at,
       extracted_with = paste0("trafficmsd/", as.character(utils::packageVersion("trafficmsd"))),
       preprocessing = as.list(preprocessing)
     ),
