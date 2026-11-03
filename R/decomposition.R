@@ -35,7 +35,10 @@
 #' Reads traffic data from a CSV file.
 #' 
 #' The input file should be a CSV files with the first row containing column names.
-#' The file should contain at least two columns: Time, Length
+#' The file must contain numeric \\code{Time} and \\code{Length} columns.
+#' Missing, non-finite, or non-numeric values are rejected. When
+#' \\code{use.power2len = TRUE}, zeroes are appended to the next power-of-two
+#' length; observations are never truncated.
 #' 
 #' @param filename The traffic data will be read from this file.
 #' @param use.power2len Length padded with zeroes to power of 2.
@@ -120,8 +123,12 @@ read_traffic <- function(filename,
 #'  }
 #' }
 #'            
-#' @param ts Input vector which represents regularized time-series.
-#' @param cutoff.fraction How strongly to optimize the coeficients.
+#' @param ts Finite numeric vector representing a regularized time series.
+#'   At least 16 observations are required and the length must be a power of two.
+#' @param cutoff.fraction Fraction used to optimize intervals; must be between
+#'   zero and one (exclusive).
+#' @details Non-power-of-two inputs are rejected. Use \\code{pad_power2()} to
+#'   append zeroes explicitly before decomposition.
 #' @return A structure \code{list(length, maxscale, coef)}
 #' @export
 decompose_traffic <- function(ts, cutoff.fraction = 0.004) {
@@ -223,9 +230,10 @@ decompose_traffic <- function(ts, cutoff.fraction = 0.004) {
   )
 }
 
-#' Pad the signal with zeroes to the nearest higher power of two.
-#' @param ts Input vector of numbers (preferably integers)
-#' @return New vector that is padded with zeroes
+#' Pad the signal with zeroes to the next power-of-two length.
+#' @param ts Finite numeric vector with at least 16 observations.
+#' @return A numeric vector with zeroes appended as needed. Existing values
+#'   are preserved and no observations are truncated.
 #' @export
 pad_power2 <- function(ts) {
 
