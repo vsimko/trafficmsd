@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible problem with trafficmsd
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please include a minimal reproducible example and remove any sensitive traffic data."
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include the full error message.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproducible example
+      description: Provide the smallest R example that reproduces the issue.
+      render: r
+    validations:
+      required: true
+  - type: input
+    id: r-version
+    attributes:
+      label: R version
+      placeholder: "e.g. R 4.5.0"
+    validations:
+      required: true
+  - type: textarea
+    id: session
+    attributes:
+      label: Session information
+      description: Paste the output of sessionInfo().
+      render: text
+    validations:
+      required: false

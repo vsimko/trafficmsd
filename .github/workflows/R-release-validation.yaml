@@ -1,0 +1,73 @@
+name: R release validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to validate
+        required: true
+        default: master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r-release-validation-${{ github.workflow }}-${{ inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Build, install and check source package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
+          extra-packages: any::rcmdcheck, any::remotes
+          cache-version: 1
+
+      - name: Build source package
+        run: R CMD build .
+
+      - name: Install source package
+        shell: bash
+        env:
+          R_LIBS_USER: ${{ runner.temp }}/R-library
+        run: |
+          mkdir -p "${R_LIBS_USER}"
+          PACKAGE_TARBALL=$(ls -1 trafficmsd_*.tar.gz | head -n 1)
+          R CMD INSTALL --library="${R_LIBS_USER}" "${PACKAGE_TARBALL}"
+          Rscript -e 'library(trafficmsd); packageVersion("trafficmsd")'
+
+      - name: Verify installation from GitHub
+        env:
+          R_LIBS_USER: ${{ runner.temp }}/R-library-github
+        run: |
+          mkdir -p "${R_LIBS_USER}"
+          Rscript -e 'remotes::install_github("vsimko/trafficmsd@${{ inputs.ref }}", lib = Sys.getenv("R_LIBS_USER"), upgrade = "never")'
+          Rscript -e 'library(trafficmsd, lib.loc = Sys.getenv("R_LIBS_USER")); packageVersion("trafficmsd")'
+
+      - name: Check source package
+        shell: bash
+        run: |
+          PACKAGE_TARBALL=$(ls -1 trafficmsd_*.tar.gz | head -n 1)
+          R CMD check --as-cran --no-manual "${PACKAGE_TARBALL}"
+
+      - name: Upload source package and check log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validated-r-source-package
+          path: |
+            trafficmsd_*.tar.gz
+            trafficmsd.Rcheck/00check.log
+          if-no-files-found: ignore
