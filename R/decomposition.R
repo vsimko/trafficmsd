@@ -53,12 +53,32 @@ read_traffic <- function(filename,
                          ) {
 
   # preconditions
-  assert_that(is.character(filename))
-  assert_that(file.exists(filename))
-  assert_that(is.logical(use.power2len))
-  assert_that(use.expfactor > 0)
+  if (!is.character(filename) || length(filename) != 1L || is.na(filename) ||
+      !file.exists(filename)) {
+    stop("`filename` must name an existing CSV file.", call. = FALSE)
+  }
+  if (!is.logical(use.power2len) || length(use.power2len) != 1L ||
+      is.na(use.power2len)) {
+    stop("`use.power2len` must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!is.numeric(use.expfactor) || length(use.expfactor) != 1L ||
+      !is.finite(use.expfactor) || use.expfactor <= 0) {
+    stop("`use.expfactor` must be a finite positive number.", call. = FALSE)
+  }
+  if (!is.function(aggregation_function)) {
+    stop("`aggregation_function` must be a function.", call. = FALSE)
+  }
 
   traffic <- read.csv(filename)
+  required_columns <- c("Time", "Length")
+  if (!all(required_columns %in% names(traffic))) {
+    stop("CSV input must contain Time and Length columns.", call. = FALSE)
+  }
+  .validate_signal(traffic$Time, "Time")
+  .validate_signal(traffic$Length, "Length")
+  if (length(traffic$Time) != length(traffic$Length)) {
+    stop("Time and Length columns must have equal lengths.", call. = FALSE)
+  }
 
   # hack that should avoid duplicate keys (1000 duplicates max.)
   index.hack <- (10 ** -9) * index(traffic$Time) %% 1000
