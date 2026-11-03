@@ -2,23 +2,29 @@
 % Please edit documentation in R/decomposition.R
 \name{estimate_clusters}
 \alias{estimate_clusters}
-\title{Estimate number of clusters.}
+\title{Estimate number of clusters}
 \usage{
-estimate_clusters(ts, max.cl = 25, cutoff = 0.1)
+estimate_clusters(ts, max.cl = 25, cutoff = 0.1, seed = 1L,
+  nstart = 25L)
 }
 \arguments{
-\item{ts}{Input vector of numbers (preferably integers), can also be a 
-Time-series object created using \code{ts()} function.}
+\item{ts}{Finite numeric vector or time-series to cluster.}
 
-\item{max.cl}{The maximum number of clusters that the algorithm evaluates.}
+\item{max.cl}{Maximum number of clusters evaluated (integer from 3 to 29).}
 
-\item{cutoff}{Determines how the right number of clusters is chosen.}
+\item{cutoff}{Relative within-cluster sum-of-squares cutoff, between zero
+and one (exclusive).}
+
+\item{seed}{Non-negative integer seed used for reproducible k-means
+initialization, or \code{NULL} to use the current random-number stream.}
+
+\item{nstart}{Number of random initial configurations used by k-means.}
 }
 \value{
-The estimated number of clusters. (More clusters will have
-  \code{sum(witness) < cutoff})
+The estimated number of clusters. Returns one for constant or too-short
+signals where multiple clusters cannot be estimated.
 }
 \description{
-Estimate number of clusters.
+Estimate the number of amplitude clusters using k-means within-cluster
+sum-of-squares.
 }
-

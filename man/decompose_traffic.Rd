@@ -2,29 +2,25 @@
 % Please edit documentation in R/decomposition.R
 \name{decompose_traffic}
 \alias{decompose_traffic}
-\title{Multi-scale decomposition of time series.
-(most important function in this package)}
+\title{Multi-scale decomposition of time series}
 \usage{
 decompose_traffic(ts, cutoff.fraction = 0.004)
 }
 \arguments{
-\item{ts}{Input vector which represents regularized time-series.}
+\item{ts}{Finite numeric vector representing a regularized time series.
+At least 16 observations are required and the length must be a power of two.}
 
-\item{cutoff.fraction}{How strongly to optimize the coeficients.}
+\item{cutoff.fraction}{Fraction used to optimize intervals; must be between
+zero and one (exclusive).}
 }
 \value{
-A structure \code{list(length, maxscale, coef)}
+A structure \code{list(length, maxscale, coef)}. The coefficient matrix
+stores scales in rows (row one is the remainder) and time samples in columns.
 }
 \description{
-The result is a structure \code{list(length, maxscale, coef)} where:
-\describe{
- \item{length}{Size of the input vector (number of samples)}
- \item{maxscale}{What is the maximum scale produced by the decomposition.}
- \item{coef}{
-   The output matrix containing the decomposition coeficients.
-   Rows represent scales (row 1 represents scale 0).
-   Columns represent time (sample with index same as column number).
- }
+Compute the multiscale decomposition of a regularized traffic signal.
 }
+\details{
+Non-power-of-two inputs are rejected. Use \code{pad_power2()} to append
+zeroes explicitly before decomposition.
 }
-

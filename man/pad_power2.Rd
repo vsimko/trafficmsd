@@ -2,17 +2,17 @@
 % Please edit documentation in R/decomposition.R
 \name{pad_power2}
 \alias{pad_power2}
-\title{Pad the signal with zeroes to the nearest higher power of two.}
+\title{Pad a signal with zeroes to a power-of-two length}
 \usage{
 pad_power2(ts)
 }
 \arguments{
-\item{ts}{Input vector of numbers (preferably integers)}
+\item{ts}{Finite numeric vector with at least 16 observations.}
 }
 \value{
-New vector that is padded with zeroes
+A numeric vector with zeroes appended as needed. Existing values are
+preserved and no observations are truncated.
 }
 \description{
-Pad the signal with zeroes to the nearest higher power of two.
+Pad the signal with zeroes to the next power-of-two length.
 }
-

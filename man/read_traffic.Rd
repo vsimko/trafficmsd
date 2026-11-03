@@ -2,26 +2,30 @@
 % Please edit documentation in R/decomposition.R
 \name{read_traffic}
 \alias{read_traffic}
-\title{Reads traffic data from a CSV file.}
+\title{Read traffic data from a CSV file}
 \usage{
 read_traffic(filename, use.power2len = TRUE, use.expfactor = 1,
   aggregation_function = sum)
 }
 \arguments{
-\item{filename}{The traffic data will be read from this file.}
+\item{filename}{Path to an existing CSV file.}
 
-\item{use.power2len}{Length padded with zeroes to power of 2.}
+\item{use.power2len}{If TRUE, append zeroes to reach a power-of-two length.}
 
-\item{use.expfactor}{How should the time be stretched (for debugging)}
+\item{use.expfactor}{Positive finite factor by which timestamps are stretched.}
 
-\item{aggregation_function}{Function to be applied on all samples that
-correspond to the same second.}
+\item{aggregation_function}{Function applied to samples corresponding to
+the same second.}
 }
 \value{
-Time-series object which contains the regularized time series.
+A regularized time-series object.
 }
 \description{
-The input file should be a CSV files with the first row containing column names.
-The file should contain at least two columns: Time, Length
+Read packet traffic from a CSV file containing numeric \code{Time} and
+\code{Length} columns.
 }
-
+\details{
+Missing, non-finite, or non-numeric values are rejected. When
+\code{use.power2len = TRUE}, zeroes are appended; observations are never
+truncated.
+}

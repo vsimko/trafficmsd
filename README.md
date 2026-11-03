@@ -1,11 +1,84 @@
 # trafficmsd
-Multiscale decomposition of network traffic suitable for simulation such as using Queuing Petri Nets.
 
-[![Travis-CI Build Status](https://travis-ci.org/vsimko/trafficmsd.svg?branch=master)](https://travis-ci.org/vsimko/trafficmsd)
-[![codecov.io](https://codecov.io/github/vsimko/trafficmsd/coverage.svg?branch=master)](https://codecov.io/github/vsimko/trafficmsd?branch=master)
+[![R package checks](https://github.com/vsimko/trafficmsd/actions/workflows/R-CMD-check.yaml/badge.svg?branch=master)](https://github.com/vsimko/trafficmsd/actions/workflows/R-CMD-check.yaml)
+[![R unit tests](https://github.com/vsimko/trafficmsd/actions/workflows/R-unit-tests.yaml/badge.svg?branch=master)](https://github.com/vsimko/trafficmsd/actions/workflows/R-unit-tests.yaml)
 
-# Bibtex entry
-``` bibtex
+**trafficmsd** provides multiscale decomposition of network traffic time series,
+with an emphasis on traffic models suitable for performance simulation (for
+example, using Queuing Petri Nets).
+
+## Installation
+
+Install the development version from GitHub:
+
+```r
+install.packages("remotes")
+remotes::install_github("vsimko/trafficmsd")
+```
+
+The package is tested with current R release and R-devel on GitHub Actions.
+The package requires R 3.6.0 or later.
+
+## Quick start
+
+The package includes small example signals. A decomposition input must be a
+finite numeric vector with at least 16 observations and a length that is a
+power of two. Use `pad_power2()` when zero-padding is appropriate for the
+analysis.
+
+```r
+library(trafficmsd)
+
+# Load a bundled example and decompose it.
+data(sample32)
+decomposition <- decompose_traffic(sample32)
+
+# Reconstruct the signal from the decomposition coefficients.
+reconstructed <- reconstruct_traffic(decomposition)
+
+# Inspect the number of intervals and the decomposition spectrum.
+print_stats(decomposition)
+plot_spectrum(decomposition)
+```
+
+For a signal whose length is not a power of two:
+
+```r
+signal <- c(12, 18, 7, 25, 14, 9, 30, 11, 8, 20, 16, 6, 22, 10, 13, 5, 17)
+padded_signal <- pad_power2(signal)
+decomposition <- decompose_traffic(padded_signal)
+```
+
+Padding appends zeros; it does not truncate observations. The returned
+reconstruction therefore has the padded length. Keep the original length if
+you need to trim the reconstructed vector back to the unpadded signal.
+
+## Main functions
+
+- `read_traffic()` reads packet timestamps and lengths from a CSV containing
+  `Time` and `Length` columns and regularizes the signal.
+- `pad_power2()` appends zeros to reach the next power-of-two length.
+- `decompose_traffic()` computes the multiscale decomposition.
+- `reconstruct_traffic()` reconstructs a traffic vector from decomposition
+  coefficients.
+- `estimate_clusters()` estimates an amplitude cluster count.
+- `cluster_by_amplitude()` quantizes amplitudes using k-means.
+- `plot_spectrum()`, `plot_scaleogram()`, and `plot_traffic()` provide
+  visualization helpers.
+
+Clustering uses a local random seed by default so repeated calls are
+reproducible without changing the caller's global random-number state. Pass
+`seed = NULL` to use the current random-number stream, or set `seed` and
+`nstart` explicitly.
+
+See the function help pages (for example, `?decompose_traffic`) for arguments,
+return values, and constraints.
+
+## Research reference
+
+The package accompanies work on automated extraction of network traffic models:
+
+```bibtex
 @inproceedings{Rygielski2016,
   title={Automated Extraction of Network Traffic Models Suitable for Performance Simulation},
   author={Rygielski, Piotr and Simko, Viliam and Sittner, Felix and Aschenbrenner, Doris and Kounev, Samuel and Schilling, Klaus},
@@ -15,3 +88,15 @@ Multiscale decomposition of network traffic suitable for simulation such as usin
   organization={ACM}
 }
 ```
+
+## Development
+
+Run the package checks and test suite from a clean checkout:
+
+```sh
+R CMD build .
+R CMD check --no-manual trafficmsd_*.tar.gz
+Rscript -e 'testthat::test_local()'
+```
+
+Issues and contributions: https://github.com/vsimko/trafficmsd/issues

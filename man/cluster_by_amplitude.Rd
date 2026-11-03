@@ -2,27 +2,30 @@
 % Please edit documentation in R/decomposition.R
 \name{cluster_by_amplitude}
 \alias{cluster_by_amplitude}
-\title{Cluster the time series according to the y-axis using k-means algorithm.}
+\title{Cluster the time series according to amplitude using k-means}
 \usage{
-cluster_by_amplitude(ts, num.cl)
+cluster_by_amplitude(ts, num.cl, seed = 1L, nstart = 25L)
 }
 \arguments{
-\item{ts}{Input vector or a time-series object to be clustered.}
+\item{ts}{Finite numeric vector or time-series to cluster.}
 
-\item{num.cl}{Number of clusters (e.g. estimated by \link{estimate_clusters} function)}
+\item{num.cl}{Number of clusters (e.g. estimated by
+\link{estimate_clusters}).}
+
+\item{seed}{Non-negative integer seed used for reproducible k-means
+initialization, or \code{NULL} to use the current random-number stream.}
+
+\item{nstart}{Number of random initial configurations used by k-means.}
 }
 \value{
-A structure \code{list(data, num.cl, cfit, thdata, abserror, MAE)} where:
-\describe{
- \item{data}{Copied input parameter \code{ts}.}
- \item{num.cl}{Copied input parameter \code{num.cl}.}
- \item{cfit}{Result from the \link{kmeans} function.}
- \item{thdata}{The new time-series object with values replaced with the cluster centers.}
- \item{abserror}{A vector of absolute errors, i.e., \code{abs(data - thdata)}}
- \item{MAE}{Mean of all absolute errors}
-}
+A list containing the original data, effective number of clusters, k-means
+fit, quantized data (\code{thdata}), absolute errors (\code{abserrors}),
+and mean absolute error (\code{MAE}).
 }
 \description{
-Cluster the time series according to the y-axis using k-means algorithm.
+Cluster the time series according to amplitude using the k-means algorithm.
 }
-
+\details{
+The default seed makes results reproducible while restoring the caller's
+random-number state.
+}
