@@ -19,6 +19,7 @@ The current public computational boundary has these behaviors:
 | `reconstruct_traffic()` | Accepts a coefficient matrix or an object containing `coef`; computes emitted contributions and returns their column sums. | Reconstruction invariants and coefficient interchange must be established against the R reference. |
 | `estimate_clusters()` | Uses k-means within-cluster sums of squares; default `seed = 1`, `nstart = 25`; validates finite numeric input and preserves the caller's RNG state when a local seed is supplied. | Stochastic operations need explicit seed and RNG-version metadata in a future versioned command contract. |
 | `cluster_by_amplitude()` | Quantizes numeric samples using k-means; default `seed = 1`, `nstart = 25`; returns fitted clusters, centers, quantized data, absolute errors, and MAE. | Cluster-label ordering and cross-language RNG equivalence need dedicated conformance tests. |
+| `optimize_intervals()` (internal) | Removes short isolated intervals according to `cutoff.fraction`, then interpolates small gaps in the coefficient vector. | Part of the decomposition algorithm; preserve exact boundary and interpolation behavior in the Rust port. |
 
 The current package does not consistently declare the physical units of
 `Time` and `Length` in the raw-event reader. Therefore the normalized v1
@@ -140,7 +141,7 @@ The CLI must preserve numeric values without integer coercion. Locale-specific
 decimal separators and thousands separators are not accepted.
 
 For `reconstruct`, `input_csv` is instead the coefficient table described in
-section 5. The signal metadata describes the reconstructed output. The
+section 6. The signal metadata describes the reconstructed output. The
 coefficient table must be rectangular and complete according to the rules in
 that section.
 
