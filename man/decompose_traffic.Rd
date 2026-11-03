@@ -14,7 +14,7 @@ At least 16 observations are required and the length must be a power of two.}
 zero and one (exclusive).}
 }
 \value{
-A structure \code{list(length, maxscale, coef)}. The coefficient matrix
+A structure \code{list(length, maxscale, cutoff.fraction, coef)}. The coefficient matrix
 stores scales in rows (row one is the remainder) and time samples in columns.
 }
 \description{
