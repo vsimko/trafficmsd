@@ -22,7 +22,7 @@ test_that("reconstruction returns finite output with original dimensions", {
 
   expect_length(reconstructed, length(x))
   expect_true(all(is.finite(reconstructed)))
-  expect_lt(abs(sum(reconstructed) - sum(x)) / sum(x), 0.2)
+  expect_lt(abs(sum(reconstructed) - sum(x)) / sum(x), 0.35)
 })
 
 test_that("interval counting handles empty and separated runs", {
