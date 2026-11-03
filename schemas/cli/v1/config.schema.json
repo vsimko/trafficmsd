@@ -4,7 +4,7 @@
   "title": "TrafficMSD CLI configuration v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "command", "input_csv", "output_csv", "signal", "parameters"],
+  "required": ["schema_version", "command", "input_csv", "signal", "parameters"],
   "properties": {
     "schema_version": { "const": 1 },
     "command": { "enum": ["validate", "decompose", "reconstruct"] },
@@ -24,15 +24,22 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "cutoff_fraction": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
-        "seed": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 }
+        "cutoff_fraction": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 }
       }
     }
   },
   "allOf": [
     {
+      "if": { "properties": { "command": { "enum": ["decompose", "reconstruct"] } }, "required": ["command"] },
+      "then": { "required": ["output_csv"] }
+    },
+    {
       "if": { "properties": { "command": { "const": "decompose" } }, "required": ["command"] },
       "then": { "properties": { "parameters": { "required": ["cutoff_fraction"] } } }
+    },
+    {
+      "if": { "properties": { "command": { "enum": ["validate", "reconstruct"] } }, "required": ["command"] },
+      "then": { "properties": { "parameters": { "not": { "required": ["cutoff_fraction"] } } } }
     }
   ]
 }
