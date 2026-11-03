@@ -1,0 +1,137 @@
+# TrafficMSD Technical Roadmap
+
+**Last updated:** 2026-11-03  
+**Architecture decision:** [ADR 0001 — Rust as the TrafficMSD simulation core](docs/adr/0001-rust-core.md)
+
+## Direction
+
+TrafficMSD is evolving toward a **Rust-based network traffic simulation engine** with a thin R package for visualization and statistical analysis.
+
+The repository remains a single project. Rust owns computationally intensive traffic processing, model extraction, and simulation. The R package remains a supported client and presentation/analysis layer; it is not the implementation home for the simulation engine.
+
+The first cross-language interface is a native command-line executable. It must be usable independently of R. Direct language bindings are deferred until there is evidence that the CLI boundary is insufficient.
+
+This technical roadmap complements (and does not replace) research planning and research-readiness documents. Scientific validation, datasets, and research questions remain separately tracked.
+
+## Target architecture
+
+```text
+                 TrafficMSD Rust workspace
+        +-----------------------------------------+
+        | trafficmsd-core                         |
+        | domain types, algorithms, simulation,   |
+        | validation, deterministic execution    |
+        +----------------------+------------------+
+                               |
+        +----------------------v------------------+
+        | trafficmsd CLI                          |
+        | config, batch runs, input/output, errors|
+        +----------------------+------------------+
+                               |
+                +--------------+--------------+
+                |                             |
+        +-------v--------+             +------v-------+
+        | R package      |             | Other tools  |
+        | thin adapter   |             | shell, etc.  |
+        | plots + stats  |             | CLI clients  |
+        +----------------+             +--------------+
+```
+
+## Principles
+
+1. **One computational source of truth:** domain algorithms live in Rust core, not duplicated in CLI or R wrappers.
+2. **CLI first:** establish a documented, versioned, machine-readable boundary before adding language-specific bindings.
+3. **Keep R useful:** retain plotting, diagrams, and downstream statistical analysis in R.
+4. **Incremental migration:** preserve the current R implementation as a reference until Rust behavior is validated.
+5. **Reproducibility:** explicit configuration, units, versions, and random seeds; stable machine-readable outputs.
+6. **Evidence-led optimization:** benchmark representative workloads before introducing concurrency or lower-level optimizations.
+7. **No premature bindings:** defer FFI and other language bindings until justified by measured limitations.
+
+## Milestones
+
+### M0 — Architecture and migration plan
+
+- [x] Record Rust-core decision in ADR 0001.
+- [x] Establish this technical roadmap.
+- [ ] Create implementation issues and agree their dependencies.
+- [ ] Define supported platforms and initial distribution expectations.
+
+### M1 — Rust workspace foundation
+
+- [ ] Add a Cargo workspace.
+- [ ] Create a domain-focused core library crate and a separate CLI crate.
+- [ ] Establish formatting, linting, unit/integration testing, and CI for stable Rust.
+- [ ] Define error handling, logging, and version reporting conventions.
+- [ ] Keep the core independent of R and CLI concerns.
+
+### M2 — Domain and CLI contracts
+
+- [ ] Inventory existing R algorithms, input assumptions, units, and edge cases.
+- [ ] Define versioned configuration and traffic-data contracts.
+- [ ] Specify CLI commands, exit codes, diagnostics, and output conventions.
+- [ ] Add small, redistributable fixtures and golden/reference results.
+- [ ] Document deterministic execution and random-seed semantics.
+
+### M3 — Model extraction in Rust
+
+- [ ] Port the existing multiscale decomposition and reconstruction behavior.
+- [ ] Port the necessary validation and clustering behavior, based on the algorithm inventory.
+- [ ] Keep algorithm semantics separate from serialization and CLI concerns.
+- [ ] Add numerical, invariant, edge-case, and reproducibility tests.
+- [ ] Compare Rust outputs against the existing R reference implementation.
+
+### M4 — Native CLI
+
+- [ ] Implement CLI commands on top of the Rust core.
+- [ ] Support configuration-driven batch runs.
+- [ ] Provide documented JSON and CSV input/output where appropriate.
+- [ ] Add end-to-end tests from input file to machine-readable result.
+- [ ] Verify the executable works without an R installation.
+
+### M5 — Thin R adapter
+
+- [ ] Define which existing R functions become Rust-backed and which remain native R.
+- [ ] Implement robust executable discovery and invocation from R.
+- [ ] Handle paths, process errors, timeouts, and temporary files safely.
+- [ ] Preserve user-facing R function signatures where practical.
+- [ ] Keep plots, diagrams, and statistical post-processing in R.
+- [ ] Test clean installation and execution on supported platforms.
+
+### M6 — Binary distribution and release
+
+- [ ] Define supported OS/architecture targets and minimum runtime requirements.
+- [ ] Automate reproducible native builds and artifact checks.
+- [ ] Decide how R package installation obtains the matching executable.
+- [ ] Test offline/error/fallback behavior and executable version compatibility.
+- [ ] Document installation, upgrades, and troubleshooting.
+
+### M7 — Performance and future interfaces
+
+- [ ] Establish representative benchmarks against the current R implementation.
+- [ ] Measure core runtime, end-to-end CLI overhead, memory use, and scaling.
+- [ ] Optimize only measured bottlenecks.
+- [ ] Reassess direct R bindings only if process overhead or packaging constraints justify them.
+- [ ] Consider Python or other bindings only when there is a concrete consumer and maintenance plan.
+
+## Migration acceptance gates
+
+The R implementation is not removed merely because a Rust port exists. A computational operation is eligible to become Rust-backed by default when:
+
+- its inputs, outputs, units, and semantics are documented;
+- reference fixtures and edge cases are available;
+- Rust tests cover normal, invalid, and boundary inputs;
+- cross-implementation comparisons pass under justified numerical tolerances;
+- deterministic behavior is verified for fixed seeds where applicable;
+- the CLI contract is documented and exercised end to end;
+- the R adapter reports failures clearly and preserves agreed public behavior.
+
+## Out of scope for the initial migration
+
+- Rewriting visualization and plotting in Rust.
+- Building a network simulator integration before the traffic-generation contract is stable.
+- Direct FFI, Python bindings, WASM, or a server mode.
+- Large-scale scientific experiments or paper preparation as part of the code migration itself.
+
+## Initial implementation work
+
+The migration is tracked through the linked GitHub issues created alongside this roadmap. The recommended order is workspace foundation, domain/CLI contracts, model extraction, CLI implementation, cross-language validation, R adapter, and binary distribution. Dependencies between issues should be respected; implementation may proceed in parallel only where interfaces are agreed.
