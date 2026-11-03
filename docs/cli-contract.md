@@ -7,7 +7,25 @@ This document defines the first CLI boundary. It deliberately separates the tran
 contract (files, metadata, commands, errors) from the scientific traffic-model
 representation tracked in [research issue #27](https://github.com/vsimko/trafficmsd/issues/27).
 
-## 1. Scope and non-goals
+## 1. Existing R API inventory relevant to the CLI
+
+The current public computational boundary has these behaviors:
+
+| R function | Current responsibility and observed contract | Migration note |
+|---|---|---|
+| `read_traffic()` | Reads CSV columns `Time` and `Length`; both must be finite numeric vectors. Applies `use.expfactor` to timestamps, aggregates on integer time keys (default `sum`), converts to a regular time series, optionally pads to a power of two, then replaces remaining missing values with zero. | Raw-event ingestion is not part of CLI schema v1. Timestamp units, length units, and the historical aggregation details need an explicit compatibility decision before porting. |
+| `pad_power2()` | Requires at least 16 finite numeric observations; appends zeros to the next power-of-two length and never truncates. | Padding must remain explicit and preserve the original length as metadata where later trimming is required. |
+| `decompose_traffic()` | Requires at least 16 finite numeric observations and a power-of-two length. Uses `cutoff.fraction` in (0,1), default 0.004. Returns `length`, `maxscale`, and a coefficient matrix; row 1 is the remainder and row `scale + 1` stores that scale. | Algorithmic details and numerical equivalence belong to issue #34/#36, not the transport schema. |
+| `reconstruct_traffic()` | Accepts a coefficient matrix or an object containing `coef`; computes emitted contributions and returns their column sums. | Reconstruction invariants and coefficient interchange must be established against the R reference. |
+| `estimate_clusters()` | Uses k-means within-cluster sums of squares; default `seed = 1`, `nstart = 25`; validates finite numeric input and preserves the caller's RNG state when a local seed is supplied. | Stochastic operations need explicit seed and RNG-version metadata in a future versioned command contract. |
+| `cluster_by_amplitude()` | Quantizes numeric samples using k-means; default `seed = 1`, `nstart = 25`; returns fitted clusters, centers, quantized data, absolute errors, and MAE. | Cluster-label ordering and cross-language RNG equivalence need dedicated conformance tests. |
+
+The current package does not consistently declare the physical units of
+`Time` and `Length` in the raw-event reader. Therefore the normalized v1
+contract requires callers to supply `sampling_interval`, `time_unit`, and
+`value_unit`; it does not infer them from legacy packet files.
+
+## 2. Scope and non-goals
 
 Version 1 accepts an already regularized, uniformly sampled numeric signal. It
 does not yet define raw packet/event ingestion, trace timestamp normalization,
@@ -29,7 +47,7 @@ The first computational operations are:
 
 The initial executable also supports `--help` and `--version`.
 
-## 2. File and path conventions
+## 3. File and path conventions
 
 The CLI is invoked as:
 
@@ -47,7 +65,7 @@ Commands that create output files must not overwrite existing files unless
 `--force` is supplied. Output creation should be atomic where the platform
 allows it (write a temporary sibling file, then rename).
 
-## 3. Configuration schema v1
+## 4. Configuration schema v1
 
 A configuration is a JSON object with these required fields:
 
@@ -89,7 +107,7 @@ meaning, required fields, units, or interpretation requires a new schema
 version. A newer unsupported schema version must fail clearly; the CLI must
 not guess, silently coerce, or auto-upgrade it.
 
-## 4. Normalized signal CSV
+## 5. Normalized signal CSV
 
 For `validate` and `decompose`, the input CSV must be UTF-8, have a header,
 and contain exactly these columns:
@@ -126,7 +144,7 @@ section 5. The signal metadata describes the reconstructed output. The
 coefficient table must be rectangular and complete according to the rules in
 that section.
 
-## 5. Output conventions
+## 6. Output conventions
 
 Signal outputs use the same `sample_index,value` CSV layout. The input to
 `reconstruct` and the output from `decompose` use a long-form coefficient
@@ -155,7 +173,7 @@ sample count, and relevant parameters must be made available alongside
 machine-readable results. The implementation issue #35 will settle the
 sidecar naming and exact output envelope before the CLI is declared stable.
 
-## 6. Commands and validation behavior
+## 7. Commands and validation behavior
 
 - `validate` checks the complete config, input schema, numeric values, sample
   ordering, and operation-independent signal metadata. It creates no output.
@@ -182,7 +200,7 @@ possible. Error messages must not include unstable Rust debug dumps.
 The process exits non-zero on any failure. A failure must not leave a
 partially written final output file.
 
-## 7. Valid and invalid examples
+## 8. Valid and invalid examples
 
 Valid configuration for a 32-sample signal:
 
@@ -226,7 +244,7 @@ The invalid example must be rejected. The CLI should report the unsupported
 schema version first; after that is corrected, it should report invalid
 sampling interval and time unit, then invalid cutoff fraction.
 
-## 8. Compatibility policy
+## 9. Compatibility policy
 
 Schema version 1 is strict: unknown fields and unsupported enum values are
 errors. Any incompatible change increments the schema version. The CLI
@@ -239,7 +257,7 @@ A future model file may be an input to a generation command, but it must have
 its own schema/version and explicit conversion boundary rather than being
 embedded as undocumented fields in this CLI configuration.
 
-## 9. Open implementation decisions
+## 10. Open implementation decisions
 
 The following are intentionally deferred to the implementation/conformance
 issues, not left implicit:
