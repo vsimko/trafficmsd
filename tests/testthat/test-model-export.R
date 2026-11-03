@@ -76,3 +76,25 @@ test_that("model v1 exporter writes valid JSON when jsonlite is installed", {
   expect_identical(parsed$model_kind, "multiscale_reconstruction")
   expect_length(parsed$components, length(expected$components))
 })
+
+test_that("model v1 exporter distinguishes observations from zero padding", {
+  observed <- rep(c(0, 5, 0, 1), 5)
+  padded <- pad_power2(observed)
+  d <- decompose_traffic(padded)
+  model <- export_model_v1(
+    d,
+    observed_sample_count = length(observed),
+    model_id = "padded-observation",
+    dataset_id = "synthetic-padded"
+  )
+
+  expect_equal(model$coverage$observed_sample_count, length(observed))
+  expect_equal(model$coverage$decomposition_sample_count, length(padded))
+  expect_equal(model$coverage$padding_sample_count,
+               length(padded) - length(observed))
+  expect_length(
+    Filter(function(component) component$scale_index == 0L,
+           model$components),
+    length(padded)
+  )
+})
