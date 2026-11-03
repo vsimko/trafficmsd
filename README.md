@@ -8,6 +8,11 @@
 with an emphasis on traffic models suitable for performance simulation (for
 example, using Queuing Petri Nets).
 
+The current package provides analysis and reconstruction capabilities. A
+reconstructed signal should not be interpreted as a statistically validated
+traffic generator; model extraction, generation, and simulation validation are
+separate research steps.
+
 ## Installation
 
 Install the development version from GitHub:
@@ -74,6 +79,14 @@ reproducible without changing the caller's global random-number state. Pass
 
 See the function help pages (for example, `?decompose_traffic`) for arguments,
 return values, and constraints.
+
+## Research direction
+
+The research roadmap focuses on statistically validated network traffic
+models and synthetic traffic generation for performance simulation.
+
+- [Research and development roadmap](ROADMAP.md)
+- [Research readiness specification](docs/RESEARCH_READINESS.md)
 
 ## Research reference
 
