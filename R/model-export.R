@@ -17,6 +17,7 @@
 #' @param time_origin Numeric origin of sample zero.
 #' @param value_unit Physical unit of the observed values, or NULL if unknown.
 #' @param value_unit_status Verification status for the value unit.
+#' @param cutoff_fraction Fraction used by the extraction algorithm.
 #' @param license_status Provenance license status.
 #' @param source_reference Source URL or reference, or NULL.
 #' @param license_reference License terms URL or reference, or NULL.
@@ -34,6 +35,7 @@ export_model_v1 <- function(decomposition,
                             time_origin = 0,
                             value_unit = NULL,
                             value_unit_status = "unknown",
+                            cutoff_fraction = 0.004,
                             license_status = "unknown",
                             source_reference = NULL,
                             license_reference = NULL,
@@ -48,8 +50,9 @@ export_model_v1 <- function(decomposition,
   }
 
   if (!is.numeric(coef) || length(dim(coef)) != 2L ||
-      nrow(coef) < 5L || ncol(coef) < 16L ||
-      ncol(coef) != 2^round(log2(ncol(coef)))) {
+      ncol(coef) < 16L ||
+      ncol(coef) != 2^round(log2(ncol(coef))) ||
+      nrow(coef) != as.integer(log2(ncol(coef))) + 1L) {
     stop("`decomposition` must have at least 5 scales and a power-of-two width >= 16.",
          call. = FALSE)
   }
@@ -80,6 +83,17 @@ export_model_v1 <- function(decomposition,
       !value_unit_status %in% c("verified", "unknown") ||
       !license_status %in% c("verified", "unknown", "restricted", "not_redistributable")) {
     stop("One or more unit or license status values are invalid.", call. = FALSE)
+  }
+  if ((time_unit == "unknown" && time_unit_status != "unknown") ||
+      (is.null(value_unit) && value_unit_status != "unknown") ||
+      (!is.null(value_unit) && value_unit_status == "unknown")) {
+    stop("Unit values and their verification statuses must be consistent.",
+         call. = FALSE)
+  }
+  if (length(cutoff_fraction) != 1L || !is.numeric(cutoff_fraction) ||
+      !is.finite(cutoff_fraction) || cutoff_fraction <= 0 || cutoff_fraction >= 1) {
+    stop("`cutoff_fraction` must be a finite number between 0 and 1.",
+         call. = FALSE)
   }
   if (length(sampling_interval) != 1L || !is.numeric(sampling_interval) ||
       !is.finite(sampling_interval) || sampling_interval <= 0 ||
@@ -170,7 +184,7 @@ export_model_v1 <- function(decomposition,
     extraction = list(
       algorithm = "trafficmsd_multiscale_decomposition",
       algorithm_version = as.character(utils::packageVersion("trafficmsd")),
-      cutoff_fraction = 0.004
+      cutoff_fraction = as.numeric(cutoff_fraction)
     ),
     components = components
   )
