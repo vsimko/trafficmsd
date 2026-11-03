@@ -3,7 +3,12 @@
 ^data-raw$
 ^\.travis\.yml$
 ^doc$
+^docs$
 ^\.github$
 ^RELEASE\.md$
 ^SECURITY\.md$
 ^vignettes$
+^Cargo\.toml$
+^Cargo\.lock$
+^crates$
+^rust-toolchain\.toml$
