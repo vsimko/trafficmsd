@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trafficmsd.org/schemas/cli/v1/config.schema.json",
+  "title": "TrafficMSD CLI configuration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "command",
+    "input_csv",
+    "signal",
+    "parameters"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "command": {
+      "enum": [
+        "validate",
+        "decompose",
+        "reconstruct"
+      ]
+    },
+    "input_csv": {
+      "type": "string",
+      "minLength": 1
+    },
+    "output_csv": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sampling_interval",
+        "time_unit",
+        "value_unit"
+      ],
+      "properties": {
+        "sampling_interval": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "time_unit": {
+          "enum": [
+            "s",
+            "ms",
+            "us",
+            "ns"
+          ]
+        },
+        "value_unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cutoff_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "enum": [
+              "decompose",
+              "reconstruct"
+            ]
+          }
+        },
+        "required": [
+          "command"
+        ]
+      },
+      "then": {
+        "required": [
+          "output_csv"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "decompose"
+          }
+        },
+        "required": [
+          "command"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "required": [
+              "cutoff_fraction"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "enum": [
+              "validate",
+              "reconstruct"
+            ]
+          }
+        },
+        "required": [
+          "command"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "not": {
+              "required": [
+                "cutoff_fraction"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "validate"
+          }
+        },
+        "required": [
+          "command"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "output_csv"
+          ]
+        }
+      }
+    }
+  ]
+}

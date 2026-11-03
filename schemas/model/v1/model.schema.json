@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trafficmsd.org/schemas/model/v1/model.schema.json",
+  "title": "TrafficMSD extracted traffic model v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "model_id",
+    "model_kind",
+    "provenance",
+    "observation",
+    "coverage",
+    "extraction",
+    "components"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_kind": {
+      "const": "multiscale_reconstruction"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "source_reference",
+        "license_status",
+        "extracted_with"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license_status": {
+          "enum": [
+            "verified",
+            "unknown",
+            "restricted",
+            "not_redistributable"
+          ]
+        },
+        "license_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "extracted_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "extracted_with": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preprocessing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quantity",
+        "aggregation",
+        "sampling_interval",
+        "time_unit",
+        "time_unit_status",
+        "time_origin",
+        "value_unit",
+        "value_unit_status",
+        "bin_convention"
+      ],
+      "properties": {
+        "quantity": {
+          "const": "sum_of_length"
+        },
+        "aggregation": {
+          "const": "sum"
+        },
+        "sampling_interval": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "time_unit": {
+          "enum": [
+            "second",
+            "millisecond",
+            "microsecond",
+            "nanosecond",
+            "unknown"
+          ]
+        },
+        "time_unit_status": {
+          "enum": [
+            "verified",
+            "legacy_interpretation_unverified",
+            "unknown"
+          ]
+        },
+        "time_origin": {
+          "type": "number"
+        },
+        "value_unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value_unit_status": {
+          "enum": [
+            "verified",
+            "unknown"
+          ]
+        },
+        "bin_convention": {
+          "const": "left_closed_right_open"
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observed_sample_count",
+        "decomposition_sample_count",
+        "empty_bin_value",
+        "padding_sample_count"
+      ],
+      "properties": {
+        "observed_start_bin": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "observed_end_bin_exclusive": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "observed_sample_count": {
+          "type": "integer",
+          "minimum": 16
+        },
+        "decomposition_sample_count": {
+          "type": "integer",
+          "minimum": 16
+        },
+        "empty_bin_value": {
+          "const": 0
+        },
+        "padding_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "algorithm_version",
+        "cutoff_fraction"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "trafficmsd_multiscale_decomposition"
+        },
+        "algorithm_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cutoff_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scale_index",
+          "window_start_sample",
+          "window_length_samples",
+          "emission_sample_index",
+          "amplitude"
+        ],
+        "properties": {
+          "scale_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "window_start_sample": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "window_length_samples": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "emission_sample_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "amplitude": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
