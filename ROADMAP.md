@@ -134,4 +134,15 @@ The R implementation is not removed merely because a Rust port exists. A computa
 
 ## Initial implementation work
 
-The migration is tracked through the linked GitHub issues created alongside this roadmap. The recommended order is workspace foundation, domain/CLI contracts, model extraction, CLI implementation, cross-language validation, R adapter, and binary distribution. Dependencies between issues should be respected; implementation may proceed in parallel only where interfaces are agreed.
+The migration is tracked through these GitHub issues:
+
+1. [#32 — Rust workspace and independent core crate](https://github.com/vsimko/trafficmsd/issues/32)
+2. [#33 — Versioned traffic inputs, configuration, and CLI contract](https://github.com/vsimko/trafficmsd/issues/33)
+3. [#34 — Extract existing multiscale algorithms into Rust core](https://github.com/vsimko/trafficmsd/issues/34)
+4. [#35 — Standalone Rust CLI](https://github.com/vsimko/trafficmsd/issues/35)
+5. [#36 — R-versus-Rust conformance and reproducibility tests](https://github.com/vsimko/trafficmsd/issues/36)
+6. [#37 — Thin R adapter over the Rust CLI](https://github.com/vsimko/trafficmsd/issues/37)
+7. [#38 — Cross-platform Rust CLI binary distribution](https://github.com/vsimko/trafficmsd/issues/38)
+8. [#39 — Rust versus R performance benchmarks](https://github.com/vsimko/trafficmsd/issues/39)
+
+The recommended dependency order is workspace and contracts first, followed by algorithm extraction and CLI implementation. Conformance testing should gate the R adapter rollout; binary distribution must be designed together with the adapter. Benchmarking begins once equivalent core and CLI paths exist.
