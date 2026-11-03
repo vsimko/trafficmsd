@@ -29,13 +29,13 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           needs: check
-          extra-packages: any::rcmdcheck, any::covr, any::lintr
+          extra-packages: any::rcmdcheck
           cache-version: 1
 
       - name: Run R CMD check
         uses: r-lib/actions/check-r-package@v2
         with:
-          args: ' c("--no-manual", "--as-cran")'
+          args: 'c("--no-manual", "--as-cran")'
           error-on: '"error"'
 
       - name: Upload check reports
