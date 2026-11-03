@@ -255,6 +255,8 @@ pad_power2 <- function(ts) {
 #' @export
 get_interval_count <- function(vec) {
 
+  if (length(vec) == 0L) return(0L)
+
   count <- 0
   last  <- 0
 
