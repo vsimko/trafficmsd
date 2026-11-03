@@ -56,7 +56,7 @@ test_that("Estimating number of clusters", {
   expect_error(data %>% estimate_clusters(cutoff = -1))
   expect_error(data %>% estimate_clusters(cutoff =  0))
 
-  data %>% estimate_clusters(max.cl = 29) %>% expect_more_than(2)
+  data %>% estimate_clusters(max.cl = 29) %>% expect_gt(2)
 })
 
 test_that("Clustering by amplitude", {
@@ -72,8 +72,8 @@ test_that("Model size", {
   sample32 %>% decompose_traffic %>% .$coef %>%
     get_total_intervals %>% expect_equal(6)
 
-  sample(100) %>% decompose_traffic %>% .$coef %>%
-    get_total_intervals %>% expect_more_than(10)
+  pad_power2(sample(100)) %>% decompose_traffic %>% .$coef %>%
+    get_total_intervals %>% expect_gt(10)
 })
 
 test_that("Reconstruction", {
@@ -85,14 +85,14 @@ test_that("Reconstruction", {
 
   # testing
   expect_equal(length(sample32), length(out))
-  expect_less_than( abs(s1 - s2) / s1, .2)
+  expect_lt(abs(s1 - s2) / s1, .2)
 })
 
 test_that("print_stats", {
   cmd <- function() {
     sample32 %>% decompose_traffic %>% print_stats
   }
-  capture.output(cmd()) %>% expect_output("Total number of intervals: *6")
+  expect_output(cmd(), "Total number of intervals: *6")
 })
 
 test_that("plot_traffic_densities", {
