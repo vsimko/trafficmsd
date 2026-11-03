@@ -4,6 +4,8 @@
 //! language-specific adapters. Simulation types and algorithms will be
 //! introduced here incrementally as their contracts are specified.
 
+pub mod model;
+
 /// Returns the version of the core crate.
 pub const fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
