@@ -190,60 +190,10 @@ mod tests {
     use serde_json::{json, Value};
 
     fn fixture() -> Value {
-        let mut components: Vec<Value> = (0..16)
-            .map(|i| json!({
-                "scale_index": 0,
-                "window_start_sample": i,
-                "window_length_samples": 1,
-                "emission_sample_index": i,
-                "amplitude": if i == 1 { 3.0 } else { 0.0 }
-            }))
-            .collect();
-        components.push(json!({
-            "scale_index": 2,
-            "window_start_sample": 0,
-            "window_length_samples": 4,
-            "emission_sample_index": 1,
-            "amplitude": 7.0
-        }));
-
-        json!({
-            "schema_version": "1.0",
-            "model_id": "synthetic-multiscale-16",
-            "model_kind": "multiscale_reconstruction",
-            "provenance": {
-                "dataset_id": "synthetic-fixture",
-                "source_reference": null,
-                "license_status": "verified",
-                "license_reference": null,
-                "extracted_at": null,
-                "extracted_with": "unit-test",
-                "preprocessing": []
-            },
-            "observation": {
-                "quantity": "sum_of_length",
-                "aggregation": "sum",
-                "sampling_interval": 1,
-                "time_unit": "second",
-                "time_unit_status": "verified",
-                "time_origin": 0,
-                "value_unit": "bytes",
-                "value_unit_status": "verified",
-                "bin_convention": "left_closed_right_open"
-            },
-            "coverage": {
-                "observed_sample_count": 16,
-                "decomposition_sample_count": 16,
-                "empty_bin_value": 0,
-                "padding_sample_count": 0
-            },
-            "extraction": {
-                "algorithm": "trafficmsd_multiscale_decomposition",
-                "algorithm_version": "test",
-                "cutoff_fraction": 0.004
-            },
-            "components": components
-        })
+        serde_json::from_str(include_str!(
+            "../../../examples/models/v1/synthetic-multiscale-16.json"
+        ))
+        .expect("the checked-in model v1 fixture must be valid JSON")
     }
 
     #[test]
