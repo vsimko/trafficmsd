@@ -2,7 +2,7 @@ name: R unit tests
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, "feature/**", "research/**"]
   pull_request:
     branches: [master, main]
   workflow_dispatch:
