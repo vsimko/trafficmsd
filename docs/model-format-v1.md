@@ -58,3 +58,43 @@ Therefore:
 - reconstruction quality must be evaluated separately against the original observation using explicit metrics and tolerances (tracked in issue #28).
 
 Do not describe a semantically valid model as exact or lossless unless a particular extraction result has independently passed a sample-wise conformance check.
+
+## R reference exporter
+
+The R API `export_model_v1()` converts the output of `decompose_traffic()`
+into this representation. It preserves every scale-zero residual sample,
+including zeros, and serializes higher-scale components only at the
+center-left emission position selected by the legacy `compute_emits()` filter.
+The decomposition result now retains its `cutoff.fraction` so the exporter
+can record the actual extraction setting. When a coefficient matrix is passed
+directly, callers must provide `cutoff_fraction` explicitly.
+
+The exporter defaults time and value units to unknown and does not infer bytes
+or seconds. Supply verified units only when supported by dataset provenance.
+The optional `extracted_at` timestamp defaults to null so repeated exports can
+be byte-for-byte reproducible apart from JSON formatting/runtime metadata.
+Writing JSON requires the optional `jsonlite` package.
+
+Example:
+
+```r
+x <- rep(c(0, 4, 0, 2), 8)
+d <- decompose_traffic(x)
+model <- export_model_v1(
+  d,
+  observed_sample_count = length(x),
+  model_id = "synthetic-periodic-32",
+  dataset_id = "synthetic-periodic-32"
+)
+export_model_v1(
+  d,
+  observed_sample_count = length(x),
+  model_id = "synthetic-periodic-32",
+  dataset_id = "synthetic-periodic-32",
+  path = "synthetic-periodic-32.json"
+)
+```
+
+The exporter and its conformance tests are a reference-generation mechanism;
+a committed golden fixture must be produced by running this code under R and
+reviewing the resulting JSON, not by hand-transcribing coefficients.
