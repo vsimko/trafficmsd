@@ -82,7 +82,7 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
 
     let max_scale = n.trailing_zeros() as u64;
     let mut seen = HashSet::new();
-    let mut residual_seen = vec![false; n as usize];
+    let mut residual_seen = HashSet::new();
 
     for (index, component) in components.iter().enumerate() {
         let Some(c) = component.as_object() else {
@@ -121,7 +121,7 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
             if window != 1 || emission != start {
                 errors.push(format!("components[{index}] scale-zero component must use a one-sample window and emit at its start"));
             } else {
-                residual_seen[start as usize] = true;
+                residual_seen.insert(start);
             }
         } else {
             let expected_window = 1_u64 << scale;
@@ -138,7 +138,7 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
         }
     }
 
-    if residual_seen.iter().any(|seen| !seen) {
+    if residual_seen.len() as u64 != n {
         errors.push("scale-zero residual must contain exactly one component for every sample index".to_owned());
     }
 
@@ -159,8 +159,15 @@ pub fn reconstruct_model_v1(model: &Value) -> Result<Vec<f64>, Vec<String>> {
     let root = model.as_object().expect("validated object");
     let n = root["coverage"]["decomposition_sample_count"]
         .as_u64()
-        .expect("validated sample count") as usize;
-    let mut output = vec![0.0_f64; n];
+        .expect("validated sample count");
+    let Ok(n) = usize::try_from(n) else {
+        return Err(vec!["decomposition_sample_count exceeds this platform's addressable size".to_owned()]);
+    };
+    let mut output = Vec::new();
+    if output.try_reserve_exact(n).is_err() {
+        return Err(vec!["decomposition_sample_count is too large to allocate".to_owned()]);
+    }
+    output.resize(n, 0.0_f64);
 
     for component in root["components"].as_array().expect("validated components") {
         let emission = component["emission_sample_index"]
