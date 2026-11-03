@@ -18,4 +18,20 @@ These are reconstruction semantics, not a stochastic traffic generator. Future g
 
 Record trace identity, source reference, license status, extraction software, preprocessing, time unit and its verification status, value unit and its verification status, sampling interval, and bin origin. Keep observed sample count distinct from power-of-two padding. Semantic validation must check scale/window consistency, emission positions, coverage, and provenance/unit consistency.
 
-The bundled `data-raw/02-heatup-and-linkcap.csv` has `Time` and `Length` columns, but repository metadata does not currently establish the physical units or redistribution license. A trace-derived validated example remains blocked on provenance confirmation. The schema is in `schemas/model/v1/model.schema.json`.
+### Legacy local trace
+
+The bundled `data-raw/02-heatup-and-linkcap.csv` has `Time` and `Length` columns. The maintainer confirms that it was manually captured on a personal laptop during ordinary use (possibly while watching YouTube), solely to obtain sample data for an earlier article. The exact application/session, capture procedure, timestamp clock, physical units, and redistribution rights are unknown.
+
+Treat this file as an undocumented personal development fixture only. It may support local smoke tests and legacy compatibility checks, but must not be described as a public dataset, used as a scientific benchmark, or used to support claims about real-world traffic. Do not redistribute it as a research artifact. Keep provenance and units explicitly unknown.
+
+### Candidate for reproducible experiments
+
+The UNB CIC VPN-nonVPN dataset (ISCXVPN2016) is a candidate because its documented traffic categories include YouTube/Vimeo streaming and the release includes PCAP captures plus derived flow CSV files. UNB's dataset FAQ states that datasets may be redistributed, republished, and mirrored provided the dataset and associated paper are cited. This is a dataset-specific reuse statement, not an SPDX license identifier; preserve the source terms and citation with any derived artifact.
+
+Before adoption, inspect the PCAP/CSV contents and confirm that packet timestamps and captured lengths support a defensible fixed-interval byte-volume series. Record the exact subset, download date/version, citation, source URL, transformations, and any applicable terms. Do not commit the full dataset or assume the flow CSV is a substitute for packet-level aggregation.
+
+Sources:
+- https://www.unb.ca/cic/datasets/vpn.html
+- https://www.unb.ca/cic/datasets/
+
+The schema is in `schemas/model/v1/model.schema.json`.
