@@ -53,7 +53,7 @@ This technical roadmap complements (and does not replace) research planning and 
 
 - [x] Record Rust-core decision in ADR 0001.
 - [x] Establish this technical roadmap.
-- [ ] Create implementation issues and agree their dependencies.
+- [x] Create implementation issues and agree their dependencies.
 - [ ] Define supported platforms and initial distribution expectations.
 
 ### M1 — Rust workspace foundation
