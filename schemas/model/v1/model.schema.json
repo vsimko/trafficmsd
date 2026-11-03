@@ -89,7 +89,8 @@
         "time_unit_status",
         "time_origin",
         "value_unit",
-        "value_unit_status"
+        "value_unit_status",
+        "bin_convention"
       ],
       "properties": {
         "quantity": {
@@ -162,11 +163,11 @@
         },
         "observed_sample_count": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 16
         },
         "decomposition_sample_count": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 16
         },
         "empty_bin_value": {
           "const": 0
