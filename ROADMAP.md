@@ -2,77 +2,81 @@
 
 ## Strategic direction
 
-The primary research direction for `trafficmsd` is **network traffic simulation**. The goal is to develop a reproducible method that transforms measured network traffic into statistically validated traffic models and generators suitable for performance simulation.
+The primary direction for `trafficmsd` is **network traffic model extraction**. The immediate goal is to turn measured network traffic into a compact, interpretable, reusable model using the package's multiscale analysis capabilities.
 
-The current R package provides multiscale decomposition, reconstruction, and amplitude clustering. These capabilities are a foundation for model extraction; they do not, by themselves, establish that generated traffic is statistically realistic or suitable for a target simulator.
+Traffic generation and performance-simulation integration are downstream capabilities. They should be developed only after the extracted model has a clear representation and its quality can be assessed.
+
+The current R package provides multiscale decomposition, reconstruction, and amplitude clustering. These capabilities are a foundation for model extraction; they do not, by themselves, establish that an extracted model is complete or statistically representative.
 
 ## Guiding principles
 
 - Preserve the existing package as the reusable algorithmic core.
-- Separate signal decomposition, traffic-model representation, traffic generation, and simulator integration into explicit stages.
-- Evaluate generated traffic against measured traces and relevant baseline models.
-- Make experiments reproducible through versioned configurations, data provenance, fixed seeds, and machine-readable results.
-- Keep research claims proportional to the evidence and document limitations.
+- Make model extraction and model representation the first-class development concerns.
+- Separate analysis, model representation, generation, and simulator integration into explicit stages.
+- Validate each stage with documented data, assumptions, and measurable criteria.
+- Keep implementation reproducible through versioned configurations, data provenance, fixed seeds, and machine-readable results.
+- Treat scientific publications as a possible later outcome, not a current project deliverable.
 
 ## Work plan
 
-### Phase 0 — Research readiness
+### Phase 0 — Define the extraction problem
 
-- Agree on research questions, scope, terminology, and intended simulation use cases.
-- Define the formal representation of an extracted traffic model.
-- Specify datasets, baselines, metrics, and acceptance criteria.
-- Decide how experiment code, results, and paper sources will be versioned.
+- Select the initial traffic domain and the traffic quantity to model.
+- Define the purpose and expected contents of an extracted model.
+- Document preprocessing, temporal resolution, and segmentation assumptions.
+- Identify suitable traces and their licenses.
 
-**Exit criteria:** the research protocol is specific enough that an independent researcher can implement and reproduce the first evaluation.
+**Exit criteria:** the extraction task, inputs, outputs, assumptions, and initial evaluation criteria are explicit.
 
-### Phase 1 — Reproducible evaluation
+### Phase 1 — Formalize the traffic-model representation
 
-- Build a repeatable pipeline for loading and preprocessing traces.
-- Record dataset provenance, licenses, checksums, preprocessing parameters, and train/test splits.
-- Implement baseline models and common evaluation metrics.
-- Export machine-readable results and figures from scripted runs.
+- Define a versioned schema for a traffic model and its components.
+- Specify scale, amplitude/rate, units, temporal placement, component types, and residual handling.
+- Distinguish descriptive parameters from stochastic generation parameters.
+- Define serialization, validation, and compatibility rules.
 
-**Exit criteria:** a clean checkout can reproduce the baseline evaluation and its reported metrics.
+**Exit criteria:** a model can be created, serialized, loaded, and validated independently of the extraction implementation.
 
-### Phase 2 — Traffic model and generator
+### Phase 2 — Implement and evaluate model extraction
 
-- Formalize the mapping from multiscale decomposition outputs to a traffic-model description.
-- Specify how model parameters represent scale, amplitude, temporal placement, and stochastic variation.
-- Implement a generator that can produce new traffic sequences from the model.
-- Test numerical correctness, parameter sensitivity, and repeatability.
+- Map multiscale decomposition and clustering outputs to the model representation.
+- Define extraction algorithms and parameter-selection rules.
+- Evaluate information retained and lost during extraction.
+- Test robustness across traces, trace lengths, sampling intervals, and traffic regimes.
+- Provide inspectable examples and diagnostics.
 
-**Exit criteria:** generated sequences can be produced from a documented model format and evaluated independently of the extraction implementation.
+**Exit criteria:** extraction produces documented models from representative traces, with measured quality and known limitations.
 
-### Phase 3 — Statistical and simulation validation
+### Phase 3 — Add traffic generation
 
-- Compare generated and measured traces across first-order, temporal, burstiness, and frequency-domain properties.
-- Compare against appropriate baselines, such as Poisson, ON/OFF, and Markov-modulated models where their assumptions fit the trace.
-- Evaluate the impact on a selected performance simulator or queueing model.
-- Document where the method performs well and where it does not.
+- Define which model components are deterministic and which require stochastic sampling.
+- Implement generation from the versioned model representation.
+- Compare generated sequences with source traces using appropriate statistical metrics.
+- Add suitable baseline models and repeatability tests.
 
-**Exit criteria:** claims about statistical fidelity and simulation usefulness are supported by controlled experiments.
+**Exit criteria:** generated sequences can be produced and evaluated independently of the extraction implementation.
 
-### Phase 4 — Publication and dissemination
+### Phase 4 — Validate simulation suitability
 
-- Prepare a paper with a reproducible artifact and clearly stated limitations.
-- Archive datasets or permitted derived artifacts with persistent identifiers where possible.
-- Publish software releases and experiment snapshots associated with each paper.
-- Consider simulator adapters and additional traffic domains based on evidence from the first evaluation.
+- Select one performance simulator or queueing model based on the target use case.
+- Define an adapter from the model/generator output to simulator input.
+- Compare simulation outcomes driven by measured and generated traffic.
+- Document where the approach is useful and where it is not.
 
-**Exit criteria:** the paper, code, experiment configuration, and accessible artifacts are mutually traceable.
+**Exit criteria:** simulation suitability is assessed using controlled and reproducible comparisons.
 
 ## Repository responsibilities
 
-- **`trafficmsd`**: maintained R package, algorithms, user documentation, tests, and stable public API.
-- **Paper/experiment repositories**: paper-specific LaTeX, experiment orchestration, derived results, plots, and exact dependency/configuration snapshots. These may remain private during development; publish or archive appropriate artifacts when ready.
+- **`trafficmsd`**: maintained R package, extraction algorithms, model representation, user documentation, tests, and stable public API.
+- **Experiment assets**: scripts, configurations, derived results, and plots can initially live in a clearly separated repository or directory when their scope justifies it. No paper-specific repository is needed yet.
 - **Dataset storage**: use external or institutional storage for large or restricted traces. Keep metadata, provenance, licenses, and checksums in version control rather than committing data that cannot legally or practically be redistributed.
 
 ## Immediate priorities
 
-1. Complete the research-readiness specification and agree on the first research question.
-2. Define the traffic-model representation before implementing a generator.
-3. Establish the evaluation protocol and reproducible experiment pipeline.
-4. Select one initial simulator integration target after the model and evaluation requirements are clear.
-5. Address repository maintenance and release preparation through the existing issues [#10](https://github.com/vsimko/trafficmsd/issues/10) and [#11](https://github.com/vsimko/trafficmsd/issues/11).
+1. Agree on the first model-extraction use case and target traffic quantity.
+2. Specify the model representation before implementing generation.
+3. Define how extraction quality will be evaluated.
+4. Implement a minimal end-to-end extraction example using a redistributable trace.
+5. Keep repository maintenance and release preparation tracked through issues [#10](https://github.com/vsimko/trafficmsd/issues/10) and [#11](https://github.com/vsimko/trafficmsd/issues/11).
 
-See [Research Readiness](docs/RESEARCH_READINESS.md) for the proposed questions, model boundaries, and validation protocol.
+See [Research Readiness](docs/RESEARCH_READINESS.md) for the proposed extraction scope, model boundaries, and evaluation requirements.
