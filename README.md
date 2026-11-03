@@ -2,6 +2,7 @@
 
 [![R package checks](https://github.com/vsimko/trafficmsd/actions/workflows/R-CMD-check.yaml/badge.svg?branch=master)](https://github.com/vsimko/trafficmsd/actions/workflows/R-CMD-check.yaml)
 [![R unit tests](https://github.com/vsimko/trafficmsd/actions/workflows/R-unit-tests.yaml/badge.svg?branch=master)](https://github.com/vsimko/trafficmsd/actions/workflows/R-unit-tests.yaml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 **trafficmsd** provides multiscale decomposition of network traffic time series,
 with an emphasis on traffic models suitable for performance simulation (for
