@@ -66,11 +66,11 @@ This technical roadmap complements (and does not replace) research planning and 
 
 ### M2 — Domain and CLI contracts
 
-- [ ] Inventory existing R algorithms, input assumptions, units, and edge cases.
+- [x] Inventory the current computational R API and its documented input/unit gaps in [docs/cli-contract.md](docs/cli-contract.md).
 - [x] Define versioned configuration and normalized traffic-data contracts in [docs/cli-contract.md](docs/cli-contract.md) and [config.schema.json](schemas/cli/v1/config.schema.json).
 - [x] Specify initial CLI commands, exit codes, diagnostics, and output conventions.
 - [ ] Add small, redistributable fixtures and golden/reference results.
-- [ ] Document deterministic execution and random-seed semantics.
+- [x] Document deterministic v1 execution and explicit seed requirements for future stochastic operations.
 
 ### M3 — Model extraction in Rust
 
