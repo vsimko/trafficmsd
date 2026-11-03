@@ -33,7 +33,7 @@ jobs:
           cache-version: 1
 
       - name: Run unit tests
-        run: Rscript -e 'testthat::test_dir("tests/testthat", reporter = "summary")'
+        run: Rscript -e 'testthat::test_local(reporter = "summary")'
 
       - name: Run R CMD check
         uses: r-lib/actions/check-r-package@v2
