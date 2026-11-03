@@ -132,7 +132,7 @@ decompose_traffic <- function(ts, cutoff.fraction = 0.004) {
     wtimes <- ts.len / wlen
 
     # prepare a vector of candidte hits
-    candidates <- integer(length = wtimes)
+    candidates <- numeric(length = wtimes)
     for (i in 1:wtimes) {
 
       begin <- (i - 1) * wlen + 1
