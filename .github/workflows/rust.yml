@@ -2,7 +2,7 @@ name: Rust checks
 
 on:
   push:
-    branches: [master, main, "feature/**"]
+    branches: [master, main, "feature/**", "research/**"]
   pull_request:
     branches: [master, main]
   workflow_dispatch:
