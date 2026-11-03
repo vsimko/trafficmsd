@@ -250,4 +250,30 @@ mod tests {
         let errors = validate_model_v1(&model).unwrap_err();
         assert!(errors.iter().any(|e| e.contains("padding_sample_count")));
     }
+
+    #[test]
+    fn rejects_duplicate_scale_window_component() {
+        let mut model = fixture();
+        let duplicate = model["components"][16].clone();
+        model["components"].as_array_mut().unwrap().push(duplicate);
+        let errors = validate_model_v1(&model).unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("duplicates a scale/window")));
+    }
+
+    #[test]
+    fn rejects_negative_amplitude() {
+        let mut model = fixture();
+        model["components"][0]["amplitude"] = json!(-1.0);
+        let errors = validate_model_v1(&model).unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("finite and non-negative")));
+    }
+
+    #[test]
+    fn rejects_non_finite_reconstructed_sum() {
+        let mut model = fixture();
+        model["components"][1]["amplitude"] = json!(f64::MAX);
+        model["components"][16]["amplitude"] = json!(f64::MAX);
+        let errors = reconstruct_model_v1(&model).unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("not finite")));
+    }
 }
