@@ -27,7 +27,7 @@ trafficmsd::export_model_v1(
   model_id = "r-generated-periodic-32",
   dataset_id = "synthetic-periodic-32",
   path = output,
-  preprocessing = "none; deterministic periodic synthetic signal"
+  preprocessing = c("none", "deterministic periodic synthetic signal")
 )
 
 message("Wrote ", output)
