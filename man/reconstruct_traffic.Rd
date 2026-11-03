@@ -2,24 +2,18 @@
 % Please edit documentation in R/reconstruction.R
 \name{reconstruct_traffic}
 \alias{reconstruct_traffic}
-\title{Simulate the reconstruction of the original signal.}
+\title{Reconstruct a traffic signal from decomposition coefficients}
 \usage{
 reconstruct_traffic(D)
 }
 \arguments{
-\item{D}{Either the matrix of coeficients or a \code{list(coef)} that contains the
-matrix as a \code{coef}.}
+\item{D}{Either a coefficient matrix or a list containing the matrix in
+its \code{coef} element.}
 }
 \value{
-Vector representing the orignal signal in a form of regularized time
-  series.
+Numeric vector representing the reconstructed regularized signal.
 }
 \description{
-Simulate the reconstruction of the original signal by using the matrix of 
-decomposed coeficients. The matrix needs to be filtered in order to simulate 
-the "generators" emitting the packets. Let's assume a generator on
-\code{scale=3}. It would emit a packet every 8 samples. However, the matrix
-will contain 8 coeficients for every packet that should be emitted. Therefore
-the input matrix needs to be filtered.
+Reconstruct the original signal by filtering the decomposition coefficient
+matrix to simulate the packet-emission positions of the generators.
 }
-
