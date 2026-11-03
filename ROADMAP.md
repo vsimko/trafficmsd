@@ -58,17 +58,17 @@ This technical roadmap complements (and does not replace) research planning and 
 
 ### M1 — Rust workspace foundation
 
-- [ ] Add a Cargo workspace.
-- [ ] Create a domain-focused core library crate and a separate CLI crate.
-- [ ] Establish formatting, linting, unit/integration testing, and CI for stable Rust.
+- [x] Add a Cargo workspace.
+- [x] Create a domain-focused core library crate and a separate CLI crate.
+- [x] Establish formatting, linting, unit/integration testing, and CI for stable Rust.
 - [ ] Define error handling, logging, and version reporting conventions.
-- [ ] Keep the core independent of R and CLI concerns.
+- [x] Keep the core independent of R and CLI concerns.
 
 ### M2 — Domain and CLI contracts
 
 - [ ] Inventory existing R algorithms, input assumptions, units, and edge cases.
-- [ ] Define versioned configuration and traffic-data contracts.
-- [ ] Specify CLI commands, exit codes, diagnostics, and output conventions.
+- [x] Define versioned configuration and normalized traffic-data contracts in [docs/cli-contract.md](docs/cli-contract.md) and [config.schema.json](schemas/cli/v1/config.schema.json).
+- [x] Specify initial CLI commands, exit codes, diagnostics, and output conventions.
 - [ ] Add small, redistributable fixtures and golden/reference results.
 - [ ] Document deterministic execution and random-seed semantics.
 
