@@ -27,7 +27,7 @@ pub fn optimize_intervals(x:&[f64],cutoff_fraction:f64)->Vec<f64>{
   let mut propagated=run[..n].to_vec();for i in 1..n{if propagated[i]>0{propagated[i]=propagated[i].max(propagated[i-1])}}
   for i in 0..n{if propagated[i] as f64<=cutoff{y[i]=0.0}}
  }
- let old=y.clone();for i in 1..n-1{let lo=old[i-1].min(old[i+1]);let hi=old[i-1].max(old[i+1]);if old[i]<lo{y[i]=lo}else if old[i]>lo{y[i]=hi}}
+ for i in 1..n-1{let a=y[i-1];let b=y[i];let c=y[i+1];let lo=a.min(c);let hi=a.max(c);if b<lo{y[i]=lo}else if b>lo{y[i]=hi}}
  y
 }
 
