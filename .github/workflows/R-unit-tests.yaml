@@ -33,7 +33,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           needs: check
-          extra-packages: any::covr
+          extra-packages: any::covr, any::DT, any::htmltools
           cache-version: 1
 
       - name: Run testthat suite
