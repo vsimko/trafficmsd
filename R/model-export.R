@@ -35,7 +35,7 @@ export_model_v1 <- function(decomposition,
                             time_origin = 0,
                             value_unit = NULL,
                             value_unit_status = "unknown",
-                            cutoff_fraction = 0.004,
+                            cutoff_fraction = NULL,
                             license_status = "unknown",
                             source_reference = NULL,
                             license_reference = NULL,
@@ -49,6 +49,13 @@ export_model_v1 <- function(decomposition,
          call. = FALSE)
   }
 
+  if (is.null(cutoff_fraction)) {
+    cutoff_fraction <- if (is.list(decomposition) && !is.null(decomposition$cutoff.fraction)) {
+      decomposition$cutoff.fraction
+    } else {
+      NA_real_
+    }
+  }
   if (!is.numeric(coef) || length(dim(coef)) != 2L ||
       ncol(coef) < 16L ||
       ncol(coef) != 2^round(log2(ncol(coef))) ||
