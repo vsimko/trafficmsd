@@ -38,3 +38,12 @@ Sources:
 - https://www.scitepress.org/papers/2016/57407/57407.pdf
 
 The schema is in `schemas/model/v1/model.schema.json`.
+
+
+## Reference implementation details confirmed during schema review
+
+The current R implementation applies the emission mask to the coefficient matrix, then sums the filtered rows by sample. For scale s > 0, the period is P = 2^s and the zero-based emission offset within each globally aligned period is P/2 - 1. Scale zero is the residual row and is emitted at every sample. The phase is anchored at sample index zero; it is not restarted at a component's begin position.
+
+During decomposition, when a higher-scale coefficient c is selected in a window, the algorithm removes the selected source occurrence and subtracts c from the residual at that window's emission position (clamped at zero). This is required because the higher-scale component and scale-zero residual would otherwise emit the same contribution twice. A serialized model must therefore retain the residual contribution, including its sample positions; it must not treat residual as optional metadata.
+
+The schema's `components` are reconstruction records, not an already-generalized stochastic generator. For a lossless mapping, each record must identify its scale, globally aligned window, emission sample, and amplitude. Records at scale zero represent residual samples. The current schema does not yet enforce cross-field constraints such as `window_length_samples = 2^scale_index`, the midpoint formula, uniqueness of scale-zero sample positions, or a single consistent sample extent. Those constraints belong in the semantic validator and must be tested against R-generated fixtures before the format is called stable.
