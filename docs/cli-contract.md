@@ -60,6 +60,8 @@ A configuration is a JSON object with these required fields:
 | `signal` | object | Required time and value metadata. |
 | `parameters` | object | Command-specific parameters; may be empty for validation. |
 
+The `output_csv` field is required for `decompose` and `reconstruct`, and omitted for `validate`.
+
 The `signal` object contains:
 
 - `sampling_interval`: positive finite number, expressed in `time_unit`.
@@ -73,13 +75,14 @@ and strictly between zero and one. Its initial default-compatible value is
 `0.004`, matching the current R API; callers should nevertheless provide it
 explicitly for reproducible experiment configurations.
 
-For deterministic operations no random seed is needed. A future stochastic
-operation must require an explicit unsigned 64-bit `parameters.seed`; it
-must never silently consume a process-global random stream or choose an
-undocumented seed. The seed, RNG algorithm/version, and operation version
-must be recorded in result metadata. Reproducibility is guaranteed within the
-same TrafficMSD release and supported platform; cross-release bitwise identity
-must not be assumed unless explicitly documented.
+All operations in schema v1 are deterministic and therefore accept no random
+seed. A future stochastic operation must introduce an explicit unsigned
+64-bit seed in a versioned contract; it must never silently consume a
+process-global random stream or choose an undocumented seed. The seed, RNG
+algorithm/version, and operation version must be recorded in result metadata.
+Reproducibility is guaranteed within the same TrafficMSD release and supported
+platform; cross-release bitwise identity must not be assumed unless explicitly
+documented.
 
 Unknown configuration fields are rejected in schema v1. A change that alters
 meaning, required fields, units, or interpretation requires a new schema
@@ -88,7 +91,8 @@ not guess, silently coerce, or auto-upgrade it.
 
 ## 4. Normalized signal CSV
 
-The CSV file must be UTF-8, have a header, and contain exactly these columns:
+For `validate` and `decompose`, the input CSV must be UTF-8, have a header,
+and contain exactly these columns:
 
 ```csv
 sample_index,value
@@ -117,10 +121,16 @@ Rules:
 The CLI must preserve numeric values without integer coercion. Locale-specific
 decimal separators and thousands separators are not accepted.
 
+For `reconstruct`, `input_csv` is instead the coefficient table described in
+section 5. The signal metadata describes the reconstructed output. The
+coefficient table must be rectangular and complete according to the rules in
+that section.
+
 ## 5. Output conventions
 
-Signal outputs use the same `sample_index,value` CSV layout. Decomposition
-outputs use a long-form coefficient table with columns:
+Signal outputs use the same `sample_index,value` CSV layout. The input to
+`reconstruct` and the output from `decompose` use a long-form coefficient
+table with columns:
 
 ```csv
 scale,sample_index,coefficient
@@ -131,9 +141,12 @@ scale,sample_index,coefficient
 ```
 
 Scale zero denotes the remainder row; higher scale numbers denote the
-corresponding multiscale component. Exact coefficient semantics, row ordering,
-and reconstruction invariants are specified alongside the Rust algorithm
-implementation and its R conformance fixtures in issues #34 and #36. The
+corresponding multiscale component. Each scale must contain exactly one row
+for every sample index from zero to sample_count minus one. Rows are ordered
+by ascending scale, then ascending sample index; duplicate or missing pairs
+are invalid. Exact coefficient semantics and reconstruction invariants are
+specified alongside the Rust algorithm implementation and its R conformance
+fixtures in issues #34 and #36. The
 transport schema must not be treated as a scientific model schema.
 
 Outputs must contain only finite numeric values. Metadata such as schema
