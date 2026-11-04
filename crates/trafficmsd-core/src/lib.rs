@@ -1,8 +1,10 @@
 //! Domain and simulation core for TrafficMSD.
 //!
 //! This crate is intentionally independent of the command-line interface and
-//! language-specific adapters. Simulation types and algorithms will be
-//! introduced here incrementally as their contracts are specified.
+//! language-specific adapters. Algorithms preserve the documented R reference
+//! semantics while being introduced incrementally.
+
+pub mod decomposition;
 
 /// Returns the version of the core crate.
 pub const fn version() -> &'static str {
