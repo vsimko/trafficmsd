@@ -283,3 +283,8 @@ The Rust CLI now implements the three v1 commands against this contract:
 - End-to-end tests exercise the executable as an external process.
 
 The remaining v1 limitations are the metadata sidecar/output envelope, resource limits, and full R-versus-Rust conformance. These are tracked by #35 and #36 and must be resolved before the CLI contract is treated as stable.
+
+
+### Interpolated candidate edge case
+
+Interval optimization can replace a candidate with a value interpolated from an adjacent window. That value is not guaranteed to occur in the current source window. In that case the decomposition records the interpolated component and subtracts its amplitude at the emission position, but does not remove a non-existent source sample. The R reference and Rust core use this same rule. This fixes a legacy R failure and a Rust panic on monotonic and other interpolated-candidate signals; the behavior is intentionally covered by regression tests.
