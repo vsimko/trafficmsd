@@ -80,7 +80,7 @@ def aggregate_packets(packet_rows: list[tuple[Decimal, int]], bin_width: Decimal
 
 def capinfos_packet_count(report_text: str) -> int:
     """Return the exact per-interface count, not capinfos' rounded summary."""
-    matches = re.findall(r"Number of packets\\s*[:=]\\s*([\\d,]+)", report_text)
+    matches = re.findall(r"Number of packets[^0-9]*([0-9,]+)", report_text)
     if not matches:
         raise ValueError("capinfos report does not contain an exact packet count")
     return int(matches[-1].replace(",", ""))
