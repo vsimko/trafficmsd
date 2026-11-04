@@ -7,7 +7,6 @@ import argparse
 import csv
 import hashlib
 import json
-import re
 import shutil
 import subprocess
 import tempfile
@@ -80,23 +79,27 @@ def aggregate_packets(packet_rows: list[tuple[Decimal, int]], bin_width: Decimal
 
 def capinfos_packet_count(report_text: str) -> int:
     """Return the sum of exact per-interface counts, not capinfos' rounded summary."""
-    interface_counts = re.findall(
-        r"Number of packets\s*=\s*([0-9,]+)", report_text
-    )
+    interface_counts = []
+    exact_totals = []
+    for line in report_text.splitlines():
+        if "Number of packets" not in line:
+            continue
+        if "=" in line:
+            value = line.split("=", 1)[1].strip().replace(",", "")
+            if value.isdigit():
+                interface_counts.append(int(value))
+        elif ":" in line:
+            value = line.split(":", 1)[1].strip().replace(",", "")
+            if value.isdigit():
+                exact_totals.append(int(value))
+
     if interface_counts:
-        total = sum(int(value.replace(",", "")) for value in interface_counts)
-        exact_totals = re.findall(
-            r"Number of packets:\s*([0-9,]+)(?!\s*[kKmM])", report_text
-        )
-        if exact_totals and int(exact_totals[0].replace(",", "")) != total:
+        total = sum(interface_counts)
+        if exact_totals and exact_totals[0] != total:
             raise ValueError("capinfos total differs from summed interface packet counts")
         return total
-
-    exact_totals = re.findall(
-        r"Number of packets:\s*([0-9,]+)(?!\s*[kKmM])", report_text
-    )
     if exact_totals:
-        return int(exact_totals[0].replace(",", ""))
+        return exact_totals[0]
     raise ValueError("capinfos report does not contain an exact packet count")
 
 
