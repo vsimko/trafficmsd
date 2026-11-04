@@ -13,8 +13,9 @@ example, using Queuing Petri Nets).
 TrafficMSD is transitioning toward a Rust-based network traffic simulation
 engine. The R package will remain the visualization and statistical-analysis
 interface, while computationally intensive operations move into a standalone
-Rust core and CLI. See the [technical roadmap](ROADMAP.md) and
-[ADR 0001: Rust core architecture](docs/adr/0001-rust-core.md).
+Rust core and CLI. See the [technical roadmap](ROADMAP.md),
+[ADR 0001: Rust core architecture](docs/adr/0001-rust-core.md), and
+[standalone CLI binary matrix](docs/cli-binaries.md).
 
 ## Installation
 
