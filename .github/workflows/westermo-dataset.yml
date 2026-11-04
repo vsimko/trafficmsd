@@ -72,7 +72,7 @@ jobs:
           EOF
 
       - name: Publish versioned dataset release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: dataset-westermo-v1.0
           name: Westermo dataset v1.0
