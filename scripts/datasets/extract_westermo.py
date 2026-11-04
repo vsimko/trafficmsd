@@ -62,7 +62,7 @@ def aggregate_packets(packet_rows: list[tuple[Decimal, int]], bin_width: Decimal
     last_timestamp = ordered[-1][0]
     bin_totals: dict[int, int] = {}
     for timestamp, length in ordered:
-        if timestamp < origin or length < 0:
+        if timestamp < 0 or length < 0:
             raise ValueError("packet timestamps and lengths must be non-negative")
         index = int(((timestamp - origin) / bin_width).to_integral_value(rounding=ROUND_FLOOR))
         bin_totals[index] = bin_totals.get(index, 0) + length
