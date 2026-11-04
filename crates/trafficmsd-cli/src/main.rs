@@ -1,7 +1,6 @@
 //! Standalone, file-based command-line interface for TrafficMSD.
 
 use serde::Deserialize;
-use std::collections::BTreeMap;
 use std::env;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
