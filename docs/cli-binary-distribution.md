@@ -18,6 +18,11 @@ executable natively on each target runner when a GitHub Release is published.
 It attaches one raw executable per target and a
 \`trafficmsd-cli-manifest.json\` to that release.
 
+The manifest CLI version must match the installed R package version exactly;
+the installer also executes the downloaded binary with `--version` before
+installing it. The R adapter checks the executable version at invocation time
+and gives an actionable error when versions differ.
+
 The manifest schema is versioned at
 \`schemas/cli-binaries/v1/manifest.schema.json\`. It records the release/CLI
 version, target triple, asset filename, and SHA-256 digest. The publish job
