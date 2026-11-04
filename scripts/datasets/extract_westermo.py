@@ -51,6 +51,26 @@ def download_assets(directory: Path) -> dict[str, str]:
     return {"archive_sha256": actual, "validation_report_sha256": sha256(directory / "validation-report.json")}
 
 
+def aggregate_packets(packet_rows: list[tuple[Decimal, int]], bin_width: Decimal):
+    """Aggregate timestamp/length pairs into deterministic left-closed bins."""
+    if bin_width <= 0:
+        raise ValueError("bin_width must be positive")
+    if not packet_rows:
+        raise ValueError("packet_rows must not be empty")
+    ordered = sorted(packet_rows, key=lambda item: item[0])
+    origin = ordered[0][0]
+    last_timestamp = ordered[-1][0]
+    bin_totals: dict[int, int] = {}
+    for timestamp, length in ordered:
+        if timestamp < origin or length < 0:
+            raise ValueError("packet timestamps and lengths must be non-negative")
+        index = int(((timestamp - origin) / bin_width).to_integral_value(rounding=ROUND_FLOOR))
+        bin_totals[index] = bin_totals.get(index, 0) + length
+    sample_count = max(bin_totals) + 1
+    signal = [bin_totals.get(index, 0) for index in range(sample_count)]
+    return signal, origin, last_timestamp
+
+
 def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
     report_path = archive_path.parent / "validation-report.json"
     report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -133,16 +153,9 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
     if not packet_rows:
         raise RuntimeError("No packet records found in selected observation point")
 
-    packet_rows.sort(key=lambda item: item[0])
-    origin = packet_rows[0][0]
-    last_timestamp = packet_rows[-1][0]
-    bin_totals: dict[int, int] = {}
-    for timestamp, length in packet_rows:
-        index = int(((timestamp - origin) / bin_width).to_integral_value(rounding=ROUND_FLOOR))
-        bin_totals[index] = bin_totals.get(index, 0) + length
-
-    sample_count = max(bin_totals) + 1
-    return [bin_totals.get(index, 0) for index in range(sample_count)], {
+    signal, origin, last_timestamp = aggregate_packets(packet_rows, bin_width)
+    sample_count = len(signal)
+    return signal, {
         "archive": ARCHIVE,
         "observation_point": "right",
         "capture_members": member_records,
