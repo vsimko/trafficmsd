@@ -43,11 +43,11 @@ class AggregatePacketsTests(unittest.TestCase):
 
     def test_capinfos_sums_exact_interface_counts_not_rounded_summary(self):
         report = (
-            "Number of packets:   35 k\\n"
-            "Interface #0 info:\\n"
-            "                     Number of packets = 20000\\n"
-            "Interface #1 info:\\n"
-            "                     Number of packets = 15067\\n"
+            "Number of packets:   35 k\n"
+            "Interface #0 info:\n"
+            "                     Number of packets = 20000\n"
+            "Interface #1 info:\n"
+            "                     Number of packets = 15067\n"
         )
         self.assertEqual(MODULE.capinfos_packet_count(report), 35067)
         inconsistent = report.replace("Number of packets = 15067", "Number of packets = 15068")
