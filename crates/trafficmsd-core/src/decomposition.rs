@@ -106,10 +106,7 @@ pub fn optimize_intervals(x: &[f64], cutoff_fraction: f64) -> Vec<f64> {
 
 /// Decompose a non-negative finite power-of-two signal. Row zero is the
 /// residual; scale s occupies row s and emits at period 2^s's center-left.
-pub fn decompose(
-    signal: &[f64],
-    cutoff_fraction: f64,
-) -> Result<Decomposition, SignalError> {
+pub fn decompose(signal: &[f64], cutoff_fraction: f64) -> Result<Decomposition, SignalError> {
     validate(signal)?;
     if !cutoff_fraction.is_finite() || cutoff_fraction <= 0.0 || cutoff_fraction >= 1.0 {
         return Err(SignalError::InvalidCutoff);
