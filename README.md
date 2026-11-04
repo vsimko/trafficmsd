@@ -38,9 +38,14 @@ analysis.
 ```r
 library(trafficmsd)
 
+# Load a bundled example and decompose it.
 data(sample32)
 decomposition <- decompose_traffic(sample32)
+
+# Reconstruct the signal from the decomposition coefficients.
 reconstructed <- reconstruct_traffic(decomposition)
+
+# Inspect the number of intervals and the decomposition spectrum.
 print_stats(decomposition)
 plot_spectrum(decomposition)
 ```
@@ -85,6 +90,7 @@ traffic generation and performance-simulation validation.
 
 - [Research and development roadmap](docs/RESEARCH_ROADMAP.md)
 - [Research readiness specification](docs/RESEARCH_READINESS.md)
+- [Generator and QPME/SimQPN adapter contract v1](docs/simulator-adapter-v1.md)
 - [Performance benchmark protocol](docs/performance-benchmarks.md)
 
 ## Research reference
