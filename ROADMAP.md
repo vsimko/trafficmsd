@@ -108,7 +108,6 @@ This technical roadmap complements (and does not replace) research planning and 
 
 ### M7 — Performance and future interfaces
 
-- [x] Add a reproducible synthetic R-versus-Rust benchmark harness in [docs/performance-benchmarks.md](docs/performance-benchmarks.md); representative trace benchmarks remain gated by dataset validation.
 - [ ] Establish representative benchmarks against the current R implementation.
 - [ ] Measure core runtime, end-to-end CLI overhead, memory use, and scaling.
 - [ ] Optimize only measured bottlenecks.
