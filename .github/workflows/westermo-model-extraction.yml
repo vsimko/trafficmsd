@@ -1,15 +1,6 @@
 name: Westermo model extraction
 
 on:
-  push:
-    branches: ["research/**"]
-    paths:
-      - "scripts/datasets/extract_westermo.py"
-      - "tests/python/**"
-      - "experiments/model-extraction-v1/**"
-      - ".github/workflows/westermo-model-extraction.yml"
-      - "schemas/model/v1/model.schema.json"
-      - "schemas/evaluation/v1/result.schema.json"
   pull_request:
     branches: [master]
     paths:
