@@ -90,6 +90,7 @@ traffic generation and performance-simulation validation.
 
 - [Research and development roadmap](docs/RESEARCH_ROADMAP.md)
 - [Research readiness specification](docs/RESEARCH_READINESS.md)
+- [Generator and QPME/SimQPN adapter contract v1](docs/simulator-adapter-v1.md)
 
 ## Research reference
 
