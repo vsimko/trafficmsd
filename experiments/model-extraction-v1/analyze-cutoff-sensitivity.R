@@ -75,11 +75,24 @@ rows <- lapply(cutoffs, function(cutoff) {
   )
   reconstructed <- reconstructed_padded[seq_len(observed_count)]
   metrics <- fidelity_metrics(signal, reconstructed)
+  reconstructed_total <- sum(reconstructed)
+  volume_match_scale <- if (reconstructed_total == 0) NA_real_ else {
+    sum(signal) / reconstructed_total
+  }
+  volume_matched <- if (is.na(volume_match_scale)) reconstructed else {
+    reconstructed * volume_match_scale
+  }
+  volume_matched_metrics <- fidelity_metrics(signal, volume_matched)
   reconstruction_acf <- vapply(
     eligible_lags, function(lag) acf_at_lag(reconstructed, lag), numeric(1)
   )
+  volume_matched_acf <- vapply(
+    eligible_lags, function(lag) acf_at_lag(volume_matched, lag), numeric(1)
+  )
   acf_differences <- abs(source_acf - reconstruction_acf)
+  volume_matched_acf_differences <- abs(source_acf - volume_matched_acf)
   reconstruction_runs <- run_lengths(reconstructed, threshold)
+  volume_matched_runs <- run_lengths(volume_matched, threshold)
 
   model_path <- tempfile(fileext = ".json")
   model <- trafficmsd::export_model_v1(
@@ -119,6 +132,24 @@ rows <- lapply(cutoffs, function(cutoff) {
     bias = metrics$bias,
     relative_l1_error = metrics$relative_l1_error,
     volume_error = metrics$volume_error,
+    volume_match_scale = volume_match_scale,
+    mae_volume_matched = volume_matched_metrics$mae,
+    rmse_volume_matched = volume_matched_metrics$rmse,
+    relative_l1_volume_matched = volume_matched_metrics$relative_l1_error,
+    volume_error_volume_matched = volume_matched_metrics$volume_error,
+    mean_absolute_acf_difference_volume_matched = if (
+      all(is.na(volume_matched_acf_differences))
+    ) {
+      NA_real_
+    } else {
+      mean(volume_matched_acf_differences, na.rm = TRUE)
+    },
+    volume_matched_burst_run_count = length(volume_matched_runs),
+    volume_matched_burst_max_run = if (length(volume_matched_runs)) {
+      max(volume_matched_runs)
+    } else {
+      NA_integer_
+    },
     mean_absolute_acf_difference = if (all(is.na(acf_differences))) {
       NA_real_
     } else {
