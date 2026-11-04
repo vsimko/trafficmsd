@@ -166,7 +166,7 @@ fn run() -> Result<(), CliError> {
             let signal = read_signal_csv(&input_path)?;
             let cutoff = config.parameters.cutoff_fraction.expect("validated cutoff");
             let decomposition = trafficmsd_core::decomposition::decompose(&signal, cutoff)
-                .map_err(|error| CliError::algorithm(format!("decomposition failed: {error}")))?;
+                .map_err(|error| CliError::invalid(format!("invalid signal for decomposition: {error}")))?;
             let output_path = resolve_path(
                 config_dir,
                 config.output_csv.as_deref().expect("validated output path"),
@@ -177,7 +177,14 @@ fn run() -> Result<(), CliError> {
         Operation::Reconstruct => {
             let coefficients = read_coefficient_csv(&input_path)?;
             let signal = trafficmsd_core::decomposition::reconstruct(&coefficients)
-                .map_err(|error| CliError::algorithm(format!("reconstruction failed: {error}")))?;
+                .map_err(|error| match error {
+                    trafficmsd_core::decomposition::SignalError::NonFinite(index) => {
+                        CliError::algorithm(format!(
+                            "reconstruction produced a non-finite value at sample {index}"
+                        ))
+                    }
+                    other => CliError::invalid(format!("invalid coefficient input: {other}")),
+                })?;
             let output_path = resolve_path(
                 config_dir,
                 config.output_csv.as_deref().expect("validated output path"),
@@ -334,6 +341,7 @@ fn read_coefficient_csv(path: &Path) -> Result<Vec<Vec<f64>>, CliError> {
     let mut entries = Vec::new();
     let mut max_scale = 0usize;
     let mut max_sample = 0usize;
+    let mut previous: Option<(usize, usize)> = None;
     for (row, record) in reader.records().enumerate() {
         let record = record.map_err(|error| {
             CliError::invalid(format!("invalid coefficient CSV row {}: {error}", row + 2))
@@ -341,6 +349,14 @@ fn read_coefficient_csv(path: &Path) -> Result<Vec<Vec<f64>>, CliError> {
         let scale = parse_usize(record.get(0), "scale", row + 2)?;
         let sample = parse_usize(record.get(1), "sample_index", row + 2)?;
         let value = parse_f64(record.get(2), "coefficient", row + 2)?;
+        let current = (scale, sample);
+        if previous.is_some_and(|prior| current <= prior) {
+            return Err(CliError::invalid(format!(
+                "coefficient rows must be ordered by ascending scale and sample_index (CSV row {})",
+                row + 2
+            )));
+        }
+        previous = Some(current);
         if scale >= usize::BITS as usize {
             return Err(CliError::invalid(format!(
                 "scale at CSV row {} exceeds the supported index range",
