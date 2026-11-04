@@ -45,10 +45,17 @@ def download_assets(directory: Path) -> dict[str, str]:
     for line in (directory / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
         checksum, name = line.split(maxsplit=1)
         expected[name.strip().lstrip("*")] = checksum.lower()
+    release_manifest = (directory / "manifest.yaml").read_text(encoding="utf-8")
+    if "license: CC-BY-4.0" not in release_manifest:
+        raise RuntimeError("Dataset release manifest does not declare the expected CC-BY-4.0 license")
     actual = sha256(directory / ARCHIVE)
     if expected.get(ARCHIVE) != actual:
         raise RuntimeError(f"SHA-256 mismatch for {ARCHIVE}: expected {expected.get(ARCHIVE)}, got {actual}")
-    return {"archive_sha256": actual, "validation_report_sha256": sha256(directory / "validation-report.json")}
+    return {
+        "archive_sha256": actual,
+        "release_manifest_sha256": sha256(directory / "manifest.yaml"),
+        "validation_report_sha256": sha256(directory / "validation-report.json"),
+    }
 
 
 def aggregate_packets(packet_rows: list[tuple[Decimal, int]], bin_width: Decimal):
