@@ -62,6 +62,13 @@ jobs:
           version_output="$("$executable" --version)"
           echo "$version_output"
           [[ "$version_output" == trafficmsd* ]]
+          if [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
+            expected="trafficmsd ${GITHUB_REF_NAME#v}"
+            [[ "$version_output" == "$expected" ]] || {
+              echo "Expected CLI version $expected, got $version_output" >&2
+              exit 1
+            }
+          fi
           "$executable" --help >/dev/null
 
       - name: Prepare release asset
