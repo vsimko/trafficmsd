@@ -128,7 +128,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          VERSION="${VERSION//\\//-}"
+          VERSION="${VERSION//\//-}"
           python3 scripts/ci/create-cli-manifest.py "$VERSION" dist
 
       - name: Upload validated release bundle
