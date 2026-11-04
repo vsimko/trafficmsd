@@ -17,12 +17,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: cli-binaries-\${{ github.workflow }}-\${{ github.ref }}
+  group: cli-binaries-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    name: Build \${{ matrix.target }}
+    name: Build ${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
@@ -42,31 +42,32 @@ jobs:
           - runner: windows-2025
             target: x86_64-pc-windows-msvc
             extension: ".exe"
-    runs-on: \${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: \${{ matrix.target }}
+          targets: ${{ matrix.target }}
 
       - name: Build standalone CLI
         shell: bash
-        run: cargo build --release --target "\${{ matrix.target }}" --bin trafficmsd
+        run: cargo build --release --target "${{ matrix.target }}" --bin trafficmsd
 
       - name: Prepare release asset
         shell: bash
         run: |
-          VERSION="\${GITHUB_REF_NAME#v}"
+          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${VERSION//\//-}"
           mkdir -p dist
-          cp "target/\${{ matrix.target }}/release/trafficmsd\${{ matrix.extension }}" \\
-            "dist/trafficmsd-\${VERSION}-\${{ matrix.target }}\${{ matrix.extension }}"
+          cp "target/${{ matrix.target }}/release/trafficmsd${{ matrix.extension }}" \
+            "dist/trafficmsd-${VERSION}-${{ matrix.target }}${{ matrix.extension }}"
 
       - name: Upload platform binary
         uses: actions/upload-artifact@v4
         with:
-          name: cli-\${{ matrix.target }}
+          name: cli-${{ matrix.target }}
           path: dist/*
           if-no-files-found: error
           retention-days: 3
@@ -88,9 +89,9 @@ jobs:
       - name: Generate and validate release manifest
         shell: bash
         env:
-          RELEASE_TAG: \${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          VERSION="\${RELEASE_TAG#v}"
+          VERSION="${RELEASE_TAG#v}"
           export VERSION
           python3 - <<'PY'
           import hashlib
@@ -138,5 +139,5 @@ jobs:
 
       - name: Upload assets to GitHub Release
         env:
-          GH_TOKEN: \${{ github.token }}
-        run: gh release upload "\${{ github.event.release.tag_name }}" dist/* --clobber
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/* --clobber
