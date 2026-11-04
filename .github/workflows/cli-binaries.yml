@@ -117,9 +117,10 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  package-assets:
+  package_assets:
     name: Validate and package CLI release assets
     needs: build
+    if: ${{ always() && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -148,7 +149,7 @@ jobs:
   publish-assets:
     name: Publish checksummed release assets
     if: github.event_name == 'release'
-    needs: package-assets
+    needs: package_assets
     runs-on: ubuntu-24.04
     permissions:
       contents: write
