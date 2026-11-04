@@ -7,6 +7,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import tempfile
@@ -59,6 +60,10 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
 
     packet_rows = []
     member_records = []
+    capinfos_by_member = {
+        item["archive_member"]: item["capinfos"]
+        for item in archive_report["captures"]
+    }
     with zipfile.ZipFile(archive_path) as zipped:
         bad_member = zipped.testzip()
         if bad_member:
@@ -105,12 +110,20 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
                 truncated += int(original_length > captured_length)
             if count == 0:
                 raise RuntimeError(f"No packets decoded from {info.filename}")
+            capinfos_text = capinfos_by_member[info.filename]
+            packet_count_match = re.search(r"Number of packets:\\s*(\\d+)", capinfos_text)
+            if packet_count_match is None or int(packet_count_match.group(1)) != count:
+                raise RuntimeError(
+                    f"tshark packet count for {info.filename} ({count}) does not match "
+                    "the published capinfos validation report"
+                )
             member_records.append({
                 "archive_member": info.filename,
                 "sha256": sha256(capture_path),
                 "packet_count": count,
                 "truncated_packet_count": truncated,
                 "captured_bytes": sum(length for _, length in packet_rows[-count:]),
+                "validation_capinfos": capinfos_text,
             })
 
     if actual_members != expected_members:
@@ -159,6 +172,9 @@ def main() -> int:
         parser.error("--bin-width must be positive")
 
     hashes = download_assets(args.cache_dir)
+    tshark_version = subprocess.run(
+        ["tshark", "--version"], check=True, capture_output=True, text=True
+    ).stdout.splitlines()[0]
     with tempfile.TemporaryDirectory(prefix="trafficmsd-westermo-") as temporary:
         signal, details = extract_packets(args.cache_dir / ARCHIVE, Path(temporary), args.bin_width)
 
@@ -180,6 +196,9 @@ def main() -> int:
         **hashes,
         **details,
         "tool": "tshark",
+        "tool_version": tshark_version,
+        "python_version": __import__("platform").python_version(),
+        "preprocessor_version": "1.0.0",
         "trace_file": "trace.csv",
         "trace_sha256": sha256(trace_path),
         "limitations": [
