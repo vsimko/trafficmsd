@@ -42,7 +42,7 @@ model <- trafficmsd::export_model_v1(
   time_unit = "second",
   time_unit_status = "verified",
   sampling_interval = as.numeric(manifest$sampling_interval),
-  time_origin = as.numeric(manifest$time_origin_unix),
+  time_origin = as.numeric(manifest$model_time_origin),
   value_unit = "byte",
   value_unit_status = "verified",
   cutoff_fraction = decomposition$cutoff.fraction,
