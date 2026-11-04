@@ -113,13 +113,10 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  publish-assets:
-    name: Publish checksummed release assets
-    if: github.event_name == 'release'
+  package-assets:
+    name: Validate and package CLI release assets
     needs: build
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write
     steps:
       - name: Download platform binaries
         uses: actions/download-artifact@v4
@@ -129,54 +126,32 @@ jobs:
 
       - name: Generate and validate release manifest
         shell: bash
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          VERSION="${RELEASE_TAG#v}"
-          export VERSION
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          from pathlib import Path
+          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${VERSION//\\//-}"
+          python3 scripts/ci/create-cli-manifest.py "$VERSION" dist
 
-          version = os.environ["VERSION"]
-          dist = Path("dist")
-          expected = {
-              "x86_64-unknown-linux-gnu",
-              "aarch64-unknown-linux-gnu",
-              "x86_64-apple-darwin",
-              "aarch64-apple-darwin",
-              "x86_64-pc-windows-msvc",
-          }
-          targets = {}
-          prefix = f"trafficmsd-{version}-"
-          for path in sorted(dist.iterdir()):
-              if not path.is_file() or not path.name.startswith(prefix):
-                  continue
-              target = path.name[len(prefix):]
-              if target.endswith(".exe"):
-                  target = target[:-4]
-              if target not in expected:
-                  raise SystemExit(f"Unexpected binary asset: {path.name}")
-              digest = hashlib.sha256(path.read_bytes()).hexdigest()
-              targets[target] = {"asset": path.name, "sha256": digest}
+      - name: Upload validated release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-package-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 3
 
-          if set(targets) != expected:
-              missing = sorted(expected - set(targets))
-              raise SystemExit(f"Missing platform binaries: {missing}")
-
-          manifest = {
-              "schema_version": 1,
-              "release_version": version,
-              "cli_version": version,
-              "targets": targets,
-          }
-          (dist / "trafficmsd-cli-manifest.json").write_text(
-              json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-              encoding="utf-8",
-          )
-          PY
+  publish-assets:
+    name: Publish checksummed release assets
+    if: github.event_name == 'release'
+    needs: package-assets
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-package-${{ github.sha }}
+          path: dist
 
       - name: Upload assets to GitHub Release
         env:
