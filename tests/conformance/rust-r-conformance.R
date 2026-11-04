@@ -13,7 +13,6 @@ if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Install jsonlite first.
 cli <- normalizePath(cli, mustWork = TRUE)
 work <- tempfile("trafficmsd-rust-r-conformance-")
 dir.create(work)
-on.exit(unlink(work, recursive = TRUE), add = TRUE)
 
 signals <- list(
   constant_16 = rep(8, 16),
