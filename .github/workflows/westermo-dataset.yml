@@ -1,0 +1,90 @@
+name: Westermo dataset release
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/westermo-dataset.yml"
+      - "scripts/datasets/validate_westermo.py"
+      - "docs/datasets/westermo.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: westermo-dataset-release
+  cancel-in-progress: false
+
+jobs:
+  acquire-validate-release:
+    # Dataset publication is intentionally restricted to the default branch.
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install packet capture inspection tools
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tshark
+
+      - name: Download Westermo reduced captures and event log
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/westermo
+          base="https://raw.githubusercontent.com/westermo/network-traffic-dataset/main"
+          curl --fail --location --retry 5 --retry-all-errors --output dist/westermo/westermo-right.zip "$base/data/reduced/pcaps/right.zip"
+          curl --fail --location --retry 5 --retry-all-errors --output dist/westermo/westermo-left.zip "$base/data/reduced/pcaps/left.zip"
+          curl --fail --location --retry 5 --retry-all-errors --output dist/westermo/westermo-bottom.zip "$base/data/reduced/pcaps/bottom.zip"
+          curl --fail --location --retry 5 --retry-all-errors --output dist/westermo/events.txt "$base/data/events.txt"
+          test -s dist/westermo/events.txt
+
+      - name: Validate ZIP archives and inspect packet captures
+        run: |
+          python scripts/datasets/validate_westermo.py dist/westermo
+
+      - name: Generate checksums and release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist/westermo
+          sha256sum westermo-right.zip westermo-left.zip westermo-bottom.zip events.txt > SHA256SUMS
+          cat > manifest.yaml <<'EOF'
+          dataset: Westermo Network Traffic Dataset
+          upstream: https://github.com/westermo/network-traffic-dataset
+          upstream_version: "1.0"
+          license: CC-BY-4.0
+          license_url: https://creativecommons.org/licenses/by/4.0/
+          citation: "Per Erik Strandberg et al., Westermo Network Traffic Dataset, April 2023."
+          files:
+            - westermo-right.zip
+            - westermo-left.zip
+            - westermo-bottom.zip
+            - events.txt
+          validation: validation-report.json
+          checksums: SHA256SUMS
+          notes:
+            - "Reduced PCAP archives; inspect the validation report for per-capture packet counts and metadata."
+            - "Multiple observation points may contain duplicate packets."
+            - "Event markers describe time windows and are not packet-level ground truth."
+          EOF
+
+      - name: Publish versioned dataset release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dataset-westermo-v1.0
+          name: Westermo dataset v1.0
+          target_commitish: master
+          body_path: docs/datasets/westermo.md
+          files: |
+            dist/westermo/westermo-right.zip
+            dist/westermo/westermo-left.zip
+            dist/westermo/westermo-bottom.zip
+            dist/westermo/events.txt
+            dist/westermo/SHA256SUMS
+            dist/westermo/manifest.yaml
+            dist/westermo/validation-report.json
+          overwrite_files: true
+          fail_on_unmatched_files: true
