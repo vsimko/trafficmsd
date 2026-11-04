@@ -507,6 +507,42 @@
             }
           }
         },
+        "baselines": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "identity",
+            "constant_mean"
+          ],
+          "properties": {
+            "scope": {
+              "enum": [
+                "full_trace_diagnostic",
+                "contiguous_holdout"
+              ]
+            },
+            "identity": {
+              "$ref": "#/$defs/baseline"
+            },
+            "constant_mean": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "fidelity"
+              ],
+              "properties": {
+                "value": {
+                  "type": "number"
+                },
+                "fidelity": {
+                  "$ref": "#/$defs/baseline"
+                }
+              }
+            }
+          }
+        },
         "compactness": {
           "type": "object",
           "additionalProperties": false,
@@ -539,6 +575,43 @@
               "minimum": 0
             }
           }
+        }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mae",
+        "rmse",
+        "bias",
+        "relative_l1_error",
+        "volume_error"
+      ],
+      "properties": {
+        "mae": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rmse": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bias": {
+          "type": "number"
+        },
+        "relative_l1_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "volume_error": {
+          "type": [
+            "number",
+            "null"
+          ]
         }
       }
     },
