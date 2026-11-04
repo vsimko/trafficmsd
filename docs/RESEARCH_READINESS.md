@@ -146,4 +146,4 @@ The model-extraction foundation is ready when:
 - a minimal example works with a redistributable dataset;
 - limitations and assumptions are documented.
 
-The roadmap in [ROADMAP.md](../ROADMAP.md) tracks the implementation stages.
+The research stages are tracked in [Research and Development Roadmap](RESEARCH_ROADMAP.md); Rust migration milestones are tracked in the technical [ROADMAP](../ROADMAP.md).
