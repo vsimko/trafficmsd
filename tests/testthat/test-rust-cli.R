@@ -27,3 +27,20 @@ test_that("Rust CLI adapter agrees with the R reference when a CLI is available"
   expect_equal(reconstruct_traffic_rust(rust, value_unit = "bytes"),
                reconstruct_traffic(reference), tolerance = 1e-12)
 })
+
+test_that("R adapter rejects an incompatible CLI version with guidance", {
+  skip_on_os("windows")
+  old <- Sys.getenv("TRAFFICMSD_CLI", unset = NA_character_)
+  on.exit({
+    if (is.na(old)) Sys.unsetenv("TRAFFICMSD_CLI") else
+      Sys.setenv(TRAFFICMSD_CLI = old)
+  }, add = TRUE)
+  fake_cli <- tempfile("trafficmsd-wrong-version-")
+  writeLines(c("#!/bin/sh", "echo 'trafficmsd 99.99.99'"), fake_cli)
+  Sys.chmod(fake_cli, mode = "0755")
+  Sys.setenv(TRAFFICMSD_CLI = fake_cli)
+  expect_error(
+    decompose_traffic_rust(rep(1, 16)),
+    "Incompatible TrafficMSD CLI"
+  )
+})
