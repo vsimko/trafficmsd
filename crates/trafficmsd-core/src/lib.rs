@@ -5,6 +5,7 @@
 //! semantics while being introduced incrementally.
 
 pub mod decomposition;
+pub mod model;
 
 /// Returns the version of the core crate.
 pub const fn version() -> &'static str {
