@@ -66,7 +66,7 @@ jobs:
             "${{ inputs.iterations || '5' }}"
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trafficmsd-benchmark-${{ github.sha }}
           path: benchmarks/results/
