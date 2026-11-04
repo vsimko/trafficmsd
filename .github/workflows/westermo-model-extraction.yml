@@ -60,6 +60,13 @@ jobs:
             artifacts/westermo-model-extraction-v1/manifest.json \
             artifacts/westermo-model-extraction-v1/model
 
+      - name: Analyze cutoff sensitivity on the full-trace diagnostic
+        run: |
+          Rscript experiments/model-extraction-v1/analyze-cutoff-sensitivity.R \
+            artifacts/westermo-model-extraction-v1/trace.csv \
+            artifacts/westermo-model-extraction-v1/manifest.json \
+            artifacts/westermo-model-extraction-v1/model
+
       - name: Validate model and evaluation contracts
         run: |
           python - <<'PY'
