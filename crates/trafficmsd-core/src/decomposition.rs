@@ -155,13 +155,15 @@ pub fn decompose(signal: &[f64], cutoff_fraction: f64) -> Result<Decomposition, 
 
             let begin = k * w;
             let end = begin + w;
-            let pos = residual[begin..end]
-                .iter()
-                .position(|v| *v == c)
-                .expect("candidate came from window");
+            let pos = residual[begin..end].iter().position(|v| *v == c);
 
             coef[scale as usize][begin..end].fill(c);
-            residual[begin + pos] = 0.0;
+            // Interval optimization may interpolate a candidate from a
+            // neighboring window. In that case there is no source sample
+            // to remove; the emitted component is still subtracted below.
+            if let Some(pos) = pos {
+                residual[begin + pos] = 0.0;
+            }
 
             let emit = begin + w / 2 - 1;
             residual[emit] = (residual[emit] - c).max(0.0);
@@ -288,6 +290,15 @@ mod tests {
             .filter_map(|(i, v)| (*v > 0.0).then_some(i))
             .collect();
         assert_eq!(ix, vec![1, 5, 9, 13]);
+    }
+
+    #[test]
+    fn interpolated_candidates_without_source_match_do_not_panic() {
+        let signal: Vec<f64> = (1..=16).map(f64::from).collect();
+        let decomposition = decompose(&signal, 0.004).unwrap();
+        let reconstructed = reconstruct(&decomposition.coefficients).unwrap();
+        assert_eq!(reconstructed.len(), signal.len());
+        assert!(reconstructed.iter().all(|value| value.is_finite()));
     }
 
     #[test]

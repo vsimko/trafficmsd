@@ -203,9 +203,13 @@ decompose_traffic <- function(ts, cutoff.fraction = 0.004) {
 
         COEF[scale + 1, begin:end] <- c
 
-        # remove from x
-        x.pos <- begin + subx.pos - 1
-        x[x.pos] <- 0
+        # Interval optimization may interpolate a candidate from a
+        # neighboring window. In that case no source sample matches c.
+        # The generated component is still subtracted at its emission point.
+        if (!is.na(subx.pos)) {
+          x.pos <- begin + subx.pos - 1
+          x[x.pos] <- 0
+        }
 
         # Also remove the value from the "emit" position where the generator
         # will actually emit its packet. This is necessary, because the packet

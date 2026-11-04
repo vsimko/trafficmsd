@@ -46,7 +46,7 @@ The first computational operations are:
   matrix. The exact coefficient interchange representation will be finalized
   with the algorithm extraction work in issue #34.
 
-The initial executable also supports `--help` and `--version`.
+The standalone executable supports `--help` and `--version`, and implements the `validate`, `decompose`, and `reconstruct` commands against the normalized CSV contract.
 
 ## 3. File and path conventions
 
@@ -171,8 +171,7 @@ transport schema must not be treated as a scientific model schema.
 Outputs must contain only finite numeric values. Metadata such as schema
 version, TrafficMSD version, operation, signal units, sampling interval,
 sample count, and relevant parameters must be made available alongside
-machine-readable results. The implementation issue #35 will settle the
-sidecar naming and exact output envelope before the CLI is declared stable.
+machine-readable results. The implementation currently writes the documented CSV tables. A metadata sidecar and exact output envelope remain deferred; the CLI is not declared stable until those metadata requirements and the remaining compatibility limits are resolved.
 
 ## 7. Commands and validation behavior
 
@@ -270,3 +269,52 @@ issues, not left implicit:
 - raw packet/event ingestion and legacy `read_traffic()` compatibility;
 - stochastic generation commands and their RNG implementation;
 - cross-platform path and atomic-rename edge cases.
+
+
+## Current implementation status
+
+The Rust CLI now implements the three v1 commands against this contract:
+
+- `validate` checks configuration and normalized signal CSV input without creating output.
+- `decompose` invokes the Rust core and writes a complete long-form coefficient CSV.
+- `reconstruct` validates the coefficient table and writes a normalized signal CSV.
+- Configuration paths are resolved relative to the JSON file; output replacement requires `--force`.
+- CSV parsing rejects wrong headers, non-finite values, sample-index gaps, duplicate coefficient cells, and incomplete coefficient matrices.
+- End-to-end tests exercise the executable as an external process.
+
+The remaining v1 limitations are the metadata sidecar/output envelope, resource limits, and full R-versus-Rust conformance. These are tracked by #35 and #36 and must be resolved before the CLI contract is treated as stable.
+
+
+### Interpolated candidate edge case
+
+Interval optimization can replace a candidate with a value interpolated from an adjacent window. That value is not guaranteed to occur in the current source window. In that case the decomposition records the interpolated component and subtracts its amplitude at the emission position, but does not remove a non-existent source sample. The R reference and Rust core use this same rule. This fixes a legacy R failure and a Rust panic on monotonic and other interpolated-candidate signals; the behavior is intentionally covered by regression tests.
+
+
+## Initial Rust/R responsibility boundary
+
+The first standalone engine intentionally ports only the deterministic operations required by the normalized-signal extraction path:
+
+| Responsibility | Initial implementation | Reason |
+|---|---|---|
+| Power-of-two padding | Rust core `pad_power2`; R public function retained | Shared deterministic preprocessing; original observation count remains caller metadata. |
+| Multiscale decomposition and interval optimization | Rust core `decomposition::{decompose, optimize_intervals}`; R reference retained | Computational engine path; R remains the conformance oracle. |
+| Deterministic reconstruction | Rust core `decomposition::reconstruct`; R reference retained | Required for model reconstruction and cross-language comparison. |
+| Model v1 export | R `export_model_v1()`; Rust semantic validator/reconstructor | Serialization is an R package boundary in this increment; Rust validates and reconstructs the neutral model format. |
+| Raw event/packet ingestion | R `read_traffic()` retained; no CLI v1 command | Timestamp units, packet length semantics, and source selection must be settled with the validated dataset in #41. |
+| K-means cluster estimation and amplitude quantization | R `estimate_clusters()` and `cluster_by_amplitude()` retained | Not required for the first deterministic multiscale extraction path; stochastic/RNG equivalence is a separate migration decision. |
+| Plotting, diagrams, and statistical post-processing | R retained | Presentation and analysis are outside the standalone computational core. |
+
+This allocation is the current v1 boundary, not a claim that the retained R operations can never move to Rust. Any later migration must be justified by the generation/simulation use case and receive its own conformance tests.
+
+
+## R/Rust conformance protocol
+
+The `R-Rust conformance` workflow builds the CLI, installs the R package, and runs `tests/conformance/rust-r-conformance.R`. It compares every coefficient and reconstructed sample for constant, zero, alternating, monotonic, sparse, and periodic synthetic signals at cutoff fractions 0.004 and 0.15.
+
+The per-operation tolerance is relative max-absolute error:
+
+`max(abs(reference - candidate)) <= 1e-12 * max(1, max(abs(reference)))`.
+
+The workflow also checks byte-for-byte repeatability for fixed inputs and verifies that negative traffic-volume input is rejected by the Rust CLI with exit code 3. The negative-input rule is a deliberate domain tightening: the legacy R API historically accepted negative finite values, but transferred volume cannot be negative. This case is therefore documented as an intentional validation difference, not included in numeric equality comparisons.
+
+These synthetic conformance cases establish algorithm agreement for the covered inputs only. They do not replace dataset-backed validation, independent trace evaluation, or stochastic-generation validation.
