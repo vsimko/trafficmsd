@@ -41,6 +41,16 @@ class AggregatePacketsTests(unittest.TestCase):
         second = MODULE.aggregate_packets(list(reversed(rows)), Decimal("1"))
         self.assertEqual(first, second)
 
+    def test_capinfos_prefers_exact_interface_count_over_rounded_summary(self):
+        report = (
+            "Number of packets:   35 k\\n"
+            "Interface #0 info:\\n"
+            "                     Number of packets = 35067\\n"
+        )
+        import re
+        matches = re.findall(r"Number of packets\\s*[:=]\\s*([\\d,]+)", report)
+        self.assertEqual(int(matches[-1].replace(",", "")), 35067)
+
     def test_rejects_non_positive_width_and_empty_input(self):
         with self.assertRaises(ValueError):
             MODULE.aggregate_packets([(Decimal("0"), 1)], Decimal("0"))
