@@ -132,6 +132,7 @@ install_trafficmsd_cli <- function(version = "latest",
   }
   entry <- manifest$targets[[target]]
   if (is.null(entry) || is.null(entry$asset) || is.null(entry$sha256) ||
+      !nzchar(entry$asset) ||
       !identical(basename(entry$asset), entry$asset) ||
       !grepl("^[A-Fa-f0-9]{64}$", entry$sha256)) {
     stop(sprintf("The release does not contain a valid asset for %s.", target),
