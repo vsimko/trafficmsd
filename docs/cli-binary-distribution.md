@@ -32,9 +32,10 @@ uploaded only after all platform builds and native smoke tests have succeeded.
 
 The Linux artifacts target glibc 2.35 (the Ubuntu 22.04 baseline); they are
 not musl/static binaries. Linux systems must provide glibc 2.35 or newer.
-Windows ARM64, Linux architectures other than x86-64/ARM64, and macOS
-versions/architectures outside the listed targets are not supported by this
-first distribution increment.
+The supported macOS baseline is macOS 11 or later on Intel or Apple Silicon.
+The Windows target is 64-bit Windows 10 or later. Windows ARM64, Linux
+architectures other than x86-64/ARM64, and macOS versions/architectures outside
+the listed targets are not supported by this first distribution increment.
 
 ## R installation
 
