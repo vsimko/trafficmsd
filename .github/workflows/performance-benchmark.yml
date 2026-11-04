@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: performance-benchmark-\${{ github.workflow }}-\${{ github.ref }}
+  group: performance-benchmark-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -57,18 +57,18 @@ jobs:
 
       - name: Run reproducible benchmarks
         env:
-          TRAFFICMSD_CLI: \${{ github.workspace }}/target/release/trafficmsd
+          TRAFFICMSD_CLI: ${{ github.workspace }}/target/release/trafficmsd
         run: |
-          Rscript benchmarks/benchmark.R \\
-            target/release/trafficmsd \\
-            target/release/examples/benchmark \\
-            benchmarks/results \\
-            "\${{ inputs.iterations || '5' }}"
+          Rscript benchmarks/benchmark.R \
+            target/release/trafficmsd \
+            target/release/examples/benchmark \
+            benchmarks/results \
+            "${{ inputs.iterations || '5' }}"
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: trafficmsd-benchmark-\${{ github.sha }}
+          name: trafficmsd-benchmark-${{ github.sha }}
           path: benchmarks/results/
           if-no-files-found: error
           retention-days: 30
