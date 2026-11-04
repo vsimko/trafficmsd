@@ -81,19 +81,19 @@ def aggregate_packets(packet_rows: list[tuple[Decimal, int]], bin_width: Decimal
 def capinfos_packet_count(report_text: str) -> int:
     """Return the sum of exact per-interface counts, not capinfos' rounded summary."""
     interface_counts = re.findall(
-        r"Number of packets\\s*=\\s*([0-9,]+)", report_text
+        r"Number of packets\s*=\s*([0-9,]+)", report_text
     )
     if interface_counts:
         total = sum(int(value.replace(",", "")) for value in interface_counts)
         exact_totals = re.findall(
-            r"Number of packets:\\s*([0-9,]+)(?!\\s*[kKmM])", report_text
+            r"Number of packets:\s*([0-9,]+)(?!\s*[kKmM])", report_text
         )
         if exact_totals and int(exact_totals[0].replace(",", "")) != total:
             raise ValueError("capinfos total differs from summed interface packet counts")
         return total
 
     exact_totals = re.findall(
-        r"Number of packets:\\s*([0-9,]+)(?!\\s*[kKmM])", report_text
+        r"Number of packets:\s*([0-9,]+)(?!\s*[kKmM])", report_text
     )
     if exact_totals:
         return int(exact_totals[0].replace(",", ""))
