@@ -11,6 +11,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "R/cli-binary-install.R"
+      - "docs/cli-binary-distribution.md"
       - ".github/workflows/cli-binaries.yml"
 
 permissions:
