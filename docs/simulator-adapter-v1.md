@@ -1,0 +1,170 @@
+# TrafficMSD generator and simulator adapter contract v1
+
+**Status:** design contract; implementation deferred until the generator exists  
+**Initial target:** QPME 2.0 / SimQPN  
+**Scope:** workload-level performance simulation using Queueing Petri Nets (QPNs)
+
+## 1. Purpose and boundary
+
+TrafficMSD's first simulator integration will evaluate whether a generated workload derived from an extracted traffic model changes the performance results of a QPN system model. It is not a packet-level network simulator and does not model TCP/IP, routing, congestion control, or link-layer behavior.
+
+The adapter is deliberately downstream of model extraction and traffic generation:
+
+1. The model layer stores the versioned deterministic description.
+2. The generator turns that description into a reproducible time series or arrival schedule.
+3. The adapter maps the generated workload into a simulator-neutral arrival schedule.
+4. A simulator-specific bridge feeds that schedule to QPME/SimQPN.
+5. The evaluation layer compares measured-trace and generated-trace runs under identical QPN configurations.
+
+No simulator-specific fields belong in the traffic-model schema.
+
+## 2. Initial simulator choice
+
+Select **QPME 2.0 with its SimQPN discrete-event simulation engine** as the first target.
+
+Rationale:
+
+- The original TrafficMSD research objective explicitly considered performance simulation using Queuing Petri Nets.
+- QPME is a QPN modeling environment and includes SimQPN for discrete-event simulation.
+- The published QPME feature list documents simulation, empirical service-time distributions, throughput, queue utilization, and token residence-time measurements. These outputs support a first controlled workload-level evaluation.
+- A single QPN target keeps the first adapter narrow; adding OMNeT++, ns-3, or other packet-level/network simulators would be a separate project decision.
+
+This choice is for QPN-based performance modeling. It must not be presented as validation of packet-level network behavior.
+
+References:
+- QPME user guide: https://descartes.ipd.kit.edu/fileadmin/user_upload/descartes/QPME/QPME-UsersGuide.pdf
+- QPME features (v2.00): https://se.informatik.uni-wuerzburg.de/en/tools/qpme/features/
+
+Before implementation, verify the exact QPME/SimQPN version, supported import/automation interface, license, and availability of a headless execution path. The adapter must not depend on undocumented GUI automation.
+
+## 3. Generator API contract
+
+The first generator interface consumes a validated TrafficMSD model and an explicit generation configuration.
+
+Conceptual signature:
+
+```text
+generate_traffic(model, config) -> TrafficSeries
+```
+
+Required configuration:
+
+- `schema_version`: generator configuration version.
+- `duration`: positive finite duration.
+- `sampling_interval`: positive finite interval.
+- `time_unit`: explicit time unit.
+- `value_unit`: explicit model quantity unit.
+- `seed`: explicit unsigned integer for stochastic generation; null is allowed only for a deterministic generator.
+- `generation_mode`: explicit deterministic or stochastic mode.
+
+The returned `TrafficSeries` contains:
+
+- strictly increasing, regular sample indices beginning at zero;
+- finite, non-negative values;
+- declared time and value units;
+- sampling interval and observed duration;
+- source model identifier and schema version;
+- generator name/version, configuration, and seed;
+- no implicit unit conversion or silent clipping.
+
+A deterministic v1 replay generator may reproduce the serialized reconstruction. It is a baseline, not evidence of stochastic realism. A later stochastic generator must document its distributions, temporal dependence, fitting procedure, and fixed-seed semantics separately.
+
+## 4. Simulator-neutral arrival schedule
+
+The adapter must not pass a byte-valued time series directly into QPME. QPN arrivals represent workload entities (tokens/jobs), so conversion from bytes to jobs requires an explicit workload mapping.
+
+The first supported mapping is:
+
+- `bytes_per_job`: positive finite number of bytes represented by one arriving job;
+- `arrival_placement`: `bin_start` for v1;
+- `remainder_policy`: `carry_forward` for v1.
+
+For each input bin, compute the number of newly released jobs from the cumulative byte total:
+
+```text
+jobs_through_bin(k) = floor(cumulative_bytes_through_bin(k) / bytes_per_job)
+jobs_in_bin(k) = jobs_through_bin(k) - jobs_through_bin(k - 1)
+```
+
+This cumulative quantization preserves total represented volume up to the final fractional remainder and avoids independently rounding every bin. The final remainder must be reported in the schedule metadata. Negative values, non-finite values, unit mismatches, and overflow are errors.
+
+The v1 schedule is a table with:
+
+| Field | Meaning |
+|---|---|
+| `time` | Arrival time in declared simulation time units |
+| `job_count` | Non-negative integer batch size |
+| `bytes_per_job` | Workload mapping used for this schedule |
+| `source_bin` | Zero-based source bin index |
+
+The adapter must preserve empty bins as no-arrival intervals. It must not invent within-bin arrival times. `bin_start` means all jobs in a batch become available at the start of the source bin; alternative placement policies require a later schema version and separate evaluation.
+
+This mapping is a workload abstraction. It does not claim that one job equals one packet, flow, request, or application transaction unless the experiment explicitly defines that interpretation.
+
+## 5. QPME/SimQPN bridge
+
+The simulator-specific bridge consumes the neutral arrival schedule and a user-authored QPN model.
+
+Responsibilities:
+
+- validate simulator version and model compatibility;
+- map each scheduled job to the configured QPN entry place and token color;
+- preserve batch time and count without reordering;
+- use the QPN model's own service-time and routing definitions;
+- record the exact simulator model and configuration hashes;
+- run the requested replications and warm-up policy;
+- export raw observations and summary metrics in a machine-readable form.
+
+The bridge must not create or infer queue topology, service rates, routing probabilities, or resource capacities from the TrafficMSD model. Those belong to the QPN system model and its experiment configuration.
+
+The initial integration may use a generated input file if QPME/SimQPN supports a documented batch/import interface. If no stable headless interface exists, stop and reassess the target rather than automating GUI interactions.
+
+## 6. Simulation outputs and comparison
+
+At minimum, retain:
+
+- offered workload volume and job arrivals;
+- completed jobs and throughput;
+- mean and distribution of queue population where available;
+- queue utilization where applicable;
+- token/job residence time, including mean, standard deviation, and confidence interval where supported;
+- run duration, warm-up, replication count, and termination reason.
+
+Compare two input conditions under the same QPN model and simulator configuration:
+
+1. measured-trace reference schedule;
+2. TrafficMSD-generated schedule.
+
+Use identical workload mapping, system model, warm-up, termination policy, and replication strategy. For stochastic generation, use independent documented seeds and report between-run uncertainty. A deterministic replay must be kept as a separate control.
+
+Do not compare simulator results from different QPN configurations and attribute the difference to the traffic model.
+
+## 7. Reproducibility and validation gates
+
+Every run records:
+
+- TrafficMSD commit, model schema version, model identifier, and model checksum;
+- generator version, full configuration, and seed;
+- source trace provenance and preprocessing manifest;
+- workload mapping and generated arrival-schedule checksum;
+- QPME/SimQPN version, QPN model checksum, and simulator settings;
+- operating system/runtime versions, replication count, warm-up, and output artifacts.
+
+Required tests before calling the adapter supported:
+
+- deterministic schedule generation for a fixed model and configuration;
+- cumulative byte-to-job conversion, including fractional remainder and empty bins;
+- invalid units, invalid values, overflow, and boundary-time handling;
+- stable schedule serialization and checksum;
+- simulator bridge conformance against a small hand-calculated arrival schedule;
+- measured-trace and generated-trace reference runs under identical QPN settings.
+
+## 8. Explicit limitations and deferred work
+
+- No packet-level protocol, network topology, link, or congestion simulation.
+- No inference of jobs/requests from packet bytes without a declared workload mapping.
+- No automatic construction of QPN system models.
+- No simulator-specific stochastic service-time fitting in TrafficMSD.
+- No second simulator adapter until the QPME/SimQPN integration has a reproducible test and a concrete use case.
+
+The contract can be revised after a concrete QPN workload case and the QPME batch interface have been verified.
