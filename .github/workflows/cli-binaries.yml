@@ -90,9 +90,10 @@ jobs:
       - name: Verify R installer target mapping
         env:
           EXPECTED_TARGET: ${{ matrix.target }}
+          TRAFFICMSD_CLI: ${{ github.workspace }}/target/${{ matrix.target }}/release/trafficmsd${{ matrix.extension }}
         shell: bash
         run: |
-          Rscript -e 'source("R/cli-binary-install.R"); stopifnot(.trafficmsd_cli_target() == Sys.getenv("EXPECTED_TARGET"))'
+          Rscript -e 'source("R/cli-binary-install.R"); stopifnot(.trafficmsd_cli_target() == Sys.getenv("EXPECTED_TARGET")); version <- system2(Sys.getenv("TRAFFICMSD_CLI"), "--version", stdout = TRUE, stderr = TRUE); expected <- paste("trafficmsd", read.dcf("DESCRIPTION")[1, "Version"]); stopifnot(any(trimws(version) == expected))'
 
       - name: Prepare release asset
         shell: bash
