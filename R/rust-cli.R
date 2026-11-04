@@ -6,19 +6,41 @@
     if (!file.exists(override) || dir.exists(override)) {
       stop("TRAFFICMSD_CLI does not name an existing executable file.", call. = FALSE)
     }
-    if (.Platform$OS.type != "windows" && file.access(override, 1L) != 0L) {
-      stop("TRAFFICMSD_CLI is not executable by the current user.", call. = FALSE)
-    }
     executable <- normalizePath(override, winslash = "/", mustWork = TRUE)
   } else {
     executable <- Sys.which("trafficmsd")
     if (!nzchar(executable)) {
-      stop("TrafficMSD Rust CLI was not found. Put trafficmsd on PATH or set TRAFFICMSD_CLI.",
-           call. = FALSE)
+      target <- .trafficmsd_cli_target()
+      cache_dir <- if (getRversion() >= "4.0.0") {
+        tools::R_user_dir("trafficmsd", which = "cache")
+      } else {
+        file.path(path.expand("~"), ".cache", "R", "trafficmsd")
+      }
+      executable_name <- if (.Platform$OS.type == "windows") {
+        "trafficmsd.exe"
+      } else {
+        "trafficmsd"
+      }
+      cached <- file.path(
+        cache_dir, as.character(utils::packageVersion("trafficmsd")),
+        target, executable_name
+      )
+      if (!file.exists(cached)) {
+        stop(
+          "TrafficMSD Rust CLI was not found. Run install_trafficmsd_cli() or put a matching trafficmsd executable on PATH.",
+          call. = FALSE
+        )
+      }
+      executable <- normalizePath(cached, winslash = "/", mustWork = TRUE)
+    } else {
+      executable <- unname(executable)
     }
-    executable <- unname(executable)
   }
 
+  if (.Platform$OS.type != "windows" && file.access(executable, 1L) != 0L) {
+    stop("The TrafficMSD CLI file is not executable by the current user.",
+         call. = FALSE)
+  }
   version_output <- suppressWarnings(
     system2(executable, args = "--version", stdout = TRUE, stderr = TRUE)
   )
