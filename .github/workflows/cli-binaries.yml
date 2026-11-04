@@ -53,8 +53,12 @@ jobs:
         run: |
           expected="${GITHUB_REF_NAME#v}"
           package_version="$(sed -n 's/^Version: *//p' DESCRIPTION)"
+          if [[ "$GITHUB_REF_NAME" != "v$expected" ]]; then
+            echo "Release tag must use the v<version> format (for example v$package_version)." >&2
+            exit 1
+          fi
           if [[ "$package_version" != "$expected" ]]; then
-            echo "Release tag $expected does not match DESCRIPTION version $package_version" >&2
+            echo "Release tag $GITHUB_REF_NAME does not match DESCRIPTION version $package_version" >&2
             exit 1
           fi
 
