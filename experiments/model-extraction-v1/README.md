@@ -40,8 +40,11 @@ precision, truncation count, and preprocessing choices.
 The R stage zero-pads only for decomposition, preserves the observed sample
 count in model metadata, and evaluates reconstruction only over the observed
 interval. It emits model v1 JSON, evaluation-result v1 JSON, and source and
-reconstructed CSV files. CI validates both JSON documents against the checked-in
-schemas.
+reconstructed CSV files. Evaluation includes raw-trace identity and constant-mean
+controls. Because this initial run uses the entire trace for a diagnostic fit,
+the constant-mean control is explicitly marked `full_trace_diagnostic`; it is
+not a held-out baseline and must not be interpreted as out-of-sample validation.
+CI validates both JSON documents against the checked-in schemas.
 
 ## Interpretation limits
 
