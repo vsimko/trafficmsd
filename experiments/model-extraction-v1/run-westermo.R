@@ -113,10 +113,29 @@ scale_zero_count <- sum(vapply(components, function(component) {
   identical(as.integer(component$scale_index), 0L)
 }, logical(1)))
 
+fidelity_metrics <- function(source, estimate) {
+  difference <- estimate - source
+  source_total <- sum(source)
+  list(
+    mae = mean(abs(difference)),
+    rmse = sqrt(mean(difference^2)),
+    bias = mean(difference),
+    relative_l1_error = if (source_total == 0) NULL else
+      sum(abs(difference)) / source_total,
+    volume_error = if (source_total == 0) NULL else
+      (sum(estimate) - source_total) / source_total
+  )
+}
+
 metrics <- list(
-  fidelity = list(
-    mae = mean(abs(errors)), rmse = sqrt(mean(errors^2)), bias = mean(errors),
-    relative_l1_error = relative_l1, volume_error = volume_error
+  fidelity = fidelity_metrics(signal, reconstructed),
+  baselines = list(
+    scope = "full_trace_diagnostic",
+    identity = list(fidelity = fidelity_metrics(signal, signal)),
+    constant_mean = list(
+      value = mean(signal),
+      fidelity = fidelity_metrics(signal, rep(mean(signal), observed_count))
+    )
   ),
   distribution = list(
     source_mean = mean(signal), reconstruction_mean = mean(reconstructed),
