@@ -39,22 +39,8 @@ trafficmsd::install_trafficmsd_cli()
 ```
 
 The installer verifies the binary's SHA-256 checksum and sets
-`TRAFFICMSD_CLI` for the current R session. See
-[CLI binary distribution](docs/cli-binary-distribution.md) for supported
-platforms and pinned-version installation.
-
-### Optional Rust CLI
-
-After a CLI-enabled GitHub Release has been published, install the optional
-prebuilt executable (no Rust toolchain required):
-
-```r
-install.packages(c("jsonlite", "digest"))
-trafficmsd::install_trafficmsd_cli()
-```
-
-The installer verifies the downloaded binary's SHA-256 checksum and sets
-`TRAFFICMSD_CLI` for the current R session. See
+`TRAFFICMSD_CLI` for the current R session. The default user cache is
+automatically discovered in later sessions. See
 [CLI binary distribution](docs/cli-binary-distribution.md) for supported
 platforms and pinned-version installation.
 
@@ -68,14 +54,9 @@ analysis.
 ```r
 library(trafficmsd)
 
-# Load a bundled example and decompose it.
 data(sample32)
 decomposition <- decompose_traffic(sample32)
-
-# Reconstruct the signal from the decomposition coefficients.
 reconstructed <- reconstruct_traffic(decomposition)
-
-# Inspect the number of intervals and the decomposition spectrum.
 print_stats(decomposition)
 plot_spectrum(decomposition)
 ```
@@ -97,14 +78,12 @@ you need to trim the reconstructed vector back to the unpadded signal.
 - `read_traffic()` reads packet timestamps and lengths from a CSV containing
   `Time` and `Length` columns and regularizes the signal.
 - `pad_power2()` appends zeros to reach the next power-of-two length.
-- `decompose_traffic()` computes the multiscale decomposition.
+- `decompose_traffic()` computes the R reference decomposition.
 - `reconstruct_traffic()` reconstructs a traffic vector from decomposition
   coefficients.
 - `decompose_traffic_rust()` and `reconstruct_traffic_rust()` explicitly
   invoke the standalone Rust CLI when installed.
 - `install_trafficmsd_cli()` installs and verifies the matching release binary.
-- `decompose_traffic_rust()` and `reconstruct_traffic_rust()` explicitly
-  invoke the standalone Rust CLI when installed.
 - `estimate_clusters()` estimates an amplitude cluster count.
 - `cluster_by_amplitude()` quantizes amplitudes using k-means.
 - `plot_spectrum()`, `plot_scaleogram()`, and `plot_traffic()` provide
@@ -126,8 +105,6 @@ traffic generation and performance-simulation validation.
 - [Research and development roadmap](docs/RESEARCH_ROADMAP.md)
 - [Research readiness specification](docs/RESEARCH_READINESS.md)
 - [Generator and QPME/SimQPN adapter contract v1](docs/simulator-adapter-v1.md)
-- [CLI binary distribution](docs/cli-binary-distribution.md)
-- [Performance benchmark protocol](docs/performance-benchmarks.md)
 - [CLI binary distribution](docs/cli-binary-distribution.md)
 
 ## Research reference
