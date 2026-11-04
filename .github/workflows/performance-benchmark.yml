@@ -1,0 +1,74 @@
+name: Performance benchmarks
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: Repetitions per operation
+        required: false
+        default: "5"
+        type: string
+  pull_request:
+    branches: [master, main]
+    paths:
+      - "R/**"
+      - "crates/trafficmsd-core/**"
+      - "crates/trafficmsd-cli/**"
+      - "benchmarks/**"
+      - ".github/workflows/performance-benchmark.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-benchmark-\${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: R versus Rust benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - name: Install R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
+          extra-packages: any::jsonlite
+          cache-version: 1
+
+      - name: Build release executables
+        run: |
+          cargo build --release --bin trafficmsd
+          cargo build --release -p trafficmsd-core --example benchmark
+
+      - name: Install TrafficMSD R package
+        run: R CMD INSTALL .
+
+      - name: Run reproducible benchmarks
+        env:
+          TRAFFICMSD_CLI: \${{ github.workspace }}/target/release/trafficmsd
+        run: |
+          Rscript benchmarks/benchmark.R \\
+            target/release/trafficmsd \\
+            target/release/examples/benchmark \\
+            benchmarks/results \\
+            "\${{ inputs.iterations || '5' }}"
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trafficmsd-benchmark-\${{ github.sha }}
+          path: benchmarks/results/
+          if-no-files-found: error
+          retention-days: 30
