@@ -2,8 +2,11 @@
 
 .trafficmsd_cli_target <- function() {
   system <- Sys.info()[["sysname"]]
-  machine <- tolower(Sys.info()[["machine"]])
-  if (!nzchar(machine)) machine <- tolower(R.version$arch)
+  machine <- Sys.info()[["machine"]]
+  if (is.null(machine) || is.na(machine) || !nzchar(machine)) {
+    machine <- R.version$arch
+  }
+  machine <- tolower(machine)
   architecture <- if (machine %in% c("x86_64", "x86-64", "amd64")) {
     "x86_64"
   } else if (machine %in% c("aarch64", "arm64")) {
@@ -161,6 +164,7 @@ install_trafficmsd_cli <- function(version = "latest",
     )
     if (identical(tolower(cached_sha256), expected_sha256)) {
       installed <- normalizePath(destination, winslash = "/", mustWork = TRUE)
+      if (.Platform$OS.type != "windows") Sys.chmod(destination, mode = "0755")
       Sys.setenv(TRAFFICMSD_CLI = installed)
       return(invisible(installed))
     }
