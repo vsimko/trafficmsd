@@ -78,6 +78,14 @@ def aggregate_packets(packet_rows: list[tuple[Decimal, int]], bin_width: Decimal
     return signal, origin, last_timestamp
 
 
+def capinfos_packet_count(report_text: str) -> int:
+    """Return the exact per-interface count, not capinfos' rounded summary."""
+    matches = re.findall(r"Number of packets\\s*[:=]\\s*([\\d,]+)", report_text)
+    if not matches:
+        raise ValueError("capinfos report does not contain an exact packet count")
+    return int(matches[-1].replace(",", ""))
+
+
 def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
     report_path = archive_path.parent / "validation-report.json"
     report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -138,18 +146,13 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
             if count == 0:
                 raise RuntimeError(f"No packets decoded from {info.filename}")
             capinfos_text = capinfos_by_member[info.filename]
-            packet_count_matches = re.findall(
-                r"Number of packets\s*[:=]\s*([\d,]+)", capinfos_text
-            )
-            if not packet_count_matches:
+            try:
+                reported_count = capinfos_packet_count(capinfos_text)
+            except ValueError as error:
                 raise RuntimeError(
                     f"Published capinfos packet count is missing for {info.filename}: "
                     f"{capinfos_text!r}"
-                )
-            # capinfos emits a human-readable rounded summary ("35 k") and
-            # an exact per-interface count later in the report. Use the last
-            # exact field, not the rounded summary.
-            reported_count = int(packet_count_matches[-1].replace(",", ""))
+                ) from error
             if reported_count != count:
                 raise RuntimeError(
                     f"Packet count mismatch for {info.filename}: tshark decoded {count}, "
