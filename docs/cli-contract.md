@@ -288,3 +288,20 @@ The remaining v1 limitations are the metadata sidecar/output envelope, resource 
 ### Interpolated candidate edge case
 
 Interval optimization can replace a candidate with a value interpolated from an adjacent window. That value is not guaranteed to occur in the current source window. In that case the decomposition records the interpolated component and subtracts its amplitude at the emission position, but does not remove a non-existent source sample. The R reference and Rust core use this same rule. This fixes a legacy R failure and a Rust panic on monotonic and other interpolated-candidate signals; the behavior is intentionally covered by regression tests.
+
+
+## Initial Rust/R responsibility boundary
+
+The first standalone engine intentionally ports only the deterministic operations required by the normalized-signal extraction path:
+
+| Responsibility | Initial implementation | Reason |
+|---|---|---|
+| Power-of-two padding | Rust core `pad_power2`; R public function retained | Shared deterministic preprocessing; original observation count remains caller metadata. |
+| Multiscale decomposition and interval optimization | Rust core `decomposition::{decompose, optimize_intervals}`; R reference retained | Computational engine path; R remains the conformance oracle. |
+| Deterministic reconstruction | Rust core `decomposition::reconstruct`; R reference retained | Required for model reconstruction and cross-language comparison. |
+| Model v1 export | R `export_model_v1()`; Rust semantic validator/reconstructor | Serialization is an R package boundary in this increment; Rust validates and reconstructs the neutral model format. |
+| Raw event/packet ingestion | R `read_traffic()` retained; no CLI v1 command | Timestamp units, packet length semantics, and source selection must be settled with the validated dataset in #41. |
+| K-means cluster estimation and amplitude quantization | R `estimate_clusters()` and `cluster_by_amplitude()` retained | Not required for the first deterministic multiscale extraction path; stochastic/RNG equivalence is a separate migration decision. |
+| Plotting, diagrams, and statistical post-processing | R retained | Presentation and analysis are outside the standalone computational core. |
+
+This allocation is the current v1 boundary, not a claim that the retained R operations can never move to Rust. Any later migration must be justified by the generation/simulation use case and receive its own conformance tests.
