@@ -46,7 +46,7 @@ jobs:
       - name: Exercise the R package CLI adapter
         env:
           TRAFFICMSD_CLI: ${{ github.workspace }}/target/release/trafficmsd
-        run: Rscript -e 'testthat::test_file("tests/testthat/test-rust-cli.R")'
+        run: Rscript -e 'library(trafficmsd); testthat::test_file("tests/testthat/test-rust-cli.R")'
 
       - name: Compare R and Rust outputs
         run: Rscript tests/conformance/rust-r-conformance.R target/release/trafficmsd
