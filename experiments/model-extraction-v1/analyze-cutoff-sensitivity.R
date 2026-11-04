@@ -188,6 +188,10 @@ report <- list(
   value_unit = "captured_frame_bytes",
   cutoff_fractions = as.list(cutoffs),
   constant_mean_baseline = constant_mean_metrics,
+  volume_matching = list(
+    scope = "full_trace_diagnostic",
+    description = "Scale each reconstruction to match full-trace total volume; diagnostic only"
+  ),
   source_burst_threshold = threshold,
   source_burst_run_count = length(source_runs),
   source_burst_max_run = if (length(source_runs)) max(source_runs) else NULL,
