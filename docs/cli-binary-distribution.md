@@ -18,6 +18,11 @@ executable natively on each target runner when a GitHub Release is published.
 It attaches one raw executable per target and a
 `trafficmsd-cli-manifest.json` to that release.
 
+Release tags must use the `v<version>` form (for example `v0.1.0`) and the
+version without the leading `v` must match the package version in
+`DESCRIPTION`. This is also the tag convention used by the installer for
+pinned releases and asset downloads.
+
 The manifest CLI version must match the installed R package version exactly.
 The installer executes the downloaded binary with `--version` before
 installing it, and the R adapter checks the executable version at invocation
