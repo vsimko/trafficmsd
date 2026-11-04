@@ -138,13 +138,18 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
             if count == 0:
                 raise RuntimeError(f"No packets decoded from {info.filename}")
             capinfos_text = capinfos_by_member[info.filename]
-            packet_count_match = re.search(r"Number of packets:\s*([\d,]+)", capinfos_text)
-            if packet_count_match is None:
+            packet_count_matches = re.findall(
+                r"Number of packets\s*[:=]\s*([\d,]+)", capinfos_text
+            )
+            if not packet_count_matches:
                 raise RuntimeError(
                     f"Published capinfos packet count is missing for {info.filename}: "
                     f"{capinfos_text!r}"
                 )
-            reported_count = int(packet_count_match.group(1).replace(",", ""))
+            # capinfos emits a human-readable rounded summary ("35 k") and
+            # an exact per-interface count later in the report. Use the last
+            # exact field, not the rounded summary.
+            reported_count = int(packet_count_matches[-1].replace(",", ""))
             if reported_count != count:
                 raise RuntimeError(
                     f"Packet count mismatch for {info.filename}: tshark decoded {count}, "
