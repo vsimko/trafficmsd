@@ -6,17 +6,55 @@
     if (!file.exists(override) || dir.exists(override)) {
       stop("TRAFFICMSD_CLI does not name an existing executable file.", call. = FALSE)
     }
-    if (file.access(override, 1L) != 0L) {
-      stop("TRAFFICMSD_CLI is not executable by the current user.", call. = FALSE)
+    executable <- normalizePath(override, winslash = "/", mustWork = TRUE)
+  } else {
+    executable <- Sys.which("trafficmsd")
+    if (!nzchar(executable)) {
+      target <- .trafficmsd_cli_target()
+      cache_dir <- if (getRversion() >= "4.0.0") {
+        tools::R_user_dir("trafficmsd", which = "cache")
+      } else {
+        file.path(path.expand("~"), ".cache", "R", "trafficmsd")
+      }
+      executable_name <- if (.Platform$OS.type == "windows") {
+        "trafficmsd.exe"
+      } else {
+        "trafficmsd"
+      }
+      cached <- file.path(
+        cache_dir, as.character(utils::packageVersion("trafficmsd")),
+        target, executable_name
+      )
+      if (!file.exists(cached)) {
+        stop(
+          "TrafficMSD Rust CLI was not found. Run install_trafficmsd_cli() or put a matching trafficmsd executable on PATH.",
+          call. = FALSE
+        )
+      }
+      executable <- normalizePath(cached, winslash = "/", mustWork = TRUE)
+    } else {
+      executable <- unname(executable)
     }
-    return(normalizePath(override, winslash = "/", mustWork = TRUE))
   }
-  executable <- Sys.which("trafficmsd")
-  if (!nzchar(executable)) {
-    stop("TrafficMSD Rust CLI was not found. Put trafficmsd on PATH or set TRAFFICMSD_CLI.",
+
+  if (.Platform$OS.type != "windows" && file.access(executable, 1L) != 0L) {
+    stop("The TrafficMSD CLI file is not executable by the current user.",
          call. = FALSE)
   }
-  unname(executable)
+  version_output <- suppressWarnings(
+    system2(executable, args = "--version", stdout = TRUE, stderr = TRUE)
+  )
+  status <- attr(version_output, "status")
+  expected <- paste0("trafficmsd ", as.character(utils::packageVersion("trafficmsd")))
+  if ((!is.null(status) && status != 0L) ||
+      !any(trimws(version_output) == expected)) {
+    reported <- paste(version_output, collapse = " ")
+    stop(sprintf(
+      "Incompatible TrafficMSD CLI. The R package requires '%s', but the executable reported '%s'. Install the matching CLI release.",
+      expected, reported
+    ), call. = FALSE)
+  }
+  executable
 }
 
 .trafficmsd_cli_metadata <- function(sampling_interval, time_unit, value_unit) {

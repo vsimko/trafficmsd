@@ -1,0 +1,165 @@
+name: CLI binary distribution
+
+on:
+  release:
+    types: [published]
+  pull_request:
+    branches: [master, main]
+    paths:
+      - "crates/trafficmsd-cli/**"
+      - "crates/trafficmsd-core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "R/cli-binary-install.R"
+      - "docs/cli-binary-distribution.md"
+      - ".github/workflows/cli-binaries.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-binaries-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            extension: ""
+          - runner: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            extension: ""
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            extension: ""
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            extension: ""
+          - runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: ".exe"
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate release version alignment
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          package_version="$(sed -n 's/^Version: *//p' DESCRIPTION)"
+          if [[ "$GITHUB_REF_NAME" != "v$expected" ]]; then
+            echo "Release tag must use the v<version> format (for example v$package_version)." >&2
+            exit 1
+          fi
+          if [[ "$package_version" != "$expected" ]]; then
+            echo "Release tag $GITHUB_REF_NAME does not match DESCRIPTION version $package_version" >&2
+            exit 1
+          fi
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build standalone CLI
+        shell: bash
+        run: cargo build --release --target "${{ matrix.target }}" --bin trafficmsd
+
+      - name: Smoke test native executable
+        shell: bash
+        run: |
+          executable="target/${{ matrix.target }}/release/trafficmsd${{ matrix.extension }}"
+          version_output="$("$executable" --version)"
+          echo "$version_output"
+          [[ "$version_output" == trafficmsd* ]]
+          if [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
+            expected="trafficmsd ${GITHUB_REF_NAME#v}"
+            [[ "$version_output" == "$expected" ]] || {
+              echo "Expected CLI version $expected, got $version_output" >&2
+              exit 1
+            }
+          fi
+          "$executable" --help >/dev/null
+
+      - name: Set up R for platform detection
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+
+      - name: Verify R installer target mapping
+        env:
+          EXPECTED_TARGET: ${{ matrix.target }}
+          TRAFFICMSD_CLI: ${{ github.workspace }}/target/${{ matrix.target }}/release/trafficmsd${{ matrix.extension }}
+        shell: bash
+        run: |
+          Rscript -e 'source("R/cli-binary-install.R"); stopifnot(.trafficmsd_cli_target() == Sys.getenv("EXPECTED_TARGET")); version <- system2(Sys.getenv("TRAFFICMSD_CLI"), "--version", stdout = TRUE, stderr = TRUE); expected <- paste("trafficmsd", read.dcf("DESCRIPTION")[1, "Version"]); stopifnot(any(trimws(version) == expected))'
+
+      - name: Prepare release asset
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${VERSION//\//-}"
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/trafficmsd${{ matrix.extension }}" \
+            "dist/trafficmsd-${VERSION}-${{ matrix.target }}${{ matrix.extension }}"
+
+      - name: Upload platform binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 3
+
+  package-assets:
+    name: Validate and package CLI release assets
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download platform binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate and validate release manifest
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${VERSION//\//-}"
+          python3 scripts/ci/create-cli-manifest.py "$VERSION" dist
+
+      - name: Upload validated release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-package-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 3
+
+  publish-assets:
+    name: Publish checksummed release assets
+    if: github.event_name == 'release'
+    needs: package-assets
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-package-${{ github.sha }}
+          path: dist
+
+      - name: Upload assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/* --clobber

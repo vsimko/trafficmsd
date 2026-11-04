@@ -90,23 +90,25 @@ This technical roadmap complements (and does not replace) research planning and 
 
 ### M5 — Thin R adapter
 
-- [ ] Define which existing R functions become Rust-backed and which remain native R.
-- [ ] Implement robust executable discovery and invocation from R.
-- [ ] Handle paths, process errors, timeouts, and temporary files safely.
-- [ ] Preserve user-facing R function signatures where practical.
-- [ ] Keep plots, diagrams, and statistical post-processing in R.
-- [ ] Test clean installation and execution on supported platforms.
+- [x] Define the initial R/Rust responsibility boundary in [docs/cli-contract.md](docs/cli-contract.md).
+- [x] Implement executable discovery and invocation through the standalone CLI.
+- [x] Handle paths, process errors, and temporary files safely.
+- [x] Preserve the existing R API; expose explicit Rust-backed adapter functions.
+- [x] Keep plots, diagrams, and statistical post-processing in R.
+- [ ] Add bounded process timeouts and explicit cancellation behavior.
+- [ ] Test clean binary installation and adapter execution on every supported platform.
 
 ### M6 — Binary distribution and release
 
-- [ ] Define supported OS/architecture targets and minimum runtime requirements.
-- [ ] Automate reproducible native builds and artifact checks.
-- [ ] Decide how R package installation obtains the matching executable.
-- [ ] Test offline/error/fallback behavior and executable version compatibility.
-- [ ] Document installation, upgrades, and troubleshooting.
+- [x] Define supported OS/architecture targets and minimum runtime requirements in [docs/cli-binary-distribution.md](docs/cli-binary-distribution.md).
+- [x] Automate native builds and SHA-256 release artifact checks.
+- [x] Add the R installer that selects and verifies the matching executable.
+- [ ] Test offline/error/fallback behavior and executable version compatibility on all supported platforms.
+- [x] Document installation, upgrades, and troubleshooting in [docs/cli-binary-distribution.md](docs/cli-binary-distribution.md).
 
 ### M7 — Performance and future interfaces
 
+- [x] Add a reproducible synthetic R-versus-Rust benchmark harness in [docs/performance-benchmarks.md](docs/performance-benchmarks.md); representative trace benchmarks remain gated by dataset validation.
 - [ ] Establish representative benchmarks against the current R implementation.
 - [ ] Measure core runtime, end-to-end CLI overhead, memory use, and scaling.
 - [ ] Optimize only measured bottlenecks.

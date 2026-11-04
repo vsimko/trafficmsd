@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vsimko/trafficmsd/blob/master/schemas/cli-binaries/v1/manifest.schema.json",
+  "title": "TrafficMSD CLI release manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "release_version", "cli_version", "targets"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "release_version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "cli_version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+        "x86_64-pc-windows-msvc"
+      ],
+      "properties": {
+        "x86_64-unknown-linux-gnu": { "$ref": "#/$defs/asset" },
+        "aarch64-unknown-linux-gnu": { "$ref": "#/$defs/asset" },
+        "x86_64-apple-darwin": { "$ref": "#/$defs/asset" },
+        "aarch64-apple-darwin": { "$ref": "#/$defs/asset" },
+        "x86_64-pc-windows-msvc": { "$ref": "#/$defs/asset" }
+      }
+    }
+  },
+  "$defs": {
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset", "sha256"],
+      "properties": {
+        "asset": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" }
+      }
+    }
+  }
+}
