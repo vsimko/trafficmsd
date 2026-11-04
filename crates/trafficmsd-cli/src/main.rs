@@ -146,8 +146,12 @@ fn run() -> Result<(), CliError> {
 
     let config_path =
         config_path.ok_or_else(|| CliError::usage("missing required --config path"))?;
-    let config_text = fs::read_to_string(&config_path)
-        .map_err(|error| CliError::io(format!("cannot read config {}: {error}", config_path.display())))?;
+    let config_text = fs::read_to_string(&config_path).map_err(|error| {
+        CliError::io(format!(
+            "cannot read config {}: {error}",
+            config_path.display()
+        ))
+    })?;
     let config: Config = serde_json::from_str(&config_text)
         .map_err(|error| CliError::invalid(format!("invalid JSON configuration: {error}")))?;
     validate_config(&config, operation)?;
@@ -176,14 +180,16 @@ fn run() -> Result<(), CliError> {
         }
         Operation::Reconstruct => {
             let coefficients = read_coefficient_csv(&input_path)?;
-            let signal = trafficmsd_core::decomposition::reconstruct(&coefficients)
-                .map_err(|error| match error {
-                    trafficmsd_core::decomposition::SignalError::NonFinite(index) => {
-                        CliError::algorithm(format!(
-                            "reconstruction produced a non-finite value at sample {index}"
-                        ))
+            let signal =
+                trafficmsd_core::decomposition::reconstruct(&coefficients).map_err(|error| {
+                    match error {
+                        trafficmsd_core::decomposition::SignalError::NonFinite(index) => {
+                            CliError::algorithm(format!(
+                                "reconstruction produced a non-finite value at sample {index}"
+                            ))
+                        }
+                        other => CliError::invalid(format!("invalid coefficient input: {other}")),
                     }
-                    other => CliError::invalid(format!("invalid coefficient input: {other}")),
                 })?;
             let output_path = resolve_path(
                 config_dir,
@@ -231,9 +237,7 @@ fn validate_config(config: &Config, operation: Operation) -> Result<(), CliError
     match operation {
         Operation::Validate => {
             if config.output_csv.is_some() {
-                return Err(CliError::invalid(
-                    "output_csv must be omitted for validate",
-                ));
+                return Err(CliError::invalid("output_csv must be omitted for validate"));
             }
             if config.parameters.cutoff_fraction.is_some() {
                 return Err(CliError::invalid(
@@ -243,10 +247,9 @@ fn validate_config(config: &Config, operation: Operation) -> Result<(), CliError
         }
         Operation::Decompose => {
             require_output(config)?;
-            let cutoff = config
-                .parameters
-                .cutoff_fraction
-                .ok_or_else(|| CliError::invalid("decompose requires parameters.cutoff_fraction"))?;
+            let cutoff = config.parameters.cutoff_fraction.ok_or_else(|| {
+                CliError::invalid("decompose requires parameters.cutoff_fraction")
+            })?;
             if !cutoff.is_finite() || cutoff <= 0.0 || cutoff >= 1.0 {
                 return Err(CliError::invalid(
                     "parameters.cutoff_fraction must be finite and between 0 and 1",
@@ -287,11 +290,16 @@ fn resolve_path(base: &Path, value: &str) -> PathBuf {
 fn read_signal_csv(path: &Path) -> Result<Vec<f64>, CliError> {
     let file = File::open(path)
         .map_err(|error| CliError::io(format!("cannot open input {}: {error}", path.display())))?;
-    let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(file);
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .from_reader(file);
     let headers = reader
         .headers()
         .map_err(|error| CliError::invalid(format!("invalid signal CSV header: {error}")))?;
-    if headers.len() != 2 || headers.get(0) != Some("sample_index") || headers.get(1) != Some("value") {
+    if headers.len() != 2
+        || headers.get(0) != Some("sample_index")
+        || headers.get(1) != Some("value")
+    {
         return Err(CliError::invalid(
             "signal CSV header must be exactly sample_index,value",
         ));
@@ -316,7 +324,9 @@ fn read_signal_csv(path: &Path) -> Result<Vec<f64>, CliError> {
     }
 
     if values.is_empty() {
-        return Err(CliError::invalid("signal CSV must contain at least one observation"));
+        return Err(CliError::invalid(
+            "signal CSV must contain at least one observation",
+        ));
     }
     Ok(values)
 }
@@ -369,7 +379,9 @@ fn read_coefficient_csv(path: &Path) -> Result<Vec<Vec<f64>>, CliError> {
     }
 
     if entries.is_empty() {
-        return Err(CliError::invalid("coefficient CSV must contain at least one row"));
+        return Err(CliError::invalid(
+            "coefficient CSV must contain at least one row",
+        ));
     }
 
     let sample_count = max_sample
@@ -529,7 +541,10 @@ fn print_help() {
 
 #[cfg(test)]
 mod tests {
-    use super::{encode_coefficients, encode_signal, parse_f64, parse_usize, validate_config, Config, Operation};
+    use super::{
+        encode_coefficients, encode_signal, parse_f64, parse_usize, validate_config, Config,
+        Operation,
+    };
 
     #[test]
     fn csv_parsers_reject_invalid_values() {
@@ -540,7 +555,9 @@ mod tests {
     #[test]
     fn encoders_write_expected_headers() {
         let signal = encode_signal(&[1.0, 2.0]).unwrap();
-        assert!(String::from_utf8(signal).unwrap().starts_with("sample_index,value"));
+        assert!(String::from_utf8(signal)
+            .unwrap()
+            .starts_with("sample_index,value"));
 
         let coefficients = encode_coefficients(&[vec![0.0, 1.0], vec![2.0, 2.0]]).unwrap();
         assert!(String::from_utf8(coefficients)
