@@ -170,7 +170,9 @@ fn run() -> Result<(), CliError> {
             let signal = read_signal_csv(&input_path)?;
             let cutoff = config.parameters.cutoff_fraction.expect("validated cutoff");
             let decomposition = trafficmsd_core::decomposition::decompose(&signal, cutoff)
-                .map_err(|error| CliError::invalid(format!("invalid signal for decomposition: {error}")))?;
+                .map_err(|error| {
+                    CliError::invalid(format!("invalid signal for decomposition: {error}"))
+                })?;
             let output_path = resolve_path(
                 config_dir,
                 config.output_csv.as_deref().expect("validated output path"),
@@ -334,7 +336,9 @@ fn read_signal_csv(path: &Path) -> Result<Vec<f64>, CliError> {
 fn read_coefficient_csv(path: &Path) -> Result<Vec<Vec<f64>>, CliError> {
     let file = File::open(path)
         .map_err(|error| CliError::io(format!("cannot open input {}: {error}", path.display())))?;
-    let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(file);
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .from_reader(file);
     let headers = reader
         .headers()
         .map_err(|error| CliError::invalid(format!("invalid coefficient CSV header: {error}")))?;
