@@ -9,14 +9,16 @@
     if (.Platform$OS.type != "windows" && file.access(override, 1L) != 0L) {
       stop("TRAFFICMSD_CLI is not executable by the current user.", call. = FALSE)
     }
-    return(normalizePath(override, winslash = "/", mustWork = TRUE))
+    executable <- normalizePath(override, winslash = "/", mustWork = TRUE)
+  } else {
+    executable <- Sys.which("trafficmsd")
+    if (!nzchar(executable)) {
+      stop("TrafficMSD Rust CLI was not found. Put trafficmsd on PATH or set TRAFFICMSD_CLI.",
+           call. = FALSE)
+    }
+    executable <- unname(executable)
   }
-  executable <- Sys.which("trafficmsd")
-  if (!nzchar(executable)) {
-    stop("TrafficMSD Rust CLI was not found. Put trafficmsd on PATH or set TRAFFICMSD_CLI.",
-         call. = FALSE)
-  }
-  executable <- unname(executable)
+
   version_output <- suppressWarnings(
     system2(executable, args = "--version", stdout = TRUE, stderr = TRUE)
   )
