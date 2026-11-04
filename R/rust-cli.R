@@ -6,7 +6,7 @@
     if (!file.exists(override) || dir.exists(override)) {
       stop("TRAFFICMSD_CLI does not name an existing executable file.", call. = FALSE)
     }
-    if (file.access(override, 1L) != 0L) {
+    if (.Platform$OS.type != "windows" && file.access(override, 1L) != 0L) {
       stop("TRAFFICMSD_CLI is not executable by the current user.", call. = FALSE)
     }
     return(normalizePath(override, winslash = "/", mustWork = TRUE))
