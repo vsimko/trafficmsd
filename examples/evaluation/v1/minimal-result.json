@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "example-synthetic-constant-16",
+  "software": {
+    "trafficmsd_version": "0.1.0",
+    "trafficmsd_commit": "0000000000000000000000000000000000000000",
+    "model_schema_version": "1.0"
+  },
+  "dataset": {
+    "dataset_id": "synthetic-constant-16",
+    "source_reference": null,
+    "license_status": "verified",
+    "source_files": []
+  },
+  "preprocessing": {
+    "quantity": "sum_of_packet_lengths",
+    "aggregation": "sum",
+    "sampling_interval": 1,
+    "time_unit": "second",
+    "value_unit": "bytes",
+    "bin_convention": "left_closed_right_open",
+    "selection_policy": "synthetic fixture; no packet selection",
+    "preprocessing_version": "1"
+  },
+  "configuration": {
+    "cutoff_fraction": 0.004,
+    "evaluation_split": "full_trace_diagnostic",
+    "training_range": null,
+    "test_range": null,
+    "random_seed": null
+  },
+  "results": [
+    {
+      "trace_id": "constant-16",
+      "status": "success",
+      "sample_count": 16,
+      "metrics": {
+        "fidelity": {
+          "mae": 0,
+          "rmse": 0,
+          "bias": 0,
+          "relative_l1_error": 0,
+          "volume_error": 0
+        },
+        "distribution": {
+          "source_mean": 10,
+          "reconstruction_mean": 10,
+          "source_sd": 0,
+          "reconstruction_sd": 0,
+          "source_quantiles": {
+            "p50": 10,
+            "p90": 10,
+            "p95": 10,
+            "p99": 10
+          },
+          "reconstruction_quantiles": {
+            "p50": 10,
+            "p90": 10,
+            "p95": 10,
+            "p99": 10
+          },
+          "wasserstein_1": 0,
+          "ks_distance": 0
+        },
+        "temporal": {
+          "acf_differences": [],
+          "mean_absolute_acf_difference": null
+        },
+        "bursts": {
+          "threshold": 10,
+          "source_exceedance_fraction": 0,
+          "reconstruction_exceedance_fraction": 0,
+          "source_run_count": 0,
+          "reconstruction_run_count": 0,
+          "source_median_run_length": null,
+          "reconstruction_median_run_length": null,
+          "source_p95_run_length": null,
+          "reconstruction_p95_run_length": null,
+          "source_max_run_length": null,
+          "reconstruction_max_run_length": null
+        },
+        "compactness": {
+          "component_count": 16,
+          "scale_zero_residual_count": 16,
+          "serialized_model_bytes": 1000,
+          "source_float64_bytes": 128,
+          "model_size_ratio": 7.8125
+        }
+      }
+    }
+  ],
+  "summary": {
+    "successful_traces": 1,
+    "failed_traces": 0,
+    "metric_medians": {
+      "mae": 0,
+      "rmse": 0,
+      "relative_l1_error": 0
+    },
+    "metric_iqrs": {
+      "mae": 0,
+      "rmse": 0,
+      "relative_l1_error": 0
+    }
+  }
+}

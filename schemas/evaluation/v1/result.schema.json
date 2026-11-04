@@ -1,0 +1,574 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trafficmsd.org/schemas/evaluation/v1/result.schema.json",
+  "title": "TrafficMSD model-extraction evaluation result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "experiment_id",
+    "software",
+    "dataset",
+    "preprocessing",
+    "configuration",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "software": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trafficmsd_version",
+        "trafficmsd_commit",
+        "model_schema_version"
+      ],
+      "properties": {
+        "trafficmsd_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trafficmsd_commit": {
+          "type": "string",
+          "minLength": 7
+        },
+        "model_schema_version": {
+          "const": "1.0"
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "source_reference",
+        "license_status",
+        "source_files"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license_status": {
+          "enum": [
+            "verified",
+            "unknown",
+            "restricted",
+            "not_redistributable"
+          ]
+        },
+        "source_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file_id",
+              "sha256"
+            ],
+            "properties": {
+              "file_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "preprocessing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quantity",
+        "aggregation",
+        "sampling_interval",
+        "time_unit",
+        "value_unit",
+        "bin_convention",
+        "selection_policy",
+        "preprocessing_version"
+      ],
+      "properties": {
+        "quantity": {
+          "const": "sum_of_packet_lengths"
+        },
+        "aggregation": {
+          "const": "sum"
+        },
+        "sampling_interval": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "time_unit": {
+          "enum": [
+            "second",
+            "millisecond",
+            "microsecond",
+            "nanosecond"
+          ]
+        },
+        "value_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bin_convention": {
+          "const": "left_closed_right_open"
+        },
+        "selection_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preprocessing_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cutoff_fraction",
+        "evaluation_split"
+      ],
+      "properties": {
+        "cutoff_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "evaluation_split": {
+          "enum": [
+            "full_trace_diagnostic",
+            "contiguous_holdout",
+            "independent_capture"
+          ]
+        },
+        "training_range": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "test_range": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "random_seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/traceResult"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "successful_traces",
+        "failed_traces"
+      ],
+      "properties": {
+        "successful_traces": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_traces": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metric_medians": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "metric_iqrs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "traceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_id",
+        "status"
+      ],
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "success",
+            "failed",
+            "excluded"
+          ]
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "metrics": {
+          "$ref": "#/$defs/metrics"
+        },
+        "error_message": {
+          "type": "string"
+        },
+        "exclusion_reason": {
+          "type": "string"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fidelity",
+        "distribution",
+        "temporal",
+        "bursts",
+        "compactness"
+      ],
+      "properties": {
+        "fidelity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mae",
+            "rmse",
+            "bias",
+            "relative_l1_error",
+            "volume_error"
+          ],
+          "properties": {
+            "mae": {
+              "type": "number",
+              "minimum": 0
+            },
+            "rmse": {
+              "type": "number",
+              "minimum": 0
+            },
+            "bias": {
+              "type": "number"
+            },
+            "relative_l1_error": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "volume_error": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "distribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_mean",
+            "reconstruction_mean",
+            "source_sd",
+            "reconstruction_sd",
+            "source_quantiles",
+            "reconstruction_quantiles",
+            "wasserstein_1",
+            "ks_distance"
+          ],
+          "properties": {
+            "source_mean": {
+              "type": "number",
+              "minimum": 0
+            },
+            "reconstruction_mean": {
+              "type": "number",
+              "minimum": 0
+            },
+            "source_sd": {
+              "type": "number",
+              "minimum": 0
+            },
+            "reconstruction_sd": {
+              "type": "number",
+              "minimum": 0
+            },
+            "source_quantiles": {
+              "$ref": "#/$defs/quantiles"
+            },
+            "reconstruction_quantiles": {
+              "$ref": "#/$defs/quantiles"
+            },
+            "wasserstein_1": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ks_distance": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "temporal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "acf_differences",
+            "mean_absolute_acf_difference"
+          ],
+          "properties": {
+            "acf_differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "lag",
+                  "source_acf",
+                  "reconstruction_acf",
+                  "absolute_difference"
+                ],
+                "properties": {
+                  "lag": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "source_acf": {
+                    "type": "number",
+                    "minimum": -1,
+                    "maximum": 1
+                  },
+                  "reconstruction_acf": {
+                    "type": "number",
+                    "minimum": -1,
+                    "maximum": 1
+                  },
+                  "absolute_difference": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 2
+                  }
+                }
+              }
+            },
+            "mean_absolute_acf_difference": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "bursts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "threshold",
+            "source_exceedance_fraction",
+            "reconstruction_exceedance_fraction",
+            "source_run_count",
+            "reconstruction_run_count",
+            "source_median_run_length",
+            "reconstruction_median_run_length",
+            "source_p95_run_length",
+            "reconstruction_p95_run_length",
+            "source_max_run_length",
+            "reconstruction_max_run_length"
+          ],
+          "properties": {
+            "threshold": {
+              "type": "number",
+              "minimum": 0
+            },
+            "source_exceedance_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "reconstruction_exceedance_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "source_run_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reconstruction_run_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "source_median_run_length": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "reconstruction_median_run_length": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "source_p95_run_length": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "reconstruction_p95_run_length": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "source_max_run_length": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "reconstruction_max_run_length": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "compactness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "component_count",
+            "scale_zero_residual_count",
+            "serialized_model_bytes",
+            "source_float64_bytes",
+            "model_size_ratio"
+          ],
+          "properties": {
+            "component_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scale_zero_residual_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "serialized_model_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "source_float64_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "model_size_ratio": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "quantiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "p50",
+        "p90",
+        "p95",
+        "p99"
+      ],
+      "properties": {
+        "p50": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p90": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p99": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
