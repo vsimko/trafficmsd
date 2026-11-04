@@ -16,7 +16,21 @@
     stop("TrafficMSD Rust CLI was not found. Put trafficmsd on PATH or set TRAFFICMSD_CLI.",
          call. = FALSE)
   }
-  unname(executable)
+  executable <- unname(executable)
+  version_output <- suppressWarnings(
+    system2(executable, args = "--version", stdout = TRUE, stderr = TRUE)
+  )
+  status <- attr(version_output, "status")
+  expected <- paste0("trafficmsd ", as.character(utils::packageVersion("trafficmsd")))
+  if ((!is.null(status) && status != 0L) ||
+      !any(trimws(version_output) == expected)) {
+    reported <- paste(version_output, collapse = " ")
+    stop(sprintf(
+      "Incompatible TrafficMSD CLI. The R package requires '%s', but the executable reported '%s'. Install the matching CLI release.",
+      expected, reported
+    ), call. = FALSE)
+  }
+  executable
 }
 
 .trafficmsd_cli_metadata <- function(sampling_interval, time_unit, value_unit) {
