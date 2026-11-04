@@ -3,7 +3,8 @@ test_that("decomposition returns a correctly shaped finite coefficient matrix", 
     constant = rep(2, 32),
     impulse = c(1, rep(0, 31)),
     alternating = rep(c(0, 2), 16),
-    sparse = c(rep(0, 10), 3, rep(0, 21))
+    sparse = c(rep(0, 10), 3, rep(0, 21)),
+    monotonic = as.numeric(seq_len(32))
   )
 
   for (x in fixtures) {
