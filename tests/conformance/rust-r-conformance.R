@@ -36,10 +36,10 @@ write_config <- function(path, command, input, output = NULL, cutoff = NULL) {
       time_unit = "s",
       value_unit = "bytes"
     ),
-    parameters = if (is.null(cutoff)) list() else list(cutoff_fraction = cutoff)
+    parameters = list(cutoff_fraction = cutoff)
   )
   if (!is.null(output)) config$output_csv <- output
-  jsonlite::write_json(config, path, auto_unbox = TRUE, pretty = TRUE)
+  jsonlite::write_json(config, path, auto_unbox = TRUE, pretty = TRUE, null = "null")
 }
 
 run_cli <- function(command, config_path) {
