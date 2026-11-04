@@ -54,7 +54,31 @@ release manifest. A cache miss downloads the same files from the resolved commit
 
 ## Measuring effectiveness
 
-Compare representative cold and warm workflow runs using GitHub Actions job
-durations and cache restore/save logs. Record the workflow, runner, cache hit/miss,
-and elapsed time. Avoid treating a cache hit alone as proof of an improvement;
-the relevant metric is reduced end-to-end CI time without weakening validation.
+### Cold run (2026-11-04, first PR run)
+
+All Rust cache actions reported a cache miss and saved a cache at job completion.
+Observed wall-clock durations:
+
+| Workflow/job | Cold duration | Rust cache |
+|---|---:|---|
+| Rust stable checks/build | 31 s | Miss |
+| CLI Linux x86_64 | 80 s | Miss |
+| CLI Windows x86_64 | 83 s | Miss |
+| CLI Linux aarch64 | 91 s | Miss |
+| CLI macOS aarch64 | 104 s | Miss |
+| CLI macOS x86_64 | 178 s | Miss |
+| R↔Rust conformance | 141 s | Miss |
+| R-versus-Rust benchmark | 105 s | Miss |
+
+R dependency caches were already warm in the benchmark and conformance jobs; these
+measurements isolate the Cargo cache cold path. The CLI matrix uses target-specific
+cache scopes, and all five target builds reported misses on this first run.
+
+### Warm run
+
+A second same-branch run is required to confirm Cargo cache hits and compare elapsed
+times. Results will be recorded here after that run completes.
+
+Avoid treating a cache hit alone as proof of an improvement; the relevant metric is
+reduced end-to-end CI time without weakening validation. Cache misses must continue
+to produce clean, correct builds.
