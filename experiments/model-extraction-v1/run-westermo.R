@@ -131,7 +131,7 @@ metrics <- list(
   fidelity = fidelity_metrics(signal, reconstructed),
   baselines = list(
     scope = "full_trace_diagnostic",
-    identity = list(fidelity = fidelity_metrics(signal, signal)),
+    identity = fidelity_metrics(signal, signal),
     constant_mean = list(
       value = mean(signal),
       fidelity = fidelity_metrics(signal, rep(mean(signal), observed_count))
