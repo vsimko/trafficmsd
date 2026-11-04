@@ -103,12 +103,16 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
         let (Some(scale), Some(start), Some(window), Some(emission), Some(amplitude)) =
             (scale, start, window, emission, amplitude)
         else {
-            errors.push(format!("components[{index}] has a missing or invalid numeric field"));
+            errors.push(format!(
+                "components[{index}] has a missing or invalid numeric field"
+            ));
             continue;
         };
 
         if !amplitude.is_finite() || amplitude < 0.0 {
-            errors.push(format!("components[{index}].amplitude must be finite and non-negative"));
+            errors.push(format!(
+                "components[{index}].amplitude must be finite and non-negative"
+            ));
         }
         if scale > max_scale {
             errors.push(format!(
@@ -123,7 +127,9 @@ pub fn validate_model_v1(model: &Value) -> Result<(), Vec<String>> {
             continue;
         }
         if !seen.insert((scale, start)) {
-            errors.push(format!("components[{index}] duplicates a scale/window component"));
+            errors.push(format!(
+                "components[{index}] duplicates a scale/window component"
+            ));
         }
 
         if scale == 0 {
@@ -187,7 +193,9 @@ pub fn reconstruct_model_v1(model: &Value) -> Result<Vec<f64>, Vec<String>> {
     };
     let mut output = Vec::new();
     if output.try_reserve_exact(n).is_err() {
-        return Err(vec!["decomposition_sample_count is too large to allocate".to_owned()]);
+        return Err(vec![
+            "decomposition_sample_count is too large to allocate".to_owned()
+        ]);
     }
     output.resize(n, 0.0_f64);
 
@@ -200,7 +208,9 @@ pub fn reconstruct_model_v1(model: &Value) -> Result<Vec<f64>, Vec<String>> {
             .expect("validated amplitude");
         output[emission] += amplitude;
         if !output[emission].is_finite() {
-            return Err(vec![format!("reconstructed value at sample {emission} is not finite")]);
+            return Err(vec![format!(
+                "reconstructed value at sample {emission} is not finite"
+            )]);
         }
     }
     Ok(output)
@@ -279,7 +289,9 @@ mod tests {
         let duplicate = model["components"][16].clone();
         model["components"].as_array_mut().unwrap().push(duplicate);
         let errors = validate_model_v1(&model).unwrap_err();
-        assert!(errors.iter().any(|e| e.contains("duplicates a scale/window")));
+        assert!(errors
+            .iter()
+            .any(|e| e.contains("duplicates a scale/window")));
     }
 
     #[test]
