@@ -5,43 +5,45 @@
 
 | Platform | Rust target | GitHub Actions runner |
 |---|---|---|
-| Linux x86-64 (glibc) | \`x86_64-unknown-linux-gnu\` | \`ubuntu-24.04\` |
-| Linux ARM64 (glibc) | \`aarch64-unknown-linux-gnu\` | \`ubuntu-24.04-arm\` |
-| macOS Intel | \`x86_64-apple-darwin\` | \`macos-15-intel\` |
-| macOS Apple Silicon | \`aarch64-apple-darwin\` | \`macos-15\` |
-| Windows x86-64 | \`x86_64-pc-windows-msvc\` | \`windows-2025\` |
+| Linux x86-64 (glibc) | `x86_64-unknown-linux-gnu` | `ubuntu-22.04` |
+| Linux ARM64 (glibc) | `aarch64-unknown-linux-gnu` | `ubuntu-22.04-arm` |
+| macOS Intel | `x86_64-apple-darwin` | `macos-15-intel` |
+| macOS Apple Silicon | `aarch64-apple-darwin` | `macos-15` |
+| Windows x86-64 | `x86_64-pc-windows-msvc` | `windows-2025` |
 
 ## Release assets
 
-The \`CLI binary distribution\` workflow builds the standalone \`trafficmsd\`
+The `CLI binary distribution` workflow builds the standalone `trafficmsd`
 executable natively on each target runner when a GitHub Release is published.
 It attaches one raw executable per target and a
-\`trafficmsd-cli-manifest.json\` to that release.
+`trafficmsd-cli-manifest.json` to that release.
 
-The manifest CLI version must match the installed R package version exactly;
-the installer also executes the downloaded binary with `--version` before
-installing it. The R adapter checks the executable version at invocation time
-and gives an actionable error when versions differ.
+The manifest CLI version must match the installed R package version exactly.
+The installer executes the downloaded binary with `--version` before
+installing it, and the R adapter checks the executable version at invocation
+time. A mismatch produces an actionable error rather than silently using an
+incompatible binary.
 
 The manifest schema is versioned at
-\`schemas/cli-binaries/v1/manifest.schema.json\`. It records the release/CLI
+`schemas/cli-binaries/v1/manifest.schema.json`. It records the release/CLI
 version, target triple, asset filename, and SHA-256 digest. The publish job
 fails unless every required platform asset is present. Release assets are
-uploaded only after all platform builds have succeeded.
+uploaded only after all platform builds and native smoke tests have succeeded.
 
 The Linux artifacts target glibc 2.35 (the Ubuntu 22.04 baseline); they are
-not musl/static binaries. Linux systems must provide glibc 2.35 or newer. Windows ARM64, Linux
-architectures other than x86-64/ARM64, and macOS versions/architectures outside
-the listed targets are not supported by this first distribution increment.
+not musl/static binaries. Linux systems must provide glibc 2.35 or newer.
+Windows ARM64, Linux architectures other than x86-64/ARM64, and macOS
+versions/architectures outside the listed targets are not supported by this
+first distribution increment.
 
 ## R installation
 
 After a CLI-enabled GitHub Release has been published:
 
-\`\`\`r
+```r
 install.packages(c("jsonlite", "digest"))
 trafficmsd::install_trafficmsd_cli()
-\`\`\`
+```
 
 The installer:
 
@@ -50,19 +52,21 @@ The installer:
 3. downloads the matching executable;
 4. verifies its SHA-256 digest before installation;
 5. stores it in the per-user R cache; and
-6. sets \`TRAFFICMSD_CLI\` for the current R session.
+6. sets `TRAFFICMSD_CLI` for the current R session.
 
 A Rust toolchain and administrator permissions are not required. To pin a
 release, pass its version, for example
-\`install_trafficmsd_cli(version = "0.1.0")\`. Use \`force = TRUE\` to replace
+`install_trafficmsd_cli(version = "0.1.0")`. Use `force = TRUE` to replace
 a cached binary. The binary is not installed into the package library and
 does not require write access to the R installation.
 
-The explicit R adapters \`decompose_traffic_rust()\` and
-\`reconstruct_traffic_rust()\` discover the executable through
-\`TRAFFICMSD_CLI\` or \`PATH\`. The existing R implementations remain the
-reference and default; the installer does not silently switch existing
-functions to Rust.
+The explicit R adapters `decompose_traffic_rust()` and
+`reconstruct_traffic_rust()` discover the executable through
+`TRAFFICMSD_CLI`, `PATH`, or the default per-user cache. The default cache is
+automatically searched in later R sessions. If a custom `cache_dir` is used,
+set `TRAFFICMSD_CLI` in each new session or add that directory to `PATH`.
+The existing R implementations remain the reference and default; the installer
+does not silently switch existing functions to Rust.
 
 When a verified executable is already in the default cache, the R adapters can
 run without network access. A missing binary requires network access to
@@ -86,9 +90,10 @@ new release does not overwrite older cached versions.
 
 ## Reproduction and validation
 
-The \`CLI binary distribution\` workflow also runs for pull requests that
+The `CLI binary distribution` workflow also runs for pull requests that
 change the Rust CLI/core or distribution workflow. It builds all five targets
-and uploads short-lived workflow artifacts without publishing a release.
+and smoke-tests the executable on its native runner. Short-lived workflow
+artifacts are uploaded without publishing a release.
 
 The first user-installable binary release is deliberately separate from this
 engineering change. It must be published through the release-readiness process
