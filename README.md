@@ -83,6 +83,14 @@ reproducible without changing the caller's global random-number state. Pass
 See the function help pages (for example, `?decompose_traffic`) for arguments,
 return values, and constraints.
 
+## Research direction
+
+The research roadmap focuses on network traffic model extraction, followed by
+traffic generation and performance-simulation validation.
+
+- [Research and development roadmap](ROADMAP.md)
+- [Research readiness specification](docs/RESEARCH_READINESS.md)
+
 ## Research reference
 
 The package accompanies work on automated extraction of network traffic models:
