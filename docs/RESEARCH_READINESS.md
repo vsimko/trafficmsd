@@ -94,6 +94,8 @@ Baseline traffic generators such as Poisson, ON/OFF, and Markov-modulated models
 
 ## 6. Data and reproducibility requirements
 
+The extraction-stage metric definitions, deterministic controls, holdout rules, and result fields are specified in [Model-extraction evaluation protocol v1](model-extraction-evaluation-v1.md). The machine-readable result contract is [evaluation result schema v1](../schemas/evaluation/v1/result.schema.json). A synthetic smoke experiment can be reproduced with `R CMD INSTALL .` followed by `Rscript experiments/model-extraction-v1/run.R`; its outputs are synthetic diagnostics, not evidence of real-trace validity.
+
 For every trace, record at least:
 
 - dataset name and source citation;
