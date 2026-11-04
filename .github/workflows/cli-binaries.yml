@@ -1,0 +1,98 @@
+name: CLI binary builds
+
+on:
+  push:
+    branches: [master, main, "feature/**", "research/**"]
+    tags: ["v*"]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-binaries-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            extension: ""
+          - runner: macos-latest
+            target: x86_64-apple-darwin
+            extension: ""
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            extension: ""
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            extension: ".exe"
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: ${{ matrix.target }}
+
+      - name: Test workspace
+        run: cargo test --workspace
+
+      - name: Build release CLI
+        run: cargo build --release --target ${{ matrix.target }} --bin trafficmsd
+
+      - name: Package binary and checksum (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/trafficmsd" "dist/trafficmsd-${{ matrix.target }}"
+          cd dist
+          shasum -a 256 "trafficmsd-${{ matrix.target }}" > "trafficmsd-${{ matrix.target }}.sha256"
+
+      - name: Package binary and checksum (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $name = "trafficmsd-${{ matrix.target }}.exe"
+          Copy-Item "target/${{ matrix.target }}/release/trafficmsd.exe" "dist/$name"
+          $hash = (Get-FileHash "dist/$name" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name" | Set-Content -Encoding ascii "dist/$name.sha256"
+
+      - name: Upload platform artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: trafficmsd-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish release assets
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download platform binaries
+        uses: actions/download-artifact@v7
+        with:
+          pattern: trafficmsd-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish binaries to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          fail_on_unmatched_files: true
