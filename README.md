@@ -126,7 +126,6 @@ traffic generation and performance-simulation validation.
 - [Research and development roadmap](docs/RESEARCH_ROADMAP.md)
 - [Research readiness specification](docs/RESEARCH_READINESS.md)
 - [Generator and QPME/SimQPN adapter contract v1](docs/simulator-adapter-v1.md)
-- [Performance benchmark protocol](docs/performance-benchmarks.md)
 - [CLI binary distribution](docs/cli-binary-distribution.md)
 - [Performance benchmark protocol](docs/performance-benchmarks.md)
 - [CLI binary distribution](docs/cli-binary-distribution.md)
