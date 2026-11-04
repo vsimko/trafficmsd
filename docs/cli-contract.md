@@ -46,7 +46,7 @@ The first computational operations are:
   matrix. The exact coefficient interchange representation will be finalized
   with the algorithm extraction work in issue #34.
 
-The initial executable also supports `--help` and `--version`.
+The standalone executable supports `--help` and `--version`, and implements the `validate`, `decompose`, and `reconstruct` commands against the normalized CSV contract.
 
 ## 3. File and path conventions
 
@@ -171,8 +171,7 @@ transport schema must not be treated as a scientific model schema.
 Outputs must contain only finite numeric values. Metadata such as schema
 version, TrafficMSD version, operation, signal units, sampling interval,
 sample count, and relevant parameters must be made available alongside
-machine-readable results. The implementation issue #35 will settle the
-sidecar naming and exact output envelope before the CLI is declared stable.
+machine-readable results. The implementation currently writes the documented CSV tables. A metadata sidecar and exact output envelope remain deferred; the CLI is not declared stable until those metadata requirements and the remaining compatibility limits are resolved.
 
 ## 7. Commands and validation behavior
 
@@ -270,3 +269,17 @@ issues, not left implicit:
 - raw packet/event ingestion and legacy `read_traffic()` compatibility;
 - stochastic generation commands and their RNG implementation;
 - cross-platform path and atomic-rename edge cases.
+
+
+## Current implementation status
+
+The Rust CLI now implements the three v1 commands against this contract:
+
+- `validate` checks configuration and normalized signal CSV input without creating output.
+- `decompose` invokes the Rust core and writes a complete long-form coefficient CSV.
+- `reconstruct` validates the coefficient table and writes a normalized signal CSV.
+- Configuration paths are resolved relative to the JSON file; output replacement requires `--force`.
+- CSV parsing rejects wrong headers, non-finite values, sample-index gaps, duplicate coefficient cells, and incomplete coefficient matrices.
+- End-to-end tests exercise the executable as an external process.
+
+The remaining v1 limitations are the metadata sidecar/output envelope, resource limits, and full R-versus-Rust conformance. These are tracked by #35 and #36 and must be resolved before the CLI contract is treated as stable.
