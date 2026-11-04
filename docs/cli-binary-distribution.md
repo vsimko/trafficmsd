@@ -64,6 +64,13 @@ The explicit R adapters \`decompose_traffic_rust()\` and
 reference and default; the installer does not silently switch existing
 functions to Rust.
 
+When a verified executable is already in the default cache, the R adapters can
+run without network access. A missing binary requires network access to
+download a release; if that download fails, the adapter reports that no
+executable is available and does not silently fall back to a different
+implementation. Each version has its own cache directory, so installing a
+new release does not overwrite older cached versions.
+
 ## Security and compatibility
 
 - Only HTTPS GitHub release URLs are used.
