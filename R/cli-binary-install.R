@@ -125,6 +125,15 @@ install_trafficmsd_cli <- function(version = "latest",
     stop("The CLI release manifest has an unsupported or invalid schema.",
          call. = FALSE)
   }
+  package_cli_version <- as.character(utils::packageVersion("trafficmsd"))
+  if (is.null(manifest$cli_version) ||
+      !identical(manifest$cli_version, package_cli_version)) {
+    stop(sprintf(
+      "The release CLI version (%s) does not match the installed R package version (%s). Install matching TrafficMSD package and CLI releases.",
+      if (is.null(manifest$cli_version)) "missing" else manifest$cli_version,
+      package_cli_version
+    ), call. = FALSE)
+  }
   if (!identical(version, "latest") &&
       !identical(manifest$release_version, requested_version)) {
     stop("The downloaded CLI manifest does not match the requested release version.",
@@ -171,7 +180,8 @@ install_trafficmsd_cli <- function(version = "latest",
     }
   }
 
-  binary_path <- tempfile("trafficmsd-cli-")
+  binary_path <- tempfile("trafficmsd-cli-",
+                          fileext = if (.Platform$OS.type == "windows") ".exe" else "")
   on.exit(unlink(binary_path), add = TRUE)
   asset_url <- paste0(
     "https://github.com/", repo, "/releases/download/v",
@@ -184,6 +194,15 @@ install_trafficmsd_cli <- function(version = "latest",
   )
   if (!identical(tolower(actual_sha256), expected_sha256)) {
     stop("The downloaded TrafficMSD CLI failed SHA-256 verification.",
+         call. = FALSE)
+  }
+  version_output <- suppressWarnings(
+    system2(binary_path, args = "--version", stdout = TRUE, stderr = TRUE)
+  )
+  version_status <- attr(version_output, "status")
+  if ((!is.null(version_status) && version_status != 0L) ||
+      !any(trimws(version_output) == paste0("trafficmsd ", manifest$cli_version))) {
+    stop("The downloaded executable does not report the CLI version declared by its release manifest.",
          call. = FALSE)
   }
   if (!file.copy(binary_path, destination, overwrite = TRUE)) {
