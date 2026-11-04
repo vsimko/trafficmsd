@@ -16,7 +16,7 @@ These are reconstruction semantics, not a stochastic traffic generator. Future g
 
 ## Provenance and validation
 
-Record trace identity, source reference, license status, extraction software, preprocessing, time unit and its verification status, value unit and its verification status, sampling interval, and bin origin. Keep observed sample count distinct from power-of-two padding. Semantic validation must check scale/window consistency, emission positions, coverage, and provenance/unit consistency.
+Record trace identity, source reference, license status, extraction software, preprocessing, time unit and its verification status, value unit and its verification status, sampling interval, and bin origin. Keep observed sample count distinct from power-of-two padding. Semantic validation checks scale/window consistency, emission positions, uniqueness, and residual coverage. JSON Schema and the exporter enforce field shape and basic metadata; additional cross-field provenance/unit checks remain a validation task.
 
 ### Legacy local trace
 
@@ -30,7 +30,7 @@ The UNB CIC VPN-nonVPN dataset (ISCXVPN2016) is a candidate because its document
 
 Important limitations: the dataset is not guaranteed to be a clean YouTube-only trace; exact application/session-to-file mapping is not documented by UNB; and flow CSVs are derived flow-level data, not a substitute for packet-level time series. The PCAP's captured packet length must not be mislabeled as application payload bytes or wire bytes without checking truncation and link-layer semantics. The official download form returned a server error during the initial assessment, so no files have yet been downloaded or inspected.
 
-Before adoption, inspect the archive and identify exact files from metadata rather than filename guesses. Confirm packet timestamps, captured/original lengths, link-layer type, and background traffic. Define direction policy and fixed-bin aggregation explicitly. Keep raw PCAPs outside Git. The detailed assessment and extraction gates are in [docs/datasets/iscxvpn2016-assessment.md](datasets/iscxvpn2016-assessment.md), tracked by [issue #42](https://github.com/vsimko/trafficmsd/issues/42).
+Before adoption, inspect the archive and identify exact files from metadata rather than filename guesses. Confirm packet timestamps, captured/original lengths, link-layer type, and background traffic. Define direction policy and fixed-bin aggregation explicitly. Keep raw PCAPs outside Git. The detailed assessment and extraction gates are in [docs/datasets/iscxvpn2016-assessment.md](datasets/iscxvpn2016-assessment.md), tracked by [issue #41](https://github.com/vsimko/trafficmsd/issues/42).
 
 Sources:
 - https://www.unb.ca/cic/datasets/vpn.html
@@ -40,10 +40,61 @@ Sources:
 The schema is in `schemas/model/v1/model.schema.json`.
 
 
-## Reference implementation details confirmed during schema review
+## Semantic validation and reconstruction fidelity
 
-The current R implementation applies the emission mask to the coefficient matrix, then sums the filtered rows by sample. For scale s > 0, the period is P = 2^s and the zero-based emission offset within each globally aligned period is P/2 - 1. Scale zero is the residual row and is emitted at every sample. The phase is anchored at sample index zero; it is not restarted at a component's begin position.
+The Rust core provides a semantic validator in `trafficmsd_core::model` in addition to JSON Schema validation. The semantic validator checks:
 
-During decomposition, when a higher-scale coefficient c is selected in a window, the algorithm removes the selected source occurrence and subtracts c from the residual at that window's emission position (clamped at zero). This is required because the higher-scale component and scale-zero residual would otherwise emit the same contribution twice. A serialized model must therefore retain the residual contribution, including its sample positions; it must not treat residual as optional metadata.
+- observed and decomposition sample counts, power-of-two extent, and padding arithmetic;
+- scale/window length consistency and global window alignment;
+- center-left emission position for each higher-scale component;
+- uniqueness of each scale/window component;
+- exactly one scale-zero residual component for every sample index.
 
-The schema's `components` are reconstruction records, not an already-generalized stochastic generator. For a lossless mapping, each record must identify its scale, globally aligned window, emission sample, and amplitude. Records at scale zero represent residual samples. The current schema does not yet enforce cross-field constraints such as `window_length_samples = 2^scale_index`, the midpoint formula, uniqueness of scale-zero sample positions, or a single consistent sample extent. Those constraints belong in the semantic validator and must be tested against R-generated fixtures before the format is called stable.
+The model is a deterministic reconstruction description, but it is **not necessarily a lossless encoding of the observed signal**. The R extraction algorithm applies `optimize_intervals()` to higher-scale candidate vectors and to the final residual vector. It also subtracts selected higher-scale amplitudes from the residual at their emission positions (clamped at zero). Consequently, interval optimization can change coefficient values and reconstruction can differ from the input signal. The existing R test suite checks output shape and finiteness and permits a relative difference in total sum; it does not establish sample-wise equality.
+
+Therefore:
+- semantic validation answers whether a model is internally well-formed;
+- reconstruction produces the signal defined by the serialized components;
+- reconstruction quality must be evaluated separately against the original observation using explicit metrics and tolerances (tracked in issue #28).
+
+Do not describe a semantically valid model as exact or lossless unless a particular extraction result has independently passed a sample-wise conformance check.
+
+## R reference exporter
+
+The R API `export_model_v1()` converts the output of `decompose_traffic()`
+into this representation. It preserves every scale-zero residual sample,
+including zeros, and serializes higher-scale components only at the
+center-left emission position selected by the legacy `compute_emits()` filter.
+The decomposition result now retains its `cutoff.fraction` so the exporter
+can record the actual extraction setting. When a coefficient matrix is passed
+directly, callers must provide `cutoff_fraction` explicitly.
+
+The exporter defaults time and value units to unknown and does not infer bytes
+or seconds. Supply verified units only when supported by dataset provenance.
+The optional `extracted_at` timestamp defaults to null so repeated exports can
+be byte-for-byte reproducible apart from JSON formatting/runtime metadata.
+Writing JSON requires the optional `jsonlite` package.
+
+Example:
+
+```r
+x <- rep(c(0, 4, 0, 2), 8)
+d <- decompose_traffic(x)
+model <- export_model_v1(
+  d,
+  observed_sample_count = length(x),
+  model_id = "synthetic-periodic-32",
+  dataset_id = "synthetic-periodic-32"
+)
+export_model_v1(
+  d,
+  observed_sample_count = length(x),
+  model_id = "synthetic-periodic-32",
+  dataset_id = "synthetic-periodic-32",
+  path = "synthetic-periodic-32.json"
+)
+```
+
+The exporter and its conformance tests are a reference-generation mechanism;
+a committed golden fixture must be produced by running this code under R and
+reviewing the resulting JSON, not by hand-transcribing coefficients.
