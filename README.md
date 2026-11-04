@@ -28,6 +28,21 @@ remotes::install_github("vsimko/trafficmsd")
 The package is tested with current R release and R-devel on GitHub Actions.
 The package requires R 3.6.0 or later.
 
+### Optional Rust CLI
+
+After a CLI-enabled GitHub Release has been published, install the optional
+prebuilt executable (no Rust toolchain required):
+
+```r
+install.packages(c("jsonlite", "digest"))
+trafficmsd::install_trafficmsd_cli()
+```
+
+The installer verifies the downloaded binary's SHA-256 checksum and sets
+`TRAFFICMSD_CLI` for the current R session. See
+[CLI binary distribution](docs/cli-binary-distribution.md) for supported
+platforms and pinned-version installation.
+
 ## Quick start
 
 The package includes small example signals. A decomposition input must be a
@@ -70,6 +85,8 @@ you need to trim the reconstructed vector back to the unpadded signal.
 - `decompose_traffic()` computes the multiscale decomposition.
 - `reconstruct_traffic()` reconstructs a traffic vector from decomposition
   coefficients.
+- `decompose_traffic_rust()` and `reconstruct_traffic_rust()` explicitly
+  invoke the standalone Rust CLI when installed.
 - `estimate_clusters()` estimates an amplitude cluster count.
 - `cluster_by_amplitude()` quantizes amplitudes using k-means.
 - `plot_spectrum()`, `plot_scaleogram()`, and `plot_traffic()` provide
@@ -91,6 +108,8 @@ traffic generation and performance-simulation validation.
 - [Research and development roadmap](docs/RESEARCH_ROADMAP.md)
 - [Research readiness specification](docs/RESEARCH_READINESS.md)
 - [Generator and QPME/SimQPN adapter contract v1](docs/simulator-adapter-v1.md)
+- [Performance benchmark protocol](docs/performance-benchmarks.md)
+- [CLI binary distribution](docs/cli-binary-distribution.md)
 
 ## Research reference
 
