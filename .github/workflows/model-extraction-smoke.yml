@@ -40,7 +40,7 @@ jobs:
 
       - name: Check result JSON structure
         run: |
-          Rscript -e 'x <- jsonlite::fromJSON("artifacts/model-extraction-v1/evaluation-result-v1.json"); stopifnot(x$schema_version == "1.0", length(x$results) == 1L, x$results[[1]]$status == "success", is.finite(x$results[[1]]$metrics$fidelity$rmse))'
+          Rscript -e 'x <- jsonlite::fromJSON("artifacts/model-extraction-v1/evaluation-result-v1.json", simplifyVector = FALSE); stopifnot(x$schema_version == "1.0", length(x$results) == 1L, x$results[[1]]$status == "success", is.finite(x$results[[1]]$metrics$fidelity$rmse))'
 
       - name: Upload experiment artifacts
         if: always()
