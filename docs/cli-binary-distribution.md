@@ -24,8 +24,8 @@ version, target triple, asset filename, and SHA-256 digest. The publish job
 fails unless every required platform asset is present. Release assets are
 uploaded only after all platform builds have succeeded.
 
-The Linux artifacts target glibc; they are not musl/static binaries. Linux
-systems must provide a compatible glibc runtime. Windows ARM64, Linux
+The Linux artifacts target glibc 2.35 (the Ubuntu 22.04 baseline); they are
+not musl/static binaries. Linux systems must provide glibc 2.35 or newer. Windows ARM64, Linux
 architectures other than x86-64/ARM64, and macOS versions/architectures outside
 the listed targets are not supported by this first distribution increment.
 
