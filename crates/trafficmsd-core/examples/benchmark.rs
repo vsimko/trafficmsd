@@ -52,18 +52,15 @@ fn main() {
         .expect("benchmark coefficients must be valid");
 
     let decompose_ns = elapsed_ns(iterations, || {
-        let result = trafficmsd_core::decomposition::decompose(
-            black_box(&input),
-            black_box(cutoff),
-        )
-        .expect("decomposition failed");
+        let result =
+            trafficmsd_core::decomposition::decompose(black_box(&input), black_box(cutoff))
+                .expect("decomposition failed");
         black_box(result);
     });
     let reconstruct_ns = elapsed_ns(iterations, || {
-        let result = trafficmsd_core::decomposition::reconstruct(
-            black_box(&decomposition.coefficients),
-        )
-        .expect("reconstruction failed");
+        let result =
+            trafficmsd_core::decomposition::reconstruct(black_box(&decomposition.coefficients))
+                .expect("reconstruction failed");
         black_box(result);
     });
 
