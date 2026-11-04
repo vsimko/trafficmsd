@@ -67,6 +67,11 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Cache Cargo dependencies and platform build artefacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: cli-${{ matrix.target }}
+
       - name: Build standalone CLI
         shell: bash
         run: cargo build --release --target "${{ matrix.target }}" --bin trafficmsd
