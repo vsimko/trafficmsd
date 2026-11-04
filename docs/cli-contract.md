@@ -305,3 +305,16 @@ The first standalone engine intentionally ports only the deterministic operation
 | Plotting, diagrams, and statistical post-processing | R retained | Presentation and analysis are outside the standalone computational core. |
 
 This allocation is the current v1 boundary, not a claim that the retained R operations can never move to Rust. Any later migration must be justified by the generation/simulation use case and receive its own conformance tests.
+
+
+## R/Rust conformance protocol
+
+The `R-Rust conformance` workflow builds the CLI, installs the R package, and runs `tests/conformance/rust-r-conformance.R`. It compares every coefficient and reconstructed sample for constant, zero, alternating, monotonic, sparse, and periodic synthetic signals at cutoff fractions 0.004 and 0.15.
+
+The per-operation tolerance is relative max-absolute error:
+
+`max(abs(reference - candidate)) <= 1e-12 * max(1, max(abs(reference)))`.
+
+The workflow also checks byte-for-byte repeatability for fixed inputs and verifies that negative traffic-volume input is rejected by the Rust CLI with exit code 3. The negative-input rule is a deliberate domain tightening: the legacy R API historically accepted negative finite values, but transferred volume cannot be negative. This case is therefore documented as an intentional validation difference, not included in numeric equality comparisons.
+
+These synthetic conformance cases establish algorithm agreement for the covered inputs only. They do not replace dataset-backed validation, independent trace evaluation, or stochastic-generation validation.
