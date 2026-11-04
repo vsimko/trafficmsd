@@ -27,7 +27,7 @@ Bins are left-closed/right-open, one second wide by default, aligned to the firs
 
 The R stage zero-pads only for decomposition, preserves the observed sample count in model metadata, and evaluates reconstruction only over the observed interval. It emits model v1 JSON, evaluation-result v1 JSON, and source and reconstructed CSV files. Evaluation includes raw-trace identity and constant-mean controls. The initial run uses the entire trace for a diagnostic fit, so the constant-mean control is marked `full_trace_diagnostic`; it is not a held-out baseline.
 
-CI also runs an exploratory cutoff grid from `0.0001` to `0.016` and records fidelity, ACF/burst diagnostics, component counts, and serialized model size in `cutoff-sensitivity.csv` and `cutoff-sensitivity.json`. This is descriptive full-trace sensitivity analysis, not a valid test-set tuning procedure.
+CI also runs an exploratory cutoff grid from `0.0001` to `0.016` and records raw and volume-matched fidelity, ACF/burst diagnostics, component counts, and serialized model size in `cutoff-sensitivity.csv` and `cutoff-sensitivity.json`. Volume matching uses the full-trace total and is explicitly diagnostic; it is not a valid test-set calibration or tuning procedure.
 
 ## Interpretation limits
 
