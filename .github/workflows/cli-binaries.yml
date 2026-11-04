@@ -55,6 +55,15 @@ jobs:
         shell: bash
         run: cargo build --release --target "${{ matrix.target }}" --bin trafficmsd
 
+      - name: Smoke test native executable
+        shell: bash
+        run: |
+          executable="target/${{ matrix.target }}/release/trafficmsd${{ matrix.extension }}"
+          version_output="$("$executable" --version)"
+          echo "$version_output"
+          [[ "$version_output" == trafficmsd* ]]
+          "$executable" --help >/dev/null
+
       - name: Prepare release asset
         shell: bash
         run: |
