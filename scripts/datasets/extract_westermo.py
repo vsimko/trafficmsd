@@ -111,8 +111,8 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
             if count == 0:
                 raise RuntimeError(f"No packets decoded from {info.filename}")
             capinfos_text = capinfos_by_member[info.filename]
-            packet_count_match = re.search(r"Number of packets:\\s*(\\d+)", capinfos_text)
-            if packet_count_match is None or int(packet_count_match.group(1)) != count:
+            packet_count_match = re.search(r"Number of packets:\s*([\\d,]+)", capinfos_text)
+            if packet_count_match is None or int(packet_count_match.group(1).replace(",", "")) != count:
                 raise RuntimeError(
                     f"tshark packet count for {info.filename} ({count}) does not match "
                     "the published capinfos validation report"
@@ -149,6 +149,7 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
         "packet_count": len(packet_rows),
         "truncated_packet_count": sum(item["truncated_packet_count"] for item in member_records),
         "time_origin_unix": str(origin),
+        "model_time_origin": 0,
         "last_packet_time_unix": str(last_timestamp),
         "timestamp_decimal_places": max(max(0, -value.as_tuple().exponent) for value, _ in packet_rows),
         "sampling_interval": str(bin_width),
