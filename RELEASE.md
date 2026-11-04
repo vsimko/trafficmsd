@@ -16,9 +16,9 @@ This repository uses semantic versioning for package releases. The package versi
 After validation passes:
 
 1. Create an annotated Git tag named `vX.Y.Z` on the validated commit.
-2. Create a GitHub Release from that tag and copy the corresponding `NEWS.md` notes.
-3. Attach the validated source archive from the workflow artifact.
-4. Verify the release page and installation instructions.
+2. The `CLI binary builds` workflow runs for the tag and creates the GitHub Release with platform binaries and SHA-256 files.
+3. Attach the validated R source archive from the release-validation workflow artifact and add the corresponding `NEWS.md` notes.
+4. Verify the release page, binary checksums, and installation instructions.
 
 Do not tag or publish a release before the validation workflow succeeds. CRAN submission is a separate decision and is not implied by creating a GitHub release.
 
