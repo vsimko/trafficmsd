@@ -1,0 +1,142 @@
+name: CLI binary distribution
+
+on:
+  release:
+    types: [published]
+  pull_request:
+    branches: [master, main]
+    paths:
+      - "crates/trafficmsd-cli/**"
+      - "crates/trafficmsd-core/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "R/cli-binary-install.R"
+      - ".github/workflows/cli-binaries.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-binaries-\${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build \${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            extension: ""
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            extension: ""
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            extension: ""
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            extension: ""
+          - runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: ".exe"
+    runs-on: \${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: \${{ matrix.target }}
+
+      - name: Build standalone CLI
+        shell: bash
+        run: cargo build --release --target "\${{ matrix.target }}" --bin trafficmsd
+
+      - name: Prepare release asset
+        shell: bash
+        run: |
+          VERSION="\${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          cp "target/\${{ matrix.target }}/release/trafficmsd\${{ matrix.extension }}" \\
+            "dist/trafficmsd-\${VERSION}-\${{ matrix.target }}\${{ matrix.extension }}"
+
+      - name: Upload platform binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-\${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 3
+
+  publish-assets:
+    name: Publish checksummed release assets
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download platform binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate and validate release manifest
+        shell: bash
+        env:
+          RELEASE_TAG: \${{ github.event.release.tag_name }}
+        run: |
+          VERSION="\${RELEASE_TAG#v}"
+          export VERSION
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          dist = Path("dist")
+          expected = {
+              "x86_64-unknown-linux-gnu",
+              "aarch64-unknown-linux-gnu",
+              "x86_64-apple-darwin",
+              "aarch64-apple-darwin",
+              "x86_64-pc-windows-msvc",
+          }
+          targets = {}
+          prefix = f"trafficmsd-{version}-"
+          for path in sorted(dist.iterdir()):
+              if not path.is_file() or not path.name.startswith(prefix):
+                  continue
+              target = path.name[len(prefix):]
+              if target.endswith(".exe"):
+                  target = target[:-4]
+              if target not in expected:
+                  raise SystemExit(f"Unexpected binary asset: {path.name}")
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              targets[target] = {"asset": path.name, "sha256": digest}
+
+          if set(targets) != expected:
+              missing = sorted(expected - set(targets))
+              raise SystemExit(f"Missing platform binaries: {missing}")
+
+          manifest = {
+              "schema_version": 1,
+              "release_version": version,
+              "cli_version": version,
+              "targets": targets,
+          }
+          (dist / "trafficmsd-cli-manifest.json").write_text(
+              json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload assets to GitHub Release
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: gh release upload "\${{ github.event.release.tag_name }}" dist/* --clobber
