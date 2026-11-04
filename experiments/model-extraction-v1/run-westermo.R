@@ -223,4 +223,13 @@ utils::write.csv(data.frame(sample_index = 0:(observed_count - 1L), value = sign
                  file.path(output_dir, "source-signal.csv"), row.names = FALSE)
 utils::write.csv(data.frame(sample_index = 0:(observed_count - 1L), value = reconstructed),
                  file.path(output_dir, "reconstructed-signal.csv"), row.names = FALSE)
+environment <- list(
+  r_version = R.version.string,
+  r_platform = R.version$platform,
+  trafficmsd_version = as.character(utils::packageVersion("trafficmsd")),
+  jsonlite_version = as.character(utils::packageVersion("jsonlite")),
+  trafficmsd_commit = if (length(commit) == 1L && nchar(commit) >= 7L) commit else "local-unknown"
+)
+jsonlite::write_json(environment, file.path(output_dir, "environment.json"),
+                     auto_unbox = TRUE, pretty = TRUE)
 message("Westermo model extraction completed: ", output_dir)
