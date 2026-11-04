@@ -6,6 +6,9 @@ license.workspace = true
 rust-version.workspace = true
 description = "Core domain and simulation engine for TrafficMSD"
 
+[dependencies]
+serde_json = "1"
+
 [lib]
 name = "trafficmsd_core"
 path = "src/lib.rs"
