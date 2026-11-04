@@ -24,6 +24,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Resolve immutable upstream dataset revision
+        id: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(git ls-remote https://github.com/westermo/network-traffic-dataset.git refs/heads/main | cut -f1)"
+          if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Could not resolve the Westermo upstream revision." >&2
+            exit 1
+          fi
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Westermo source downloads
+        uses: actions/cache@v4
+        with:
+          path: .cache/westermo
+          key: westermo-dataset-${{ steps.upstream.outputs.revision }}-${{ hashFiles('scripts/datasets/validate_westermo.py') }}
+
       - name: Install packet capture inspection tools
         run: |
           sudo apt-get update
@@ -31,14 +49,25 @@ jobs:
 
       - name: Download Westermo reduced captures and event log
         shell: bash
+        env:
+          UPSTREAM_REVISION: ${{ steps.upstream.outputs.revision }}
         run: |
           set -euo pipefail
-          mkdir -p dist/westermo
-          base="https://raw.githubusercontent.com/westermo/network-traffic-dataset/main"
-          curl --fail --location --retry 5 --retry-all-errors --output dist/westermo/westermo-right.zip "$base/data/reduced/pcaps/right.zip"
-          curl --fail --location --retry 5 --retry-all-errors --output dist/westermo/westermo-left.zip "$base/data/reduced/pcaps/left.zip"
-          curl --fail --location --retry 5 --retry-all-errors --output dist/westermo/westermo-bottom.zip "$base/data/reduced/pcaps/bottom.zip"
-          curl --fail --location --retry 5 --retry-all-errors --output dist/westermo/events.txt "$base/data/events.txt"
+          mkdir -p .cache/westermo dist/westermo
+          base="https://raw.githubusercontent.com/westermo/network-traffic-dataset/$UPSTREAM_REVISION"
+          fetch_if_missing() {
+            local path="$1"
+            local url="$2"
+            if [[ ! -s "$path" ]]; then
+              curl --fail --location --retry 5 --retry-all-errors --output "$path" "$url"
+            fi
+            test -s "$path"
+          }
+          fetch_if_missing .cache/westermo/westermo-right.zip "$base/data/reduced/pcaps/right.zip"
+          fetch_if_missing .cache/westermo/westermo-left.zip "$base/data/reduced/pcaps/left.zip"
+          fetch_if_missing .cache/westermo/westermo-bottom.zip "$base/data/reduced/pcaps/bottom.zip"
+          fetch_if_missing .cache/westermo/events.txt "$base/data/events.txt"
+          cp .cache/westermo/* dist/westermo/
           test -s dist/westermo/events.txt
 
       - name: Validate ZIP archives and inspect packet captures
@@ -47,14 +76,17 @@ jobs:
 
       - name: Generate checksums and release manifest
         shell: bash
+        env:
+          UPSTREAM_REVISION: ${{ steps.upstream.outputs.revision }}
         run: |
           set -euo pipefail
           cd dist/westermo
           sha256sum westermo-right.zip westermo-left.zip westermo-bottom.zip events.txt > SHA256SUMS
-          cat > manifest.yaml <<'EOF'
+          cat > manifest.yaml <<EOF
           dataset: Westermo Network Traffic Dataset
           upstream: https://github.com/westermo/network-traffic-dataset
           upstream_version: "1.0"
+          upstream_revision: "$UPSTREAM_REVISION"
           license: CC-BY-4.0
           license_url: https://creativecommons.org/licenses/by/4.0/
           citation: "Per Erik Strandberg et al., Westermo Network Traffic Dataset, April 2023."
