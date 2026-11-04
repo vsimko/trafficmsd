@@ -140,7 +140,6 @@ for (size in sizes) {
 
   work_dir <- tempfile("trafficmsd-benchmark-")
   if (!dir.create(work_dir)) stop("cannot create temporary benchmark directory")
-  on.exit(unlink(work_dir, recursive = TRUE), add = TRUE)
   signal_path <- file.path(work_dir, "signal.csv")
   coefficients_path <- file.path(work_dir, "coefficients.csv")
   reconstructed_path <- file.path(work_dir, "reconstructed.csv")
@@ -226,6 +225,7 @@ for (size in sizes) {
     rust_cli_median_seconds = cli_reconstruct_time,
     rust_cli_max_rss_kb = cli_reconstruct_rss
   )
+  unlink(work_dir, recursive = TRUE)
 }
 
 results <- do.call(rbind, all_results)
