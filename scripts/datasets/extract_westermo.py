@@ -111,7 +111,7 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
             if count == 0:
                 raise RuntimeError(f"No packets decoded from {info.filename}")
             capinfos_text = capinfos_by_member[info.filename]
-            packet_count_match = re.search(r"Number of packets:\s*([\\d,]+)", capinfos_text)
+            packet_count_match = re.search(r"Number of packets:\s*([\d,]+)", capinfos_text)
             if packet_count_match is None or int(packet_count_match.group(1).replace(",", "")) != count:
                 raise RuntimeError(
                     f"tshark packet count for {info.filename} ({count}) does not match "
