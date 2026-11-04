@@ -139,10 +139,17 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
                 raise RuntimeError(f"No packets decoded from {info.filename}")
             capinfos_text = capinfos_by_member[info.filename]
             packet_count_match = re.search(r"Number of packets:\s*([\d,]+)", capinfos_text)
-            if packet_count_match is None or int(packet_count_match.group(1).replace(",", "")) != count:
+            if packet_count_match is None:
                 raise RuntimeError(
-                    f"tshark packet count for {info.filename} ({count}) does not match "
-                    "the published capinfos validation report"
+                    f"Published capinfos packet count is missing for {info.filename}: "
+                    f"{capinfos_text!r}"
+                )
+            reported_count = int(packet_count_match.group(1).replace(",", ""))
+            if reported_count != count:
+                raise RuntimeError(
+                    f"Packet count mismatch for {info.filename}: tshark decoded {count}, "
+                    f"published capinfos report records {reported_count}; "
+                    f"capinfos={capinfos_text!r}"
                 )
             member_records.append({
                 "archive_member": info.filename,
