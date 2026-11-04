@@ -46,6 +46,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Validate release version alignment
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          package_version="$(sed -n 's/^Version: *//p' DESCRIPTION)"
+          if [[ "$package_version" != "$expected" ]]; then
+            echo "Release tag $expected does not match DESCRIPTION version $package_version" >&2
+            exit 1
+          fi
+
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
