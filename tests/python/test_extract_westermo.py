@@ -43,9 +43,9 @@ class AggregatePacketsTests(unittest.TestCase):
 
     def test_capinfos_prefers_exact_interface_count_over_rounded_summary(self):
         report = (
-            "Number of packets:   35 k\\n"
-            "Interface #0 info:\\n"
-            "                     Number of packets = 35067\\n"
+            "Number of packets:   35 k\n"
+            "Interface #0 info:\n"
+            "                     Number of packets = 35067\n"
         )
         self.assertEqual(MODULE.capinfos_packet_count(report), 35067)
         with self.assertRaises(ValueError):
