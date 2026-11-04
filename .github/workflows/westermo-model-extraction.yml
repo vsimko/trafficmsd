@@ -46,6 +46,9 @@ jobs:
       - name: Install JSON Schema validator
         run: python -m pip install jsonschema
 
+      - name: Test deterministic packet binning
+        run: python -m unittest discover -s tests/python -v
+
       - name: Download, verify and aggregate Westermo packets
         run: python scripts/datasets/extract_westermo.py
 
