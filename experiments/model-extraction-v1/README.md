@@ -29,7 +29,8 @@ member in `westermo-right.zip`. It uses `frame.time_epoch` and
 not application payload bytes or original wire lengths.
 
 Bins are left-closed/right-open, one second wide by default, aligned to the
-first packet timestamp. Packet lengths are summed and empty bins are zero.
+first packet timestamp. The model time origin is relative zero; the exact
+Unix timestamp origin is preserved separately in the extraction manifest. Packet lengths are summed and empty bins are zero.
 Truncated packets are retained using their captured length and counted in the
 manifest. Malformed packet metadata causes a hard failure rather than silent
 packet loss. The output manifest records release provenance, checksums,
