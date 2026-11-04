@@ -88,7 +88,7 @@ return values, and constraints.
 The research roadmap focuses on network traffic model extraction, followed by
 traffic generation and performance-simulation validation.
 
-- [Research and development roadmap](ROADMAP.md)
+- [Research and development roadmap](docs/RESEARCH_ROADMAP.md)
 - [Research readiness specification](docs/RESEARCH_READINESS.md)
 
 ## Research reference
