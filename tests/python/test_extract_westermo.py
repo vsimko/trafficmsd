@@ -47,9 +47,9 @@ class AggregatePacketsTests(unittest.TestCase):
             "Interface #0 info:\\n"
             "                     Number of packets = 35067\\n"
         )
-        import re
-        matches = re.findall(r"Number of packets\\s*[:=]\\s*([\\d,]+)", report)
-        self.assertEqual(int(matches[-1].replace(",", "")), 35067)
+        self.assertEqual(MODULE.capinfos_packet_count(report), 35067)
+        with self.assertRaises(ValueError):
+            MODULE.capinfos_packet_count("No packet count")
 
     def test_rejects_non_positive_width_and_empty_input(self):
         with self.assertRaises(ValueError):
