@@ -61,11 +61,7 @@ fn decompose_and_reconstruct_work_as_external_commands() {
     )
     .unwrap();
 
-    let result = run(&[
-        "decompose",
-        "--config",
-        decompose_config.to_str().unwrap(),
-    ]);
+    let result = run(&["decompose", "--config", decompose_config.to_str().unwrap()]);
     assert!(
         result.status.success(),
         "decompose failed: {}",
@@ -108,11 +104,7 @@ fn rejects_unsupported_schema_before_reading_input() {
     invalid = invalid.replace("\"schema_version\": 1", "\"schema_version\": 2");
     fs::write(&config_path, invalid).unwrap();
 
-    let result = run(&[
-        "validate",
-        "--config",
-        config_path.to_str().unwrap(),
-    ]);
+    let result = run(&["validate", "--config", config_path.to_str().unwrap()]);
     assert_eq!(result.status.code(), Some(3));
     assert!(String::from_utf8_lossy(&result.stderr).contains("unsupported schema_version"));
 }
@@ -136,11 +128,7 @@ fn refuses_to_overwrite_without_force() {
     )
     .unwrap();
 
-    let result = run(&[
-        "decompose",
-        "--config",
-        config_path.to_str().unwrap(),
-    ]);
+    let result = run(&["decompose", "--config", config_path.to_str().unwrap()]);
     assert_eq!(result.status.code(), Some(4));
     assert_eq!(fs::read_to_string(output).unwrap(), "keep-existing-content");
 }
