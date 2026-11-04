@@ -230,6 +230,7 @@ decompose_traffic <- function(ts, cutoff.fraction = 0.004) {
   list(
     length   = ts.len,
     maxscale = ts.maxscale,
+    cutoff.fraction = cutoff.fraction,
     coef     = COEF
   )
 }
