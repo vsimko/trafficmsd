@@ -3,3 +3,6 @@
 .RData
 /target/
 /benchmarks/results/
+
+# Downloaded external research datasets (never commit raw captures)
+/data/external/
