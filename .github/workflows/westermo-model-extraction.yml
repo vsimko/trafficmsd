@@ -91,7 +91,7 @@ jobs:
               ("schemas/model/v1/model.schema.json",
                "artifacts/westermo-model-extraction-v1/model/model-v1.json"),
               ("schemas/model/v2/model.schema.json",
-               "artifacts/westermo-model-extraction-v1/model/test-model-v2.json"),
+               "artifacts/westermo-model-extraction-v1/model/model-v2-test.json"),
               ("schemas/evaluation/v1/result.schema.json",
                "artifacts/westermo-model-extraction-v1/model/evaluation-result-v1.json"),
           ]
