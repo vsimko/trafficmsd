@@ -133,11 +133,19 @@ evaluate_segment <- function(source, cutoff, segment_name) {
   baseline <- rep(training_mean, length(source))
   model_metrics <- fidelity_metrics(source, reconstructed)
   baseline_metrics <- fidelity_metrics(source, baseline)
+  identity_metrics <- fidelity_metrics(source, source)
 
   list(
     sample_count = length(source),
     cutoff_fraction = cutoff,
     trafficmsd = model_metrics,
+    identity_baseline = list(
+      type = "raw observed segment (reconstruction upper-bound control)",
+      fidelity = identity_metrics,
+      mean_absolute_acf_difference = 0,
+      burst_run_count = length(source_runs),
+      burst_max_run_length = optional_max(source_runs)
+    ),
     training_mean_baseline = list(
       value = training_mean,
       fidelity = baseline_metrics
@@ -146,7 +154,11 @@ evaluate_segment <- function(source, cutoff, segment_name) {
       mae_improvement_vs_training_mean =
         baseline_metrics$mae - model_metrics$mae,
       rmse_improvement_vs_training_mean =
-        baseline_metrics$rmse - model_metrics$rmse
+        baseline_metrics$rmse - model_metrics$rmse,
+      mae_improvement_vs_identity =
+        identity_metrics$mae - model_metrics$mae,
+      rmse_improvement_vs_identity =
+        identity_metrics$rmse - model_metrics$rmse
     ),
     temporal = list(
       acf_differences = acf_differences,
