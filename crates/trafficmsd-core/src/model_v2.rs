@@ -34,7 +34,9 @@ pub fn validate_model_v2(model: &Value) -> Result<(), Vec<String>> {
     let n = match (observed, extent, padding) {
         (Some(o), Some(n), Some(p)) => {
             if o < 16 || o > n {
-                errors.push("observed_sample_count must be in [16, decomposition_sample_count]".to_owned());
+                errors.push(
+                    "observed_sample_count must be in [16, decomposition_sample_count]".to_owned(),
+                );
             }
             if n < 16 || !n.is_power_of_two() {
                 errors.push("decomposition_sample_count must be a power of two >= 16".to_owned());
@@ -73,23 +75,32 @@ pub fn validate_model_v2(model: &Value) -> Result<(), Vec<String>> {
             c.get("amplitude").and_then(Value::as_f64),
         );
         let (Some(scale), Some(start), Some(window), Some(emission), Some(amplitude)) =
-            (scale, start, window, emission, amplitude) else {
-                errors.push(format!("components[{i}] has a missing or invalid numeric field"));
-                continue;
-            };
+            (scale, start, window, emission, amplitude)
+        else {
+            errors.push(format!(
+                "components[{i}] has a missing or invalid numeric field"
+            ));
+            continue;
+        };
         if !amplitude.is_finite() || amplitude < 0.0 {
-            errors.push(format!("components[{i}].amplitude must be finite and non-negative"));
+            errors.push(format!(
+                "components[{i}].amplitude must be finite and non-negative"
+            ));
         }
         if scale > max_scale {
             errors.push(format!("components[{i}].scale_index exceeds maximum scale"));
             continue;
         }
         if start >= n || window == 0 || start.checked_add(window).map_or(true, |end| end > n) {
-            errors.push(format!("components[{i}] window lies outside the decomposition extent"));
+            errors.push(format!(
+                "components[{i}] window lies outside the decomposition extent"
+            ));
             continue;
         }
         if !seen.insert((scale, start)) {
-            errors.push(format!("components[{i}] duplicates a scale/window component"));
+            errors.push(format!(
+                "components[{i}] duplicates a scale/window component"
+            ));
         }
         if scale == 0 {
             if window != 1 || emission != start {
@@ -99,32 +110,51 @@ pub fn validate_model_v2(model: &Value) -> Result<(), Vec<String>> {
             let expected_window = 1_u64 << scale;
             let expected_emission = start + expected_window / 2 - 1;
             if window != expected_window {
-                errors.push(format!("components[{i}] window_length_samples must equal 2^scale_index"));
+                errors.push(format!(
+                    "components[{i}] window_length_samples must equal 2^scale_index"
+                ));
             }
             if start % expected_window != 0 {
-                errors.push(format!("components[{i}] window_start_sample is not globally aligned"));
+                errors.push(format!(
+                    "components[{i}] window_start_sample is not globally aligned"
+                ));
             }
             if emission != expected_emission {
-                errors.push(format!("components[{i}] emission_sample_index must be the globally aligned center-left sample"));
+                errors.push(format!(
+                    "components[{i}] emission_sample_index must be the globally aligned center-left sample"
+                ));
             }
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 /// Reconstruct the deterministic signal; absent scale-zero entries contribute zero.
 pub fn reconstruct_model_v2(model: &Value) -> Result<Vec<f64>, Vec<String>> {
     validate_model_v2(model)?;
     let n = model["coverage"]["decomposition_sample_count"]
-        .as_u64().expect("validated sample count") as usize;
+        .as_u64()
+        .expect("validated sample count") as usize;
     let mut output = vec![0.0_f64; n];
-    for component in model["components"].as_array().expect("validated components") {
-        let index = component["emission_sample_index"].as_u64()
+    for component in model["components"]
+        .as_array()
+        .expect("validated components")
+    {
+        let index = component["emission_sample_index"]
+            .as_u64()
             .expect("validated emission") as usize;
-        let amplitude = component["amplitude"].as_f64().expect("validated amplitude");
+        let amplitude = component["amplitude"]
+            .as_f64()
+            .expect("validated amplitude");
         output[index] += amplitude;
         if !output[index].is_finite() {
-            return Err(vec![format!("reconstructed value at sample {index} is not finite")]);
+            return Err(vec![format!(
+                "reconstructed value at sample {index} is not finite"
+            )]);
         }
     }
     Ok(output)
@@ -138,11 +168,16 @@ mod tests {
     fn fixture() -> Value {
         let mut model: Value = serde_json::from_str(include_str!(
             "../../../examples/models/v1/synthetic-multiscale-16.json"
-        )).unwrap();
+        ))
+        .unwrap();
         model["schema_version"] = json!("2.0");
-        let items = model["components"].as_array().unwrap().iter()
+        let items = model["components"]
+            .as_array()
+            .unwrap()
+            .iter()
             .filter(|c| c["scale_index"] != 0 || c["amplitude"] != 0)
-            .cloned().collect::<Vec<_>>();
+            .cloned()
+            .collect::<Vec<_>>();
         model["components"] = json!(items);
         model
     }
