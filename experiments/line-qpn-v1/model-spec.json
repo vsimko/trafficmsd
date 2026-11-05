@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "model_id": "trafficmsd-line-qpn-source-queue-v1",
-  "description": "Open single-class QPN with a replayed deterministic source, one FCFS queueing place, and an immediate completion transition.",
+  "description": "Open single-class QPN with a deterministic source, one FCFS queueing place, and an immediate completion transition.",
   "time_unit": "s",
   "job_class": "Traffic",
   "source": {"node": "Source", "kind": "open", "arrival_schedule": "arrival-schedule.json"},
