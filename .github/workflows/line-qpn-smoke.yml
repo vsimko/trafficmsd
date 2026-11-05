@@ -55,6 +55,7 @@ jobs:
         run: python scripts/line_qpn_smoke.py
 
       - name: Upload model and result evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: line-qpn-v1-${{ github.run_id }}
