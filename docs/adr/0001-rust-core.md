@@ -35,6 +35,8 @@ Core operations must be deterministic when given the same inputs, configuration,
 
 The CLI is an interface, not the owner of domain logic. Business logic belongs in the Rust core.
 
+The choice of an external performance-simulation backend is a separate architectural decision. It must not couple the traffic-model schema or Rust core domain types to one simulator. See [ADR 0002 — LINE-first simulation backend strategy](0002-line-first-simulator.md).
+
 ## Migration and compatibility
 
 Migration will be incremental:
