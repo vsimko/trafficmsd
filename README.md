@@ -104,6 +104,8 @@ traffic generation and performance-simulation validation.
 
 - [Research and development roadmap](docs/RESEARCH_ROADMAP.md)
 - [Research readiness specification](docs/RESEARCH_READINESS.md)
+- [Dataset storage and CI policy](docs/data-management.md)
+- [Research dataset registry](docs/datasets/README.md)
 - [Generator and QPME/SimQPN adapter contract v1](docs/simulator-adapter-v1.md)
 - [CLI binary distribution](docs/cli-binary-distribution.md)
 - [Performance benchmark protocol](docs/performance-benchmarks.md)
