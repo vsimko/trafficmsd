@@ -1,0 +1,102 @@
+name: On-demand MAWI dataset acquisition
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_id:
+        description: Registry ID of the dataset to acquire
+        type: choice
+        required: true
+        options:
+          - mawi-samplepoint-f-200610031400
+      expected_sha256:
+        description: Verified 64-character SHA-256 for the exact archive
+        type: string
+        required: true
+      terms_reviewed:
+        description: Confirm that current MAWI research-use and privacy terms were reviewed and permit this CI acquisition
+        type: boolean
+        required: true
+        default: false
+      cache_permitted:
+        description: Confirm that the reviewed terms permit retaining this archive in this repository's private Actions cache
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mawi-acquisition-${{ inputs.dataset_id }}-${{ inputs.expected_sha256 }}
+  cancel-in-progress: false
+
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Require explicit terms approval and validate registry input
+        env:
+          DATASET_ID: ${{ inputs.dataset_id }}
+          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+          TERMS_REVIEWED: ${{ inputs.terms_reviewed }}
+          CACHE_PERMITTED: ${{ inputs.cache_permitted }}
+        run: |
+          set -euo pipefail
+          test "$DATASET_ID" = "mawi-samplepoint-f-200610031400"
+          test "$TERMS_REVIEWED" = "true" || {
+            echo "Current MAWI terms must be reviewed before acquisition." >&2
+            exit 1
+          }
+          test "$CACHE_PERMITTED" = "true" || {
+            echo "MAWI terms must explicitly permit this private Actions cache." >&2
+            exit 1
+          }
+          [[ "$EXPECTED_SHA256" =~ ^[A-Fa-f0-9]{64}$ ]] || {
+            echo "A verified 64-character SHA-256 is required." >&2
+            exit 1
+          }
+
+      - name: Restore checksum-keyed dataset cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data/external/mawi-samplepoint-f-200610031400/200610031400.dump.gz
+          key: mawi-samplepoint-f-200610031400-${{ inputs.expected_sha256 }}
+
+      - name: Download exact registry file on cache miss
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          DATASET_ID: ${{ inputs.dataset_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p "data/external/$DATASET_ID"
+          curl --fail --location --retry 3 --retry-all-errors \
+            "https://mawi.nezu.wide.ad.jp/mawi/samplepoint-F/2006/200610031400.dump.gz" \
+            --output "data/external/$DATASET_ID/200610031400.dump.gz"
+
+      - name: Verify checksum after download or cache restore
+        env:
+          DATASET_ID: ${{ inputs.dataset_id }}
+          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+        run: |
+          set -euo pipefail
+          file="data/external/$DATASET_ID/200610031400.dump.gz"
+          test -s "$file"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$file" | sha256sum --check --status
+          gzip --test "$file"
+          stat --format='Verified archive size: %s bytes' "$file"
+
+      - name: Save verified archive in checksum-keyed cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data/external/mawi-samplepoint-f-200610031400/200610031400.dump.gz
+          key: mawi-samplepoint-f-200610031400-${{ inputs.expected_sha256 }}
+
+      - name: Report acquisition boundary
+        run: |
+          echo "Archive is checksum-verified and cached under its registry ID and SHA-256."
+          echo "No parsing, derived artifacts, or raw-data uploads are performed by this workflow."
