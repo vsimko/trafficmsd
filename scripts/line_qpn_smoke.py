@@ -10,7 +10,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 from line_solver import (
-    Det, GlobalConstants, Network, OpenClass, Place, Replayer, SchedStrategy, Sink,
+    Det, GlobalConstants, Network, OpenClass, Place, SchedStrategy, Sink,
     SolverLDES, Source, TimingStrategy, Transition, model_to_dict,
 )
 
@@ -43,8 +43,8 @@ def read_json(path: Path) -> tuple[dict, bytes]:
 
 def build_model(model_spec: dict, schedule: dict) -> Network:
     """Build a real LINE QPN: Source -> queueing Place -> immediate Transition -> Sink."""
-    if schedule["kind"] != "replayed-interarrival-trace":
-        raise ValueError("Only the declared replayed-interarrival-trace schedule is supported")
+    if schedule["kind"] != "deterministic-periodic":
+        raise ValueError("Only the declared deterministic-periodic schedule is supported")
     if schedule["first_arrival_s"] != schedule["interarrival_s"]:
         raise ValueError("The first arrival must occur one interarrival interval after t=0")
 
@@ -56,10 +56,7 @@ def build_model(model_spec: dict, schedule: dict) -> Network:
     sink = Sink(model, model_spec["completion"]["destination"])
     traffic = OpenClass(model, model_spec["job_class"], 0)
 
-    source.set_arrival(
-        traffic,
-        Replayer(str((EXPERIMENT_DIR / schedule["trace_file"]).resolve()), loop=bool(schedule["loop"])),
-    )
+    source.set_arrival(traffic, Det(float(schedule["interarrival_s"])))
     queue.set_service(
         traffic,
         Det(float(queue_spec["service_distribution"]["duration_s"])),
@@ -90,14 +87,10 @@ def main() -> None:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     model_spec, model_spec_raw = read_json(EXPERIMENT_DIR / "model-spec.json")
     schedule, schedule_raw = read_json(EXPERIMENT_DIR / "arrival-schedule.json")
-    trace_path = EXPERIMENT_DIR / schedule["trace_file"]
-    trace_raw = trace_path.read_bytes()
-    trace_values = [float(line) for line in trace_raw.decode("utf-8").splitlines() if line.strip()]
-    if len(trace_values) < 2 or any(value != float(schedule["interarrival_s"]) for value in trace_values):
-        raise ValueError("The committed inter-arrival trace must contain at least two matching values")
+    if schedule["first_arrival_s"] != schedule["interarrival_s"]:
+        raise ValueError("The first arrival must occur one interarrival interval after t=0")
     (ARTIFACT_DIR / "model-spec.json").write_bytes(model_spec_raw)
     (ARTIFACT_DIR / "arrival-schedule.json").write_bytes(schedule_raw)
-    (ARTIFACT_DIR / "arrival-interarrivals.txt").write_bytes(trace_raw)
     model = build_model(model_spec, schedule)
 
     # Hash the actual LINE interchange document, not just the human-authored spec.
@@ -161,7 +154,6 @@ def main() -> None:
         "model_sha256": sha256(model_canonical),
         "model_spec_sha256": sha256(model_spec_raw),
         "arrival_schedule_sha256": sha256(schedule_raw),
-        "arrival_trace_sha256": sha256(trace_raw),
         "metrics": observed,
         "expected_metrics": EXPECTED,
         "absolute_tolerance": TOLERANCE,
