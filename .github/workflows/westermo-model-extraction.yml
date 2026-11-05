@@ -70,6 +70,13 @@ jobs:
             artifacts/westermo-model-extraction-v1/manifest.json \
             artifacts/westermo-model-extraction-v1/model
 
+      - name: Evaluate contiguous train/validation/test segments
+        run: |
+          Rscript experiments/model-extraction-v1/evaluate-contiguous-holdout.R \
+            artifacts/westermo-model-extraction-v1/trace.csv \
+            artifacts/westermo-model-extraction-v1/manifest.json \
+            artifacts/westermo-model-extraction-v1/model
+
       - name: Validate model and evaluation contracts
         run: |
           python - <<'PY'
