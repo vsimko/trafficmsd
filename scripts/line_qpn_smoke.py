@@ -58,7 +58,7 @@ def build_model(model_spec: dict, schedule: dict) -> Network:
 
     source.set_arrival(
         traffic,
-        Replayer(schedule["trace_file"], loop=bool(schedule["loop"])),
+        Replayer(str((EXPERIMENT_DIR / schedule["trace_file"]).resolve()), loop=bool(schedule["loop"])),
     )
     queue.set_service(
         traffic,
@@ -98,12 +98,28 @@ def main() -> None:
 
     # Hash the actual LINE interchange document, not just the human-authored spec.
     model_document = model_to_dict(model)
+
+    def normalize_paths(value):
+        if isinstance(value, dict):
+            return {key: normalize_paths(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [normalize_paths(item) for item in value]
+        if isinstance(value, str) and value.startswith(str(ROOT)):
+            return Path(value).relative_to(ROOT).as_posix()
+        return value
+
+    normalized_model = normalize_paths(model_document)
     model_canonical = json.dumps(
-        model_document, sort_keys=True, separators=(",", ":"), allow_nan=False
+        normalized_model, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
 
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
-    save_model(model, str(ARTIFACT_DIR / "line-model.json"))
+    # Keep the artifact relocatable: trace paths are repository-relative.
+    model_path = ARTIFACT_DIR / "line-model.json"
+    model_path.write_text(
+        json.dumps(normalized_model, indent=2, sort_keys=True) + "\\n",
+        encoding="utf-8",
+    )
 
     solver = SolverLDES(
         model, seed=SEED, samples=SAMPLES, tranfilter="none",
