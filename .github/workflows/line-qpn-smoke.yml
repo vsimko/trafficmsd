@@ -45,6 +45,11 @@ jobs:
         run: python -m pip install --disable-pip-version-check "line-solver==3.0.8.0"
 
       - name: Run deterministic QPN experiment and assertions
+        env:
+          # The pinned native C++ engine currently rejects the replayed open-QPN
+          # fixture (map_sample: D0 and D1 disagree). Exercise the official JVM
+          # LDES engine explicitly; it is still headless and uses the same API.
+          LINE_LDES_FORCE_JAR: "1"
         run: python scripts/line_qpn_smoke.py
 
       - name: Upload model and result evidence
