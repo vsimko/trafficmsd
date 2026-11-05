@@ -117,7 +117,7 @@ This technical roadmap complements (and does not replace) research planning and 
 
 ### M8 — LINE-first QPN simulation backend
 
-- [ ] Verify LINE release, license, documented headless interface, QPN construct coverage, and machine-readable outputs ([#79](https://github.com/vsimko/trafficmsd/issues/79)).
+- [ ] Verify LINE release, license, documented headless interface, QPN construct coverage, and machine-readable outputs ([#79](https://github.com/vsimko/trafficmsd/issues/79)); see the [initial LINE validation report](docs/line-solver-validation.md) and [headless smoke workflow](.github/workflows/line-qpn-smoke.yml).
 - [ ] Define simulator-neutral workload, experiment, capability, and result contracts ([#80](https://github.com/vsimko/trafficmsd/issues/80)).
 - [ ] Implement a minimal source → queue → service LINE proof of concept and compare deterministic results with hand calculations.
 - [ ] Add QPME/SimQPN as a second backend only after LINE and neutral contracts are reproducible ([#81](https://github.com/vsimko/trafficmsd/issues/81)).
