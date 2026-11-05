@@ -58,3 +58,22 @@ Compare representative cold and warm workflow runs using GitHub Actions job
 durations and cache restore/save logs. Record the workflow, runner, cache hit/miss,
 and elapsed time. Avoid treating a cache hit alone as proof of an improvement;
 the relevant metric is reduced end-to-end CI time without weakening validation.
+
+### Recorded Rust cold/warm comparison (2026-11-04 to 2026-11-05)
+
+Two successful runs of the same Rust stable job on `master` were compared.
+Both used `ubuntu-latest` on x86_64 Linux and the same commit
+(`b3380204480d3798806c36fa6385bc84fa8e8aed`).
+
+| Run | Cache evidence | Cache restore | Cargo dev | Cargo test | Cargo release |
+|---|---|---:|---:|---:|---:|
+| [Cold push run #41905502836](https://github.com/vsimko/trafficmsd/actions/runs/41905502836) | `No cache found` | no entry (restore lookup ~0.12 s) | 11.14 s | 3.14 s | 4.44 s |
+| [Warm manual run #41983699070](https://github.com/vsimko/trafficmsd/actions/runs/41983699070) | Full cache-key match; 56 MB restored successfully | ~1.7 s to unpack after cache download | 1.86 s | 0.95 s | 1.12 s |
+
+The three reported Cargo profile times sum to 18.72 s for the cold run and
+3.93 s for the warm run (about 79% lower for these measured build phases).
+This is an observed comparison of two runs, not a controlled benchmark or a
+guarantee of future savings. Runner provisioning, cache transfer, and other
+workflow steps are not included in those Cargo profile totals. The cold run
+was a push-triggered run; the warm run was manually dispatched on the same
+commit and branch. Both jobs completed successfully.
