@@ -6,6 +6,7 @@
 
 pub mod decomposition;
 pub mod model;
+pub mod model_v2;
 
 /// Returns the version of the core crate.
 pub const fn version() -> &'static str {
