@@ -35,6 +35,10 @@ The first experiment will use a deliberately small authored QPN model: source/ar
 
 The exact QPN subset is determined by the target use case, not by whichever subset is easiest to express in LINE.
 
+## Initial implementation evidence
+
+A minimal open QPN fixture and headless LDES runner are tracked in [the LINE validation report](../line-solver-validation.md). The fixture uses an actual LINE queueing place, a deterministic arrival schedule, checksummed model/schedule inputs, and hand-calculated metric assertions. Its runtime acceptance remains gated on the dedicated GitHub Actions workflow; this ADR does not claim full construct coverage or QPME equivalence.
+
 ## Cross-validation with QPME/SimQPN
 
 Once LINE and the neutral contracts are reproducible, implement QPME/SimQPN as a second bridge. Compare both systems only on a common, explicitly documented semantic subset and identical schedules, model assumptions, warm-up, termination, and replication policies. Investigate differences rather than averaging or selecting the preferred output.
