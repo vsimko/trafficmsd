@@ -26,7 +26,7 @@ test_that("model v2 omits zero residuals without changing reconstruction", {
 })
 
 test_that("model v2 retains non-zero residuals and higher-scale components", {
-  x <- c(0, 3, rep(0, 30), 2)
+  x <- pad_power2(c(0, 3, rep(0, 30), 2))
   d <- decompose_traffic(x)
   v1 <- export_model_v1(d, length(x), "v1", "synthetic")
   v2 <- export_model_v2(d, length(x), "v2", "synthetic")
