@@ -14,7 +14,7 @@ The adapter is deliberately downstream of model extraction and traffic generatio
 1. The model layer stores the versioned deterministic description.
 2. The generator turns that description into a reproducible time series or arrival schedule.
 3. The adapter maps the generated workload into a simulator-neutral arrival schedule.
-4. A simulator-specific bridge feeds that schedule to QPME/SimQPN.
+4. A simulator-specific bridge feeds that schedule to the selected backend (LINE first; QPME/SimQPN later).
 5. The evaluation layer compares measured-trace and generated-trace runs under identical QPN configurations.
 
 No simulator-specific fields belong in the traffic-model schema.
@@ -85,9 +85,9 @@ A deterministic v1 replay generator may reproduce the serialized reconstruction.
 
 ## 4. Simulator-neutral arrival schedule
 
-The adapter must not pass a byte-valued time series directly into QPME. QPN arrivals represent workload entities (tokens/jobs), so conversion from bytes to jobs requires an explicit workload mapping.
+The adapter must not pass a byte-valued time series directly into a QPN backend. QPN arrivals represent workload entities (tokens/jobs), so conversion from bytes to jobs requires an explicit workload mapping.
 
-The first supported mapping is:
+The first supported mapping is backend-neutral and consists of:
 
 - `bytes_per_job`: positive finite number of bytes represented by one arriving job;
 - `arrival_placement`: `bin_start` for v1;
@@ -102,7 +102,7 @@ jobs_in_bin(k) = jobs_through_bin(k) - jobs_through_bin(k - 1)
 
 This cumulative quantization preserves total represented volume up to the final fractional remainder and avoids independently rounding every bin. The final remainder must be reported in the schedule metadata. Negative values, non-finite values, unit mismatches, and overflow are errors.
 
-The v1 schedule is a table with:
+The v1 schedule is a backend-neutral table with:
 
 | Field | Meaning |
 |---|---|
@@ -134,7 +134,13 @@ The bridge must not create or infer queue topology, service rates, routing proba
 
 The LINE integration must use a documented programmatic/headless interface. Do not depend on undocumented GUI automation. The later QPME/SimQPN bridge is subject to the same requirement; if no stable headless interface exists, stop and reassess rather than automating GUI interactions.
 
-## 6. Simulation outputs and comparison
+## 6. Backend-neutral experiment and results
+
+The experiment definition must be independent of backend-specific command-line flags and file formats. It records the workload schedule checksum, authored QPN model identifier/checksum, backend identifier and exact version, simulation clock/time unit, warm-up policy, termination condition, replication count, random seeds, and requested metrics.
+
+A normalized result record must preserve backend identity and version and must not erase backend-specific raw observations. At minimum, retain raw per-replication observations where available, aggregate estimates, uncertainty/confidence intervals, and explicit missing/unsupported metric markers. A backend must fail validation when it cannot provide a required metric or model construct; it must not substitute a different metric without documenting the mapping.
+
+## 7. Simulation outputs and comparison
 
 At minimum, retain:
 
@@ -154,7 +160,7 @@ Use identical workload mapping, system model, warm-up, termination policy, and r
 
 Do not compare simulator results from different QPN configurations and attribute the difference to the traffic model.
 
-## 7. Reproducibility and validation gates
+## 8. Reproducibility and validation gates
 
 Every run records:
 
@@ -162,7 +168,7 @@ Every run records:
 - generator version, full configuration, and seed;
 - source trace provenance and preprocessing manifest;
 - workload mapping and generated arrival-schedule checksum;
-- backend name and exact version, QPN model checksum, and simulator settings;
+- backend name and exact version, QPN model checksum, capability-validation result, and simulator settings;
 - operating system/runtime versions, replication count, warm-up, and output artifacts.
 
 Required tests before calling the adapter supported:
@@ -174,12 +180,14 @@ Required tests before calling the adapter supported:
 - simulator bridge conformance against a small hand-calculated arrival schedule;
 - measured-trace and generated-trace reference runs under identical QPN settings.
 
-## 8. Explicit limitations and deferred work
+## 9. Explicit limitations and deferred work
 
 - No packet-level protocol, network topology, link, or congestion simulation.
 - No inference of jobs/requests from packet bytes without a declared workload mapping.
 - No automatic construction of QPN system models.
 - No simulator-specific stochastic service-time fitting in TrafficMSD.
 - QPME/SimQPN is intentionally deferred until the LINE proof of concept and backend-neutral contracts are reproducible.
+
+Implementation tracking: [#79 — LINE QPN compatibility and headless integration](https://github.com/vsimko/trafficmsd/issues/79), [#80 — simulator-neutral workload/result contracts](https://github.com/vsimko/trafficmsd/issues/80), [#81 — QPME/SimQPN second backend](https://github.com/vsimko/trafficmsd/issues/81), and [#82 — simulation-outcome evaluation](https://github.com/vsimko/trafficmsd/issues/82).
 
 The contract can be revised after the LINE proof of concept verifies a concrete QPN workload case and its documented headless interface.
