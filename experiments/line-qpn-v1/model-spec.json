@@ -10,6 +10,7 @@
     "semantics": "QPN queueing place",
     "discipline": "FCFS",
     "servers": 1,
+    "initial_marking": 0,
     "service_distribution": {"kind": "deterministic", "duration_s": 1.0}
   },
   "completion": {"transition": "Complete", "timing": "immediate", "destination": "Sink"},
