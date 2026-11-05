@@ -63,7 +63,7 @@ the relevant metric is reduced end-to-end CI time without weakening validation.
 
 Two successful runs of the same Rust stable job on `master` were compared.
 Both used `ubuntu-latest` on x86_64 Linux and the same commit
-(`b3380204480d3798806c36fa6385bc84fa8e8aed)).
+(`b3380204480d3798806c36fa6385bc84fa8e8aed`).
 
 | Run | Cache evidence | Cache restore | Cargo dev | Cargo test | Cargo release |
 |---|---|---:|---:|---:|---:|
