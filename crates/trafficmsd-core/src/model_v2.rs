@@ -87,6 +87,11 @@ pub fn validate_model_v2(model: &Value) -> Result<(), Vec<String>> {
                 "components[{i}].amplitude must be finite and non-negative"
             ));
         }
+        if amplitude == 0.0 {
+            errors.push(format!(
+                "components[{i}] zero-amplitude components must be omitted in sparse v2"
+            ));
+        }
         if scale > max_scale {
             errors.push(format!("components[{i}].scale_index exceeds maximum scale"));
             continue;
@@ -205,5 +210,19 @@ mod tests {
         let mut model = fixture();
         model["schema_version"] = json!("1.0");
         assert!(validate_model_v2(&model).is_err());
+    }
+
+    #[test]
+    fn rejects_explicit_zero_residual_component() {
+        let mut model = fixture();
+        model["components"].as_array_mut().unwrap().push(json!({
+            "scale_index": 0,
+            "window_start_sample": 0,
+            "window_length_samples": 1,
+            "emission_sample_index": 0,
+            "amplitude": 0
+        }));
+        let errors = validate_model_v2(&model).unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("zero-amplitude components")));
     }
 }
