@@ -25,7 +25,6 @@ The experiment is defined by:
 
 - [model-spec.json](../experiments/line-qpn-v1/model-spec.json)
 - [arrival-schedule.json](../experiments/line-qpn-v1/arrival-schedule.json)
-- [arrival-interarrivals.txt](../experiments/line-qpn-v1/arrival-interarrivals.txt)
 - [smoke runner](../scripts/line_qpn_smoke.py)
 
 The model is:
@@ -35,7 +34,7 @@ Source -- deterministic arrivals --> Queueing Place (FCFS, 1 server)
       --> immediate completion transition --> Sink
 ```
 
-The source is an open class whose inter-arrival trace is replayed from the committed file: one arrival at t=2 s and one every 2 s thereafter. The queueing place has deterministic service time 1 s. The immediate transition transfers completed tokens to the sink. This is a deliberately small QPN: the service discipline and service process belong to the queueing place itself. The runner uses LINE's trace-replay distribution for arrivals rather than converting the schedule into an exponential process.
+The source is an open class with a deterministic inter-arrival time of 2 s: one arrival at t=2 s and one every 2 s thereafter. The queueing place has deterministic service time 1 s. The immediate transition transfers completed tokens to the sink. This is a deliberately small QPN: the service discipline and service process belong to the queueing place itself.
 
 The input schedule and authored model specification are committed. The runner serializes the constructed LINE model to the native LINE JSON interchange format and computes SHA-256 hashes for the serialized model, model specification, and arrival schedule. It runs 10,000 service-completion events with seed 23000 and emits machine-readable `result.json` plus the serialized model under `artifacts/line-qpn-v1/`.
 
@@ -51,7 +50,7 @@ For deterministic inter-arrivals of 2 s and deterministic service of 1 s:
 - response/residence time in the queueing place: `1 s`;
 - throughput: `0.5 jobs/s`.
 
-The smoke runner checks `QLen`, `Util`, `RespT`, `ResidT`, `ArvR`, and `Tput` against these values with an absolute tolerance of 0.03. The schedule and service process are deterministic; the seed is still recorded to make the simulator invocation explicit and future-proof. Both a direct `Det` source-arrival distribution and the explicit `Replayer` trace were rejected by the pinned native C++ engine with `map_sample: D0 and D1 disagree`. The serialized model confirms that the source is represented as `Replayer` with a trace-file parameter; the native engine nevertheless enters its MAP sampler with inconsistent matrices. CI therefore forces the official JVM LDES engine so that the same QPN model and schedule can be tested independently of the native C++ execution path.
+The smoke runner checks `QLen`, `Util`, `RespT`, `ResidT`, `ArvR`, and `Tput` against these values with an absolute tolerance of 0.03. The schedule and service process are deterministic; the seed is still recorded to make the simulator invocation explicit and future-proof. Two execution-path issues have been observed: the native C++ engine rejected a direct `Det` source-arrival model with `map_sample: D0 and D1 disagree`; the JVM engine's `Replayer` path tried to fit an APH to a zero-variance trace and failed with `TooManyEvaluationsException`. The current fixture therefore returns to the direct `Det` source model and forces the JVM LDES engine. Its success or failure is determined by the current CI run, not assumed from the API surface.
 
 ## Headless interface and runtime
 
@@ -73,7 +72,7 @@ The generic `line-cli.py` is a separate command-line surface for LINE's native J
 | Other QPN queueing-place disciplines | Native LDES queueing-place implementation explicitly accepts FCFS, LCFS, SIRO and INF; other disciplines are refused by that embedded-queue path | Known native-engine limitation |
 | Routing | Deterministic linear source → place → transition → sink path | Exercised |
 | Service-time distribution | Deterministic service time | Exercised |
-| Arrival process | Deterministic periodic open-class source, replayed from a trace file | Exercised |
+| Arrival process | Deterministic periodic open-class source using `Det(2 s)` | CI verification pending |
 | Batch arrivals | Not used in this model | Not verified |
 | Multiple token colours / class-dependent service | Not used | Not verified |
 | Other scheduling disciplines / multi-server places | Not used | Not verified |
@@ -81,7 +80,7 @@ The generic `line-cli.py` is a separate command-line surface for LINE's native J
 | Probabilistic/state-dependent routing and conflict resolution | Not used | Not verified |
 | Required metrics | QLen, Util, RespT, ResidT, ArvR, Tput | Asserted by smoke test |
 
-“Not verified” is deliberately distinct from “unsupported”: this small experiment does not establish those capabilities or their semantics. The native LDES QPN queueing-place implementation explicitly supports FCFS, LCFS, SIRO and infinite-server (INF) disciplines; it refuses other queueing-place disciplines rather than silently approximating them. Direct `Det` source-arrival encoding also failed in the pinned 3.0.8.0 native run (see the reproducibility note); the explicit `Replayer` trace path is used instead. Other LINE SPN/QPN constructs may be supported, but TrafficMSD will only advertise them after a focused fixture and semantic test exercise them. Do not silently map an unverified construct to a different LINE construct.
+“Not verified” is deliberately distinct from “unsupported”: this small experiment does not establish those capabilities or their semantics. The native LDES QPN queueing-place implementation explicitly supports FCFS, LCFS, SIRO and infinite-server (INF) disciplines; it refuses other queueing-place disciplines rather than silently approximating them. Direct `Det` source-arrival encoding failed in the pinned 3.0.8.0 native run (see the reproducibility note). The JVM `Replayer` path also failed for a constant trace because its APH fit is ill-conditioned at zero variance. The current JVM test uses a direct `Det` arrival instead. Other LINE SPN/QPN constructs may be supported, but TrafficMSD will only advertise them after a focused fixture and semantic test exercise them. Do not silently map an unverified construct to a different LINE construct.
 
 ## Solver selection and limitations
 
