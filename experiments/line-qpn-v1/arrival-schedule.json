@@ -1,11 +1,9 @@
 {
   "schema_version": "1.0",
   "schedule_id": "periodic-deterministic-arrivals-v1",
-  "kind": "replayed-interarrival-trace",
+  "kind": "deterministic-periodic",
   "time_unit": "s",
   "first_arrival_s": 2.0,
   "interarrival_s": 2.0,
-  "trace_file": "arrival-interarrivals.txt",
-  "loop": true,
-  "semantics": "The committed trace contains one 2 s inter-arrival value and loops it. The first arrival is at t=2 s; subsequent arrivals occur every 2 s. The simulator stops after the configured number of service completions."
+  "semantics": "One arrival at t=2 s and one arrival every 2 s thereafter. The source uses LINE's deterministic Det inter-arrival distribution; the simulator stops after the configured number of service completions."
 }
