@@ -113,8 +113,7 @@ evaluate_segment <- function(source, cutoff, segment_name) {
     )
   )
 
-  sparse_model_path <- tempfile(fileext = ".json")
-  on.exit(unlink(sparse_model_path), add = TRUE)
+  sparse_model_path <- file.path(output_dir, paste0("model-v2-", segment_name, ".json"))
   sparse_model <- trafficmsd::export_model_v2(
     decomposition,
     observed_sample_count = length(source),
