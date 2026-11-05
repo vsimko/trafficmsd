@@ -19,6 +19,10 @@ Rscript experiments/model-extraction-v1/analyze-cutoff-sensitivity.R \
   artifacts/westermo-model-extraction-v1/trace.csv \
   artifacts/westermo-model-extraction-v1/manifest.json \
   artifacts/westermo-model-extraction-v1/model
+Rscript experiments/model-extraction-v1/evaluate-contiguous-holdout.R \
+  artifacts/westermo-model-extraction-v1/trace.csv \
+  artifacts/westermo-model-extraction-v1/manifest.json \
+  artifacts/westermo-model-extraction-v1/model
 ```
 
 The acquisition script downloads the immutable `dataset-westermo-v1.0` release, verifies the archive against `SHA256SUMS`, checks the exact PCAP inventory against `validation-report.json`, and processes every PCAP/PCAPNG member in `westermo-right.zip`. It uses `tshark` fields `frame.time_epoch` and `frame.cap_len`; values are captured frame bytes, not application payload bytes or original wire lengths.
@@ -26,6 +30,8 @@ The acquisition script downloads the immutable `dataset-westermo-v1.0` release, 
 Bins are left-closed/right-open, one second wide by default, aligned to the first packet timestamp. Packet lengths are summed and empty bins are zero. Truncated packets are retained using their captured length and counted in the manifest. Malformed packet metadata causes a hard failure. The output manifest records release provenance, checksums, selected observation point, member checksums, packet counts, timestamp precision, truncation count, and preprocessing choices.
 
 The R stage zero-pads only for decomposition, preserves the observed sample count in model metadata, and evaluates reconstruction only over the observed interval. It emits model v1 JSON, evaluation-result v1 JSON, and source and reconstructed CSV files. Evaluation includes raw-trace identity and constant-mean controls. The initial run uses the entire trace for a diagnostic fit, so the constant-mean control is marked `full_trace_diagnostic`; it is not a held-out baseline.
+
+CI additionally evaluates a fixed contiguous 60/20/20 train/validation/test split. The cutoff is selected by validation MAE only, with the smallest cutoff as a deterministic tie-breaker, then frozen before the final test segment is evaluated. The constant-mean baseline and burst threshold are estimated from the training segment only. Results are written to `contiguous-holdout-evaluation.json` and `contiguous-holdout-validation-sweep.csv`. This is an evaluation of the deterministic encoding applied independently to later data, not a forecast or a traffic generator trained on the first segment.
 
 CI also runs an exploratory cutoff grid from `0.0001` to `0.016` and records raw and volume-matched fidelity, ACF/burst diagnostics, component counts, and serialized model size in `cutoff-sensitivity.csv` and `cutoff-sensitivity.json`. Volume matching uses the full-trace total and is explicitly diagnostic; it is not a valid test-set calibration or tuning procedure.
 
