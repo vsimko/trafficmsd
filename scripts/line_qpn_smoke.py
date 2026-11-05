@@ -61,6 +61,7 @@ def build_model(model_spec: dict, schedule: dict) -> Network:
         traffic,
         Det(float(queue_spec["service_distribution"]["duration_s"])),
     )
+    queue.set_state(0)
 
     mode = completion.add_mode("complete")
     completion.set_number_of_servers(mode, GlobalConstants.MaxInt)
