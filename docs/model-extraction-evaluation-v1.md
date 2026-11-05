@@ -88,6 +88,12 @@ The initial extraction comparison uses deterministic controls:
 2. **Constant-mean control:** reconstruct every bin as the source trace mean. This is a deliberately weak baseline that tests whether the multiscale representation improves on preserving only average volume.
 3. **TrafficMSD v1 extraction:** the proposed multiscale representation with its cutoff and all preprocessing parameters fixed and recorded.
 
+Machine-readable results place these controls under `results[].metrics.baselines`:
+- `scope = full_trace_diagnostic`: both controls are evaluated descriptively on the full observed trace; the constant value is the full-trace mean. This is not out-of-sample evidence.
+- `scope = contiguous_holdout`: compute the constant-mean value from the training segment only, then score it and the model against the contiguous test segment. Never estimate the baseline mean from the test segment.
+
+The identity control must have zero primary fidelity errors (within numeric precision). The constant-mean control is a diagnostic reference, not a claim that constant traffic is a realistic generator.
+
 Poisson, ON/OFF, and Markov-modulated traffic generators are not v1 extraction baselines. They belong to the later synthetic-generation evaluation because comparing a deterministic reconstruction to a stochastic generator answers a different question. When generation is implemented, that phase must define fitted-parameter procedures, independent random seeds, repeated runs, uncertainty summaries, and a measured-trace simulator reference condition.
 
 ## 6. Data separation and reproducibility

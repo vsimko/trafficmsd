@@ -1,0 +1,104 @@
+name: Westermo model extraction
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "scripts/datasets/extract_westermo.py"
+      - "tests/python/**"
+      - "experiments/model-extraction-v1/**"
+      - ".github/workflows/westermo-model-extraction.yml"
+      - "schemas/model/v1/model.schema.json"
+      - "schemas/evaluation/v1/result.schema.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: westermo-extraction-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install tshark
+        timeout-minutes: 5
+        run: |
+          if ! command -v tshark >/dev/null 2>&1; then
+            sudo apt-get update -o Acquire::Retries=2 -o Acquire::http::Timeout=30
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tshark
+          fi
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          needs: check
+          extra-packages: any::jsonlite
+          cache-version: 1
+
+      - name: Install TrafficMSD
+        run: R CMD INSTALL .
+
+      - name: Install JSON Schema validator
+        run: python -m pip install jsonschema
+
+      - name: Test deterministic packet binning
+        run: python -m unittest discover -s tests/python -v
+
+      - name: Download, verify and aggregate Westermo packets
+        run: python scripts/datasets/extract_westermo.py
+
+      - name: Fit model and evaluate observed interval
+        run: |
+          Rscript experiments/model-extraction-v1/run-westermo.R \
+            artifacts/westermo-model-extraction-v1/trace.csv \
+            artifacts/westermo-model-extraction-v1/manifest.json \
+            artifacts/westermo-model-extraction-v1/model
+
+      - name: Analyze cutoff sensitivity on the full-trace diagnostic
+        run: |
+          Rscript experiments/model-extraction-v1/analyze-cutoff-sensitivity.R \
+            artifacts/westermo-model-extraction-v1/trace.csv \
+            artifacts/westermo-model-extraction-v1/manifest.json \
+            artifacts/westermo-model-extraction-v1/model
+
+      - name: Validate model and evaluation contracts
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          from pathlib import Path
+
+          pairs = [
+              ("schemas/model/v1/model.schema.json",
+               "artifacts/westermo-model-extraction-v1/model/model-v1.json"),
+              ("schemas/evaluation/v1/result.schema.json",
+               "artifacts/westermo-model-extraction-v1/model/evaluation-result-v1.json"),
+          ]
+          for schema_path, document_path in pairs:
+              schema = json.loads(Path(schema_path).read_text())
+              document = json.loads(Path(document_path).read_text())
+              errors = sorted(Draft202012Validator(schema).iter_errors(document),
+                              key=lambda error: list(error.path))
+              if errors:
+                  raise SystemExit("\\n".join(
+                      f"{document_path}: {list(error.path)}: {error.message}"
+                      for error in errors
+                  ))
+              print(f"Validated {document_path} against {schema_path}")
+          PY
+
+      - name: Upload reproducible extraction outputs
+        uses: actions/upload-artifact@v7
+        with:
+          name: westermo-model-extraction-v1
+          path: artifacts/westermo-model-extraction-v1/
+          if-no-files-found: error
