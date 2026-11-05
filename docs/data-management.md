@@ -1,7 +1,7 @@
 # Dataset storage and CI policy
 
 **Status:** repository policy  
-**Maximum committed test-data footprint:** 50 MB (50,000,000 bytes) per dataset
+**Maximum committed test-data footprint:** 50 MB (50,000,000 bytes) total
 
 ## 1. Purpose
 
@@ -9,7 +9,7 @@ Keep source history, ordinary development, and pull-request CI small and reprodu
 
 ## 2. Repository size limit
 
-- The combined stored size of a test or fixture dataset committed to Git must not exceed **50,000,000 bytes (50 MB)**. Splitting one dataset into multiple files does not bypass this limit.
+- The combined stored size of all test and fixture datasets committed to Git must not exceed **50,000,000 bytes (50 MB) total across the repository**. Splitting one dataset into multiple files or directories does not bypass this limit.
 - The limit applies to the dataset as stored in the repository, not to each individual file.
 - Prefer deterministic synthetic fixtures when they adequately test an algorithm. Keep real-data fixtures small, representative, redistributable, and documented.
 - A dataset at or below 50 MB may be committed only when its license and provenance permit redistribution. The size limit is not a license grant.
