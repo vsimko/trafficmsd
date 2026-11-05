@@ -223,6 +223,8 @@ mod tests {
             "amplitude": 0
         }));
         let errors = validate_model_v2(&model).unwrap_err();
-        assert!(errors.iter().any(|e| e.contains("zero-amplitude components")));
+        assert!(errors
+            .iter()
+            .any(|e| e.contains("zero-amplitude components")));
     }
 }
