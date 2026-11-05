@@ -1,13 +1,6 @@
 name: LINE QPN smoke test
 
 on:
-  push:
-    branches: [feat/line-solver-integration]
-    paths:
-      - ".github/workflows/line-qpn-smoke.yml"
-      - "experiments/line-qpn-v1/**"
-      - "scripts/line_qpn_smoke.py"
-      - "docs/line-solver-validation.md"
   pull_request:
     branches: [master, main]
     paths:
