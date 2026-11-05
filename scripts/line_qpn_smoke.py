@@ -11,7 +11,7 @@ from pathlib import Path
 
 from line_solver import (
     Det, GlobalConstants, Network, OpenClass, Place, Replayer, SchedStrategy, Sink,
-    SolverLDES, Source, TimingStrategy, Transition, model_to_dict, save_model,
+    SolverLDES, Source, TimingStrategy, Transition, model_to_dict,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,7 +117,7 @@ def main() -> None:
     # Keep the artifact relocatable: trace paths are repository-relative.
     model_path = ARTIFACT_DIR / "line-model.json"
     model_path.write_text(
-        json.dumps(normalized_model, indent=2, sort_keys=True) + "\\n",
+        json.dumps(normalized_model, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
