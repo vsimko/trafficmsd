@@ -113,6 +113,48 @@ evaluate_segment <- function(source, cutoff, segment_name) {
     )
   )
 
+  sparse_model_path <- file.path(output_dir, paste0("model-v2-", segment_name, ".json"))
+  sparse_model <- trafficmsd::export_model_v2(
+    decomposition,
+    observed_sample_count = length(source),
+    model_id = paste0("westermo-right-", segment_name, "-sparse-v2-cutoff-",
+                      format(cutoff, scientific = FALSE)),
+    dataset_id = manifest$dataset_id,
+    path = sparse_model_path,
+    time_unit = "second",
+    time_unit_status = "verified",
+    sampling_interval = as.numeric(manifest$sampling_interval),
+    time_origin = 0,
+    value_unit = "byte",
+    value_unit_status = "verified",
+    cutoff_fraction = cutoff,
+    license_status = "verified",
+    source_reference = manifest$source_reference,
+    license_reference = manifest$license_reference,
+    preprocessing = c(
+      "Westermo right observation-point archive only",
+      "timestamp = frame.time_epoch; value = frame.cap_len",
+      "one-second left-closed/right-open captured-frame-byte bins",
+      "contiguous segment independently padded to a power of two",
+      "zero scale-zero residuals omitted; absent residual means zero",
+      "no application-payload interpretation"
+    )
+  )
+  sparse_reconstructed <- numeric(length(source) +
+    (length(padded) - length(source)))
+  for (component in sparse_model$components) {
+    index <- component$emission_sample_index + 1L
+    sparse_reconstructed[index] <- sparse_reconstructed[index] +
+      component$amplitude
+  }
+  if (!isTRUE(all.equal(
+    sparse_reconstructed,
+    as.numeric(trafficmsd::reconstruct_traffic(decomposition)),
+    tolerance = 0
+  ))) {
+    stop("Sparse model v2 reconstruction differs from model v1.", call. = FALSE)
+  }
+
   lags <- c(1L, 2L, 4L, 8L, 16L, 32L)
   lags <- lags[lags < length(source) / 4]
   acf_differences <- lapply(lags, function(lag) {
@@ -177,10 +219,18 @@ evaluate_segment <- function(source, cutoff, segment_name) {
       scale_zero_residual_count = sum(vapply(model$components, function(item) {
         identical(as.integer(item$scale_index), 0L)
       }, logical(1))),
-      serialized_model_bytes = as.integer(file.info(model_path)$size),
+      v1_component_count = length(model$components),
+      v2_component_count = length(sparse_model$components),
+      v1_serialized_model_bytes = as.integer(file.info(model_path)$size),
+      v2_serialized_model_bytes = as.integer(file.info(sparse_model_path)$size),
       source_float64_bytes = as.integer(8L * length(source)),
-      model_size_ratio = as.numeric(file.info(model_path)$size) /
-        (8 * length(source))
+      v1_model_size_ratio = as.numeric(file.info(model_path)$size) /
+        (8 * length(source)),
+      v2_model_size_ratio = as.numeric(file.info(sparse_model_path)$size) /
+        (8 * length(source)),
+      v2_size_reduction_fraction = 1 -
+        as.numeric(file.info(sparse_model_path)$size) /
+        as.numeric(file.info(model_path)$size)
     )
   )
 }
@@ -196,7 +246,7 @@ validation_rows <- lapply(cutoffs, function(cutoff) {
     mean_absolute_acf_difference = result$temporal$mean_absolute_acf_difference,
     reconstruction_burst_run_count = result$bursts$reconstruction_run_count,
     reconstruction_burst_max_run = result$bursts$reconstruction_max_run_length,
-    model_size_ratio = result$compactness$model_size_ratio
+    model_size_ratio = result$compactness$v1_model_size_ratio
   )
 })
 validation_table <- do.call(rbind, validation_rows)
