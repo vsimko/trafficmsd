@@ -246,7 +246,7 @@ validation_rows <- lapply(cutoffs, function(cutoff) {
     mean_absolute_acf_difference = result$temporal$mean_absolute_acf_difference,
     reconstruction_burst_run_count = result$bursts$reconstruction_run_count,
     reconstruction_burst_max_run = result$bursts$reconstruction_max_run_length,
-    model_size_ratio = result$compactness$model_size_ratio
+    model_size_ratio = result$compactness$v1_model_size_ratio
   )
 })
 validation_table <- do.call(rbind, validation_rows)
