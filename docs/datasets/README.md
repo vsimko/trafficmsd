@@ -59,14 +59,13 @@ The 2006 capture belongs to the historical samplepoint-F capture period. MAWI do
 
 Before using this trace:
 
-1. Recheck the official metadata page and current MAWI terms.
-2. Acquire the exact file only in a local research run or an explicitly dispatched CI workflow.
-3. Record the retrieval date, final byte size, and SHA-256; do not fill in a checksum from metadata alone.
-4. Verify the gzip stream and PCAP/dump structure before parsing.
-5. Keep the raw file outside Git, in ignored `data/external/mawi-samplepoint-f-200610031400/`.
-6. If CI caching is enabled, key it by the registry ID, exact source version/file, and verified SHA-256. Re-verify after restoring the cache.
+1. Recheck the official metadata page and current MAWI terms. The registry does not establish permission to cache or redistribute the raw capture.
+2. Acquire the exact file only in a local research run or through the explicitly dispatched [MAWI acquisition workflow](../../.github/workflows/research-dataset-mawi.yml). Ordinary CI and pull-request workflows must never fetch it.
+3. The on-demand workflow requires the registry ID, an externally verified 64-character SHA-256, explicit confirmation that current terms were reviewed, and confirmation that those terms permit the private Actions cache. It verifies SHA-256 after both download and cache restore, then verifies the gzip stream.
+4. The checksum remains unknown until the exact bytes are acquired and hashed; do not invent or prefill it from metadata. The workflow deliberately fails closed while the checksum or terms approval is missing.
+5. Verify the PCAP/dump structure before parsing.
+6. Keep the raw file outside Git, in ignored `data/external/mawi-samplepoint-f-200610031400/`.
 7. Publish only compact derived aggregates and evaluation results, subject to the dataset terms.
-
 ## Adding a dataset
 
 Add a new section with a stable registry ID and the fields above. Explicitly distinguish metadata review from actual acquisition and validation. Datasets over 50 MB require an on-demand acquisition path before they can become CI inputs.
