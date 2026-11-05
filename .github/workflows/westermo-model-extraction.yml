@@ -9,6 +9,9 @@ on:
       - "experiments/model-extraction-v1/**"
       - ".github/workflows/westermo-model-extraction.yml"
       - "schemas/model/v1/model.schema.json"
+      - "schemas/model/v2/model.schema.json"
+      - "R/model-export-v2.R"
+      - "crates/trafficmsd-core/src/model_v2.rs"
       - "schemas/evaluation/v1/result.schema.json"
   workflow_dispatch:
 
@@ -87,6 +90,8 @@ jobs:
           pairs = [
               ("schemas/model/v1/model.schema.json",
                "artifacts/westermo-model-extraction-v1/model/model-v1.json"),
+              ("schemas/model/v2/model.schema.json",
+               "artifacts/westermo-model-extraction-v1/model/test-model-v2.json"),
               ("schemas/evaluation/v1/result.schema.json",
                "artifacts/westermo-model-extraction-v1/model/evaluation-result-v1.json"),
           ]
