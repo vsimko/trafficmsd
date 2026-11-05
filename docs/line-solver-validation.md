@@ -51,13 +51,13 @@ For deterministic inter-arrivals of 2 s and deterministic service of 1 s:
 - response/residence time in the queueing place: `1 s`;
 - throughput: `0.5 jobs/s`.
 
-The smoke runner checks `QLen`, `Util`, `RespT`, `ResidT`, `ArvR`, and `Tput` against these values with an absolute tolerance of 0.03. The schedule and service process are deterministic; the seed is still recorded to make the simulator invocation explicit and future-proof. An initial attempt to represent the periodic source directly as a `Det` arrival distribution failed in the pinned native engine with `map_sample: D0 and D1 disagree`; the committed `Replayer` trace is the explicit trace-driven input path and preserves the exact arrival times.
+The smoke runner checks `QLen`, `Util`, `RespT`, `ResidT`, `ArvR`, and `Tput` against these values with an absolute tolerance of 0.03. The schedule and service process are deterministic; the seed is still recorded to make the simulator invocation explicit and future-proof. Both a direct `Det` source-arrival distribution and the explicit `Replayer` trace were rejected by the pinned native C++ engine with `map_sample: D0 and D1 disagree`. The serialized model confirms that the source is represented as `Replayer` with a trace-file parameter; the native engine nevertheless enters its MAP sampler with inconsistent matrices. CI therefore forces the official JVM LDES engine so that the same QPN model and schedule can be tested independently of the native C++ execution path.
 
 ## Headless interface and runtime
 
 The supported integration surface for this proof-of-concept is LINE's Python `SolverLDES` API, not GUI automation and not an MCP server.
 
-The upstream implementation serializes the Python model to `model.json`, launches an LDES command-line subprocess, and parses its JSON result. On Linux it prefers the bundled native `line_solver/bin/ldes` executable from the PyPI wheel. If that executable is unavailable or cannot start, it falls back to `ldes.jar`, which requires Java. The solver creates a temporary model/result exchange directory; TrafficMSD additionally persists the model and normalized experiment result as CI artifacts.
+The upstream implementation serializes the Python model to `model.json`, launches an LDES command-line subprocess, and parses its JSON result. On Linux it normally prefers the bundled native `line_solver/bin/ldes` executable from the PyPI wheel. The JVM implementation is selected when the native binary is unavailable or explicitly disabled with `LINE_LDES_FORCE_JAR=1`; it requires Java and may download `ldes.jar` from the upstream release. In the pinned 3.0.8.0 wheel, a native runtime error does not guarantee that a JAR fallback is available: if no JAR is already present, the wrapper can have only the native runner. TrafficMSD therefore tests the JVM engine explicitly in CI rather than assuming automatic runtime fallback. The solver creates a temporary model/result exchange directory; TrafficMSD additionally persists the model and normalized experiment result as CI artifacts.
 
 The generic `line-cli.py` is a separate command-line surface for LINE's native JSON, JMT JSIMG, and LQNS LQNX model formats. For this QPN proof-of-concept, use `SolverLDES`: it constructs and serializes the QPN object model and invokes the LDES engine directly.
 
@@ -102,7 +102,7 @@ The upstream repository's working tree may advertise a newer development version
 
 ## CI
 
-[LINE QPN smoke test workflow](../.github/workflows/line-qpn-smoke.yml) installs the pinned package, runs the headless experiment, checks the deterministic metrics, and uploads the model and result JSON as an artifact. The result is considered verified only after a successful GitHub Actions run; a source-level review alone is not evidence that the runtime experiment passed.
+[LINE QPN smoke test workflow](../.github/workflows/line-qpn-smoke.yml) installs the pinned package and Java 21, sets `LINE_LDES_FORCE_JAR=1`, runs the headless experiment, checks the deterministic metrics, and uploads the model and result JSON as an artifact. The native C++ engine is not silently substituted for the JVM engine. The result is considered verified only after a successful GitHub Actions run; a source-level review alone is not evidence that the runtime experiment passed.
 
 ## Upstream references
 
