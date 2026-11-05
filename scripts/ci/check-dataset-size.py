@@ -27,10 +27,10 @@ def tracked_blobs() -> list[tuple[str, str, int]]:
         stdout=subprocess.PIPE,
     )
     entries: list[tuple[str, str, int]] = []
-    for record in result.stdout.split(b"\\0"):
+    for record in result.stdout.split(b"\0"):
         if not record:
             continue
-        metadata, raw_path = record.split(b"\\t", 1)
+        metadata, raw_path = record.split(b"\t", 1)
         mode, object_type, sha, size_text = metadata.decode("ascii").split()
         if object_type != "blob" or size_text == "-":
             continue
@@ -52,7 +52,7 @@ def is_lfs_pointer(sha: str) -> bool:
         check=True,
         stdout=subprocess.PIPE,
     ).stdout
-    return blob.startswith(b"version https://git-lfs.github.com/spec/v1\\n")
+    return blob.startswith(b"version https://git-lfs.github.com/spec/v1\n")
 
 
 def main() -> int:
@@ -86,7 +86,7 @@ def main() -> int:
         )
 
     if errors:
-        print("\\nDataset policy violations:", file=sys.stderr)
+        print("\nDataset policy violations:", file=sys.stderr)
         for error in errors:
             print(f"- {error}", file=sys.stderr)
         return 1
