@@ -60,5 +60,5 @@ jobs:
         with:
           name: line-qpn-v1-${{ github.run_id }}
           path: artifacts/line-qpn-v1/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
