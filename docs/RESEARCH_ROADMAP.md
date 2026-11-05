@@ -56,14 +56,34 @@ The current R package provides multiscale decomposition, reconstruction, and amp
 
 **Exit criteria:** generated sequences can be produced and evaluated independently of the extraction implementation.
 
-### Phase 4 — Validate simulation suitability
+### Phase 4 — Establish LINE as the first QPN backend
 
-- Select one performance simulator or queueing model based on the target use case.
-- Define an adapter from the model/generator output to simulator input.
-- Compare simulation outcomes driven by measured and generated traffic.
-- Document where the approach is useful and where it is not.
+- Verify the exact LINE release, license, documented headless interface, and machine-readable result export.
+- Verify the QPN constructs required by the first workload case; record semantic gaps explicitly.
+- Define backend-neutral workload, experiment, capability, and result contracts.
+- Implement a minimal source → queue → service proof of concept.
+- Compare a deterministic case with hand-calculated expectations.
 
-**Exit criteria:** simulation suitability is assessed using controlled and reproducible comparisons.
+**Exit criteria:** a minimal LINE experiment runs reproducibly without GUI automation, and its supported QPN subset and limitations are documented.
+
+### Phase 5 — Cross-validate with QPME/SimQPN
+
+- Add QPME/SimQPN only after the LINE proof of concept and neutral contracts are stable.
+- Verify its version, license, headless/batch interface, and supported constructs.
+- Run equivalent schedules and QPN semantics through both backends on their common supported subset.
+- Compare throughput, queue population, utilization, residence-time distributions, runtime, and uncertainty.
+- Investigate disagreements; do not designate either simulator as ground truth.
+
+**Exit criteria:** backend differences and equivalences are documented on reproducible shared experiments.
+
+### Phase 6 — Evaluate simulation relevance of generated traffic
+
+- Compare measured-trace input, deterministic replay controls, and stochastic generated workloads.
+- Keep QPN model, workload mapping, warm-up, termination, and replication policy fixed.
+- Predeclare primary metrics and report uncertainty across replications.
+- Separate workload-level QPN conclusions from packet-level network behavior.
+
+**Exit criteria:** the usefulness and limitations of generated traffic for the stated performance-simulation use case are supported by controlled results.
 
 ## Repository responsibilities
 
@@ -77,6 +97,10 @@ The current R package provides multiscale decomposition, reconstruction, and amp
 2. Specify the model representation before implementing generation.
 3. Define how extraction quality will be evaluated.
 4. Implement a minimal end-to-end extraction example using a redistributable trace.
-5. Keep repository maintenance and release preparation tracked through issues [#10](https://github.com/vsimko/trafficmsd/issues/10) and [#11](https://github.com/vsimko/trafficmsd/issues/11).
+5. Establish LINE's QPN construct coverage and a minimal headless proof of concept ([#79](https://github.com/vsimko/trafficmsd/issues/79)).
+6. Freeze backend-neutral workload and result contracts ([#80](https://github.com/vsimko/trafficmsd/issues/80)).
+7. Add QPME/SimQPN as a later independent backend ([#81](https://github.com/vsimko/trafficmsd/issues/81)).
+8. Evaluate generated traffic through controlled QPN outcomes ([#82](https://github.com/vsimko/trafficmsd/issues/82)).
+9. Keep repository maintenance and release preparation tracked through issues [#10](https://github.com/vsimko/trafficmsd/issues/10) and [#11](https://github.com/vsimko/trafficmsd/issues/11).
 
-See [Research Readiness](docs/RESEARCH_READINESS.md) for the proposed extraction scope, model boundaries, and evaluation requirements.
+See [Research Readiness](docs/RESEARCH_READINESS.md) for the proposed extraction scope, model boundaries, and evaluation requirements. The simulator selection is recorded in [ADR 0002 — LINE-first simulation backend strategy](adr/0002-line-first-simulator.md), with the [backend-neutral adapter contract](simulator-adapter-v1.md).
