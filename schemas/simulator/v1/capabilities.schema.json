@@ -8,7 +8,9 @@
     "schema_version",
     "backend",
     "supported_constructs",
-    "supported_metrics"
+    "supported_metrics",
+    "supported_warmup_policies",
+    "supported_termination_kinds"
   ],
   "properties": {
     "schema_version": {
@@ -52,6 +54,27 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "supported_warmup_policies": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "none",
+          "fixed_time",
+          "mser5"
+        ]
+      }
+    },
+    "supported_termination_kinds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "simulated_time",
+          "completions"
+        ]
       }
     }
   }
