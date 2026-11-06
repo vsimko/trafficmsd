@@ -36,6 +36,8 @@ class ContractValidationTests(unittest.TestCase):
     def test_non_finite_values_are_rejected(self):
         with self.assertRaises(ValueError):
             contracts.canonical_json({"value": math.inf})
+        with self.assertRaisesRegex(ValueError, "overflows finite range"):
+            contracts._parse_finite_float("1e999")
 
     def test_empty_bins_are_preserved_and_indexed(self):
         self.assertEqual(self.schedule["batches"][1]["job_count"], 0)
