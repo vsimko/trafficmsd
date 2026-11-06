@@ -1,9 +1,11 @@
 # TrafficMSD generator and simulator adapter contract v1
 
-**Status:** design contract; implementation deferred until the generator exists  
+**Status:** neutral v1 schemas and fixture validator implemented; generator/adapter conformance remains in progress  
 **Initial target:** LINE Solver (QPN-capable simulation backend)  
 **Planned second backend:** QPME / SimQPN for independent cross-validation  
 **Scope:** workload-level performance simulation using Queueing Petri Nets (QPNs)
+
+The machine-readable v1 contract and validation rules are specified in [simulator-contract-v1.md](simulator-contract-v1.md), with JSON Schemas under `schemas/simulator/v1/` and deterministic fixtures under `experiments/simulator-contract-v1/`.
 
 ## 1. Purpose and boundary
 
@@ -41,7 +43,7 @@ QPME/SimQPN is a QPN-specialist environment and provides a useful independent re
 1. Verify the exact LINE version, license, documented headless invocation, model format, QPN construct coverage, and machine-readable result export.
 2. Implement a minimal LINE proof of concept with one source, one queue, one service transition, and a measurable completion/throughput result.
 3. Compare results with hand-calculated expectations for a deliberately simple deterministic case.
-4. Freeze the backend-neutral schedule and result contracts before implementing the QPME/SimQPN bridge.
+4. Freeze and validate the backend-neutral schedule and result contracts before implementing the QPME/SimQPN bridge. The initial schema/fixture set is now versioned; actual LINE/QPME adapter conformance remains a separate gate.
 5. Add QPME/SimQPN and compare both backends on the same supported model subset, input schedule, and experiment settings.
 
 If LINE cannot represent a required construct without changing its semantics, stop and document the gap. Do not weaken the QPN model silently to fit the backend.
