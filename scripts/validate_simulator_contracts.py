@@ -26,8 +26,19 @@ def _reject_constant(value: str) -> None:
     raise ValueError(f"Non-finite JSON number is forbidden: {value}")
 
 
+def _parse_finite_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"JSON number overflows finite range: {value}")
+    return parsed
+
+
 def load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"), parse_constant=_reject_constant)
+    value = json.loads(
+        path.read_text(encoding="utf-8"),
+        parse_constant=_reject_constant,
+        parse_float=_parse_finite_float,
+    )
     if not isinstance(value, dict):
         raise ValueError(f"{path} must contain a JSON object")
     return value
@@ -68,6 +79,8 @@ def validate_schedule_semantics(schedule: dict[str, Any]) -> None:
         if batch["source_bin"] != index:
             raise ValueError("source_bin values must be contiguous from zero; retain empty bins")
         expected_time = index * width
+        if not math.isfinite(expected_time):
+            raise ValueError("bin time calculation overflowed finite range")
         if not math.isclose(batch["time"], expected_time, rel_tol=0.0, abs_tol=1e-12):
             raise ValueError("bin_start times must equal source_bin * bin_width")
     generation = schedule["generation"]
