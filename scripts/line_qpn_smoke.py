@@ -19,7 +19,10 @@ EXPERIMENT_DIR = ROOT / "experiments" / "line-qpn-v1"
 ARTIFACT_DIR = ROOT / "artifacts" / "line-qpn-v1"
 PINNED_LINE_VERSION = "3.0.8.0"
 SEED = 23000
-SAMPLES = 10_000
+# LDES samples are a service-completion budget, not an observation count.
+# Use the engine's documented default budget and its MSER-5 transient filter.
+SAMPLES = 200_000
+TRANFILTER = "mser5"
 TOLERANCE = 0.03
 
 EXPECTED = {
@@ -119,7 +122,7 @@ def main() -> None:
     )
 
     solver = SolverLDES(
-        model, seed=SEED, samples=SAMPLES, tranfilter="none",
+        model, seed=SEED, samples=SAMPLES, tranfilter=TRANFILTER,
         cimethod="none", verbose="silent",
     )
     table = solver.avg_table()
@@ -141,9 +144,9 @@ def main() -> None:
         metric: {"expected": EXPECTED[metric], "observed": observed[metric], "error": errors[metric]}
         for metric in EXPECTED if errors[metric] > TOLERANCE
     }
-    if failures:
-        raise AssertionError(f"Deterministic QPN result outside tolerance: {failures}")
 
+    # Persist the complete station table even when an assertion fails. This
+    # makes the CI artifact sufficient to diagnose metric/row semantics.
     result = {
         "schema_version": "1.0",
         "backend": "LINE Solver",
@@ -151,19 +154,25 @@ def main() -> None:
         "engine": "LDES",
         "headless": True,
         "seed": SEED,
-        "service_completion_events": SAMPLES,
+        "service_completion_budget": SAMPLES,
+        "transient_filter": TRANFILTER,
         "model_sha256": sha256(model_canonical),
         "model_spec_sha256": sha256(model_spec_raw),
         "arrival_schedule_sha256": sha256(schedule_raw),
         "metrics": observed,
         "expected_metrics": EXPECTED,
         "absolute_tolerance": TOLERANCE,
-        "validation": "passed",
+        "failures": failures,
+        "validation": "failed" if failures else "passed",
+        "station_metrics": rows,
     }
     (ARTIFACT_DIR / "result.json").write_text(
-        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(result, indent=2, sort_keys=True, default=float) + "\n",
+        encoding="utf-8",
     )
-    print(json.dumps(result, indent=2, sort_keys=True))
+    print(json.dumps(result, indent=2, sort_keys=True, default=float))
+    if failures:
+        raise AssertionError(f"Deterministic QPN result outside tolerance: {failures}")
 
 
 if __name__ == "__main__":
