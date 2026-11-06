@@ -21,7 +21,7 @@
         {
           "metric": "throughput",
           "value": 0.5,
-          "time_unit": "s"
+          "unit": "jobs/s"
         }
       ]
     },
@@ -33,7 +33,7 @@
         {
           "metric": "throughput",
           "value": 0.51,
-          "time_unit": "s"
+          "unit": "jobs/s"
         }
       ]
     }
