@@ -92,9 +92,13 @@ def validate_experiment_semantics(experiment: dict[str, Any], capabilities: dict
     missing_metrics = sorted(
         set(experiment["capabilities"]["metrics"]) - set(capabilities["supported_metrics"])
     )
-    if missing_constructs or missing_metrics:
+    missing_warmup = experiment["warmup"]["policy"] not in capabilities["supported_warmup_policies"]
+    missing_termination = experiment["termination"]["kind"] not in capabilities["supported_termination_kinds"]
+    if missing_constructs or missing_metrics or missing_warmup or missing_termination:
         raise ValueError(
-            f"backend capability mismatch: constructs={missing_constructs}, metrics={missing_metrics}"
+            "backend capability mismatch: "
+            f"constructs={missing_constructs}, metrics={missing_metrics}, "
+            f"warmup={missing_warmup}, termination={missing_termination}"
         )
     if not set(experiment["required_metrics"]).issubset(experiment["capabilities"]["metrics"]):
         raise ValueError("all required metrics must be declared in experiment capabilities")
