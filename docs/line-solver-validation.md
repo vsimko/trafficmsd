@@ -1,6 +1,6 @@
 # LINE Solver QPN validation (issue #79)
 
-**Status:** reproducible proof-of-concept implemented; CI result pending  
+**Status:** reproducible proof-of-concept implemented; corrected CI rerun pending  
 **Scope:** one open, single-class QPN; no claim of full QPME/SimQPN parity  
 **Pinned package:** `line-solver==3.0.8.0` (PyPI release, 2026-10-05)  
 **Runtime:** Python 3.11+; CI uses Python 3.12 on Ubuntu x86-64  
@@ -36,7 +36,7 @@ Source -- deterministic arrivals --> Queueing Place (FCFS, 1 server)
 
 The source is an open class with a deterministic inter-arrival time of 2 s: one arrival at t=2 s and one every 2 s thereafter. The queueing place has deterministic service time 1 s. The immediate transition transfers completed tokens to the sink. This is a deliberately small QPN: the service discipline and service process belong to the queueing place itself.
 
-The input schedule and authored model specification are committed. The runner serializes the constructed LINE model to the native LINE JSON interchange format and computes SHA-256 hashes for the serialized model, model specification, and arrival schedule. It runs 10,000 service-completion events with seed 23000 and emits machine-readable `result.json` plus the serialized model under `artifacts/line-qpn-v1/`.
+The input schedule and authored model specification are committed. The runner serializes the constructed LINE model to the native LINE JSON interchange format and computes SHA-256 hashes for the serialized model, model specification, and arrival schedule. It runs with seed 23000 and a budget of 200,000 service completions. The runner explicitly selects LDES's MSER-5 transient filter (rather than disabling warm-up) and emits machine-readable `result.json` plus the serialized model under `artifacts/line-qpn-v1/`. The full station metrics table is persisted even when an assertion fails, so CI artifacts retain diagnostic evidence.
 
 ### Hand calculation
 
@@ -50,7 +50,15 @@ For deterministic inter-arrivals of 2 s and deterministic service of 1 s:
 - response/residence time in the queueing place: `1 s`;
 - throughput: `0.5 jobs/s`.
 
-The smoke runner checks `QLen`, `Util`, `RespT`, `ResidT`, `ArvR`, and `Tput` against these values with an absolute tolerance of 0.03. The schedule and service process are deterministic; the seed is still recorded to make the simulator invocation explicit and future-proof. Two execution-path issues have been observed: the native C++ engine rejected a direct `Det` source-arrival model with `map_sample: D0 and D1 disagree`; the JVM engine's `Replayer` path tried to fit an APH to a zero-variance trace and failed with `TooManyEvaluationsException`. The current fixture therefore returns to the direct `Det` source model and forces the JVM LDES engine. Its success or failure is determined by the current CI run, not assumed from the API surface.
+The smoke runner checks `QLen`, `Util`, `RespT`, `ResidT`, `ArvR`, and `Tput` against these values with an absolute tolerance of 0.03. The schedule and service process are deterministic; the seed is still recorded to make the simulator invocation explicit and future-proof.
+
+### CI diagnosis and correction
+
+The previous LINE QPN CI run (#36, commit `6038d713b6b8953ba4edc57bc6b86ddee5ce0556`) installed LINE 3.0.8.0 and successfully launched the JVM LDES engine, but failed the metric assertions: `QLen=0.625`, `Util=0.625`, and `Tput=0.625`; the expected values were 0.5. The failure was not a package-installation or headless-launch failure.
+
+Inspection of the runner showed that it requested only 10,000 service completions and explicitly set `tranfilter="none"`, disabling LDES transient warm-up while comparing the result to steady-state analytical values. The runner now uses the documented 200,000-completion LDES budget and the MSER-5 transient filter. This is a test-configuration correction, not a claim that the metric discrepancy is already resolved. The corrected experiment must pass CI before issue #79 can be considered complete. If the rerun still disagrees, retain the full `station_metrics` artifact and investigate the model/metric semantics; do not relax the analytical expectations to force a pass.
+
+Two earlier execution-path issues remain part of the compatibility record: the native C++ engine rejected a direct `Det` source-arrival model with `map_sample: D0 and D1 disagree`; the JVM engine's `Replayer` path tried to fit an APH to a zero-variance trace and failed with `TooManyEvaluationsException`. The current fixture therefore uses the direct `Det` source model and forces the JVM LDES engine.
 
 ## Headless interface and runtime
 
@@ -101,7 +109,7 @@ The upstream repository's working tree may advertise a newer development version
 
 ## CI
 
-[LINE QPN smoke test workflow](../.github/workflows/line-qpn-smoke.yml) installs the pinned package and Java 21, sets `LINE_LDES_FORCE_JAR=1`, runs the headless experiment, checks the deterministic metrics, and uploads the model and result JSON as an artifact. The native C++ engine is not silently substituted for the JVM engine. The result is considered verified only after a successful GitHub Actions run; a source-level review alone is not evidence that the runtime experiment passed.
+[LINE QPN smoke test workflow](../.github/workflows/line-qpn-smoke.yml) installs the pinned package and Java 21, sets `LINE_LDES_FORCE_JAR=1`, runs the headless experiment, checks the deterministic metrics, and uploads the model and result JSON as an artifact. The native C++ engine is not silently substituted for the JVM engine. CI success is a required acceptance criterion; source-level review alone is not evidence that the runtime experiment passed.
 
 ## Upstream references
 
