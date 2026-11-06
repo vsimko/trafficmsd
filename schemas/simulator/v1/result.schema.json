@@ -109,7 +109,7 @@
               "required": [
                 "metric",
                 "value",
-                "time_unit"
+                "unit"
               ],
               "properties": {
                 "metric": {
@@ -119,7 +119,7 @@
                 "value": {
                   "type": "number"
                 },
-                "time_unit": {
+                "unit": {
                   "type": [
                     "string",
                     "null"
