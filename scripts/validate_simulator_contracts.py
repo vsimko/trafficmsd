@@ -152,6 +152,34 @@ def validate_result_semantics(experiment: dict[str, Any], result: dict[str, Any]
         raise ValueError("result schedule checksum does not match experiment")
 
 
+def validate_line_adapter_inputs() -> None:
+    """Check that the LINE bridge inputs are valid neutral v1 contract documents."""
+    line_dir = ROOT / "experiments" / "line-qpn-v1"
+    model_path = line_dir / "model-spec.json"
+    schedule_path = line_dir / "arrival-schedule-neutral.json"
+    experiment_path = line_dir / "experiment.json"
+    model = load_json(model_path)
+    schedule = load_json(schedule_path)
+    experiment = load_json(experiment_path)
+    capabilities = load_json(FIXTURE_DIR / "capabilities.json")
+    validate_schema("schedule", schedule)
+    validate_schema("experiment", experiment)
+    validate_schedule_semantics(schedule)
+    validate_experiment_semantics(experiment, capabilities)
+    if experiment["model"]["sha256"] != hashlib.sha256(model_path.read_bytes()).hexdigest():
+        raise ValueError("LINE experiment model checksum does not match model-spec.json")
+    if experiment["schedule"]["sha256"] != hashlib.sha256(schedule_path.read_bytes()).hexdigest():
+        raise ValueError("LINE experiment schedule checksum does not match neutral arrival schedule")
+    if experiment["schedule"]["schedule_id"] != schedule["schedule_id"]:
+        raise ValueError("LINE experiment schedule_id does not match neutral schedule")
+    if experiment["time_unit"] != schedule["time_unit"] or experiment["time_unit"] != model["time_unit"]:
+        raise ValueError("LINE model, schedule, and experiment time units must match")
+    if experiment["replications"]["count"] != 1 or len(experiment["replications"]["seeds"]) != 1:
+        raise ValueError("LINE smoke currently requires exactly one explicit replication")
+    if experiment["termination"]["kind"] != "completions":
+        raise ValueError("LINE smoke currently requires completion-count termination")
+
+
 def validate_fixtures() -> None:
     schedule = load_json(FIXTURE_DIR / "arrival-schedule.json")
     experiment = load_json(FIXTURE_DIR / "experiment.json")
@@ -167,6 +195,7 @@ def validate_fixtures() -> None:
     validate_schedule_semantics(schedule)
     validate_experiment_semantics(experiment, capabilities)
     validate_result_semantics(experiment, result)
+    validate_line_adapter_inputs()
 
 
 if __name__ == "__main__":
