@@ -158,31 +158,85 @@ def main() -> None:
         for metric in EXPECTED if errors[metric] > TOLERANCE
     }
 
-    # Persist the complete station table even when an assertion fails. This
-    # makes the CI artifact sufficient to diagnose metric/row semantics.
+    # Preserve the complete backend table separately; result.json follows
+    # the simulator-neutral normalized result v1 schema.
+    station_metrics_path = ARTIFACT_DIR / "station-metrics.json"
+    station_metrics_path.write_text(
+        json.dumps(rows, indent=2, sort_keys=True, default=float) + "\\n",
+        encoding="utf-8",
+    )
+    metric_names = {
+        "QLen": "queue_length",
+        "Util": "utilization",
+        "ResidT": "residence_time",
+        "Tput": "throughput",
+    }
+    metric_units = {
+        "queue_length": "jobs",
+        "utilization": "ratio",
+        "residence_time": "s",
+        "throughput": "jobs/s",
+    }
+    normalized_metrics = {
+        metric_names[source]: {
+            "status": "available",
+            "unit": metric_units[metric_names[source]],
+            "estimate": observed[source],
+            "standard_deviation": None,
+            "confidence_interval": None,
+        }
+        for source in metric_names
+    }
+    raw_observations = [
+        {
+            "metric": metric_names[source],
+            "value": observed[source],
+            "unit": metric_units[metric_names[source]],
+        }
+        for source in metric_names
+    ]
     result = {
         "schema_version": "1.0",
-        "backend": "LINE Solver",
-        "backend_version": installed_version,
-        "engine": "LDES",
-        "headless": True,
-        "seed": seed,
-        "service_completion_budget": samples,
-        "transient_filter": tranfilter,
-        "experiment_sha256": sha256(experiment_raw),
-        "schedule_sha256": sha256(schedule_raw),
-        "model_sha256": sha256(model_canonical),
-        "model_spec_sha256": sha256(model_spec_raw),
-        "arrival_schedule_sha256": sha256(schedule_raw),
-        "metrics": observed,
-        "expected_metrics": EXPECTED,
-        "absolute_tolerance": TOLERANCE,
-        "failures": failures,
+        "experiment_id": experiment["experiment_id"],
+        "backend": {
+            "id": "line-solver",
+            "version": installed_version,
+            "engine": "LDES",
+        },
+        "checksums": {
+            "model_sha256": experiment["model"]["sha256"],
+            "schedule_sha256": experiment["schedule"]["sha256"],
+            "experiment_sha256": sha256(experiment_raw),
+        },
         "validation": "failed" if failures else "passed",
-        "station_metrics": rows,
+        "replications": [{
+            "index": 0,
+            "seed": seed,
+            "termination_reason": "completed",
+            "raw_observations": raw_observations,
+        }],
+        "metrics": normalized_metrics,
+        "runtime": {
+            "headless": True,
+            "service_completion_budget": samples,
+            "transient_filter": tranfilter,
+            "line_model_sha256": sha256(model_canonical),
+            "model_spec_sha256": sha256(model_spec_raw),
+            "absolute_tolerance": TOLERANCE,
+            "expected_metrics": EXPECTED,
+            "failures": failures,
+            "station_metrics": rows,
+        },
+        "artifacts": [
+            "model-spec.json",
+            "experiment.json",
+            "arrival-schedule-neutral.json",
+            "line-model.json",
+            "station-metrics.json",
+        ],
     }
     (ARTIFACT_DIR / "result.json").write_text(
-        json.dumps(result, indent=2, sort_keys=True, default=float) + "\n",
+        json.dumps(result, indent=2, sort_keys=True, default=float) + "\\n",
         encoding="utf-8",
     )
     print(json.dumps(result, indent=2, sort_keys=True, default=float))
