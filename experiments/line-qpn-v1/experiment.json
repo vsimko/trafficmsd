@@ -3,7 +3,7 @@
   "experiment_id": "line-qpn-periodic-smoke-v1",
   "model": {
     "model_id": "trafficmsd-line-qpn-source-queue-v1",
-    "sha256": "5a23424cb3a1e158b840006a31b1cc81945d0a68541504c5328a8b744eb606af"
+    "sha256": "61bfbcc3ec2e2e88ed49f12e0cfe8106dd131521569fbf45a6ce9614e03d12e7"
   },
   "schedule": {
     "schedule_id": "line-periodic-deterministic-arrivals-v1",
