@@ -41,8 +41,8 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Install pinned LINE release
-        run: python -m pip install --disable-pip-version-check "line-solver==3.0.8.0"
+      - name: Install pinned LINE release and schema validator
+        run: python -m pip install --disable-pip-version-check "line-solver==3.0.8.0" "jsonschema>=4.20,<5"
 
       - name: Run deterministic QPN experiment and assertions
         env:
@@ -51,6 +51,9 @@ jobs:
           # LDES engine explicitly; it is still headless and uses the same API.
           LINE_LDES_FORCE_JAR: "1"
         run: python scripts/line_qpn_smoke.py
+
+      - name: Validate normalized simulator-neutral result
+        run: python scripts/validate_simulator_contracts.py
 
       - name: Upload model and result evidence
         if: always()
