@@ -75,14 +75,27 @@ def validate_schedule_semantics(schedule: dict[str, Any]) -> None:
     remainder = mapping["final_remainder_bytes"]
     if remainder >= mapping["bytes_per_job"]:
         raise ValueError("final remainder must be smaller than bytes_per_job")
-    for index, batch in enumerate(batches):
-        if batch["source_bin"] != index:
-            raise ValueError("source_bin values must be contiguous from zero; retain empty bins")
-        expected_time = index * width
-        if not math.isfinite(expected_time):
-            raise ValueError("bin time calculation overflowed finite range")
-        if not math.isclose(batch["time"], expected_time, rel_tol=0.0, abs_tol=1e-12):
-            raise ValueError("bin_start times must equal source_bin * bin_width")
+    process = schedule.get("arrival_process")
+    if process is not None:
+        if batches:
+            raise ValueError("periodic arrival_process cannot be combined with binned batches")
+        if process["first_arrival"] < 0 or process["interarrival"] <= 0:
+            raise ValueError("periodic arrival times must be non-negative with positive interarrival")
+        if not math.isclose(process["first_arrival"] / width,
+                            round(process["first_arrival"] / width), rel_tol=0.0, abs_tol=1e-12):
+            raise ValueError("periodic first_arrival must align to bin_width")
+        if not math.isclose(process["interarrival"] / width,
+                            round(process["interarrival"] / width), rel_tol=0.0, abs_tol=1e-12):
+            raise ValueError("periodic interarrival must align to bin_width")
+    else:
+        for index, batch in enumerate(batches):
+            if batch["source_bin"] != index:
+                raise ValueError("source_bin values must be contiguous from zero; retain empty bins")
+            expected_time = index * width
+            if not math.isfinite(expected_time):
+                raise ValueError("bin time calculation overflowed finite range")
+            if not math.isclose(batch["time"], expected_time, rel_tol=0.0, abs_tol=1e-12):
+                raise ValueError("bin_start times must equal source_bin * bin_width")
     generation = schedule["generation"]
     if generation["mode"] == "deterministic" and generation["seed"] is not None:
         raise ValueError("deterministic generation must use seed=null")
