@@ -122,6 +122,17 @@
         }
       }
     },
+    "arrival_process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "first_arrival", "interarrival", "jobs_per_arrival"],
+      "properties": {
+        "kind": {"const": "deterministic_periodic"},
+        "first_arrival": {"type": "number", "minimum": 0},
+        "interarrival": {"type": "number", "exclusiveMinimum": 0},
+        "jobs_per_arrival": {"type": "integer", "minimum": 1}
+      }
+    },
     "source_model_sha256": {
       "$ref": "#/$defs/sha256"
     }
