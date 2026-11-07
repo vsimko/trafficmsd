@@ -17,7 +17,11 @@ The schemas are under [schemas/simulator/v1](../schemas/simulator/v1/). The fixt
 
 ## Arrival schedule semantics
 
-Version 1 supports a regular binned schedule with these fixed semantics:
+Version 1 supports either a regular binned schedule or an explicit deterministic-periodic process:
+- A binned schedule uses the rules below and preserves one record for every source bin, including empty bins.
+- An `arrival_process` with `kind: deterministic_periodic` declares `first_arrival`, positive `interarrival`, and positive integer `jobs_per_arrival`. It cannot be combined with binned batches. Both times must align to `bin_width`; this permits adapters with native periodic-arrival primitives to consume the process without expanding an unbounded event list.
+
+For binned schedules, the fixed semantics are:
 
 - `time_unit` is one of `s`, `ms`, `us`, or `ns`; `bin_width` is a positive duration in that unit.
 - `batches` contains one record for every source bin, including bins with `job_count: 0`. `source_bin` starts at zero, is contiguous, and `time = source_bin * bin_width`.
@@ -65,6 +69,7 @@ The fixtures are contract tests, not simulator output and not evidence of LINE/Q
 
 - No arbitrary quantity units or implicit unit conversion.
 - No sub-bin arrival placement, irregular bins, or alternative remainder policies.
+- No stochastic or piecewise-periodic process representation.
 - No automatic model translation or backend command configuration.
 - No inferred confidence interval method; backend adapters must document the estimator and interval method in run metadata when adding statistical summaries.
 - No claim that a capability declaration alone establishes semantic parity.
