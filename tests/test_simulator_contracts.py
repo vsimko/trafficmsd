@@ -46,6 +46,29 @@ class ContractValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "contiguous"):
             contracts.validate_schedule_semantics(broken)
 
+    def test_periodic_arrival_process_is_valid(self):
+        periodic = copy.deepcopy(self.schedule)
+        periodic["batches"] = []
+        periodic["arrival_process"] = {
+            "kind": "deterministic_periodic",
+            "first_arrival": 2.0,
+            "interarrival": 2.0,
+            "jobs_per_arrival": 1,
+        }
+        contracts.validate_schema("schedule", periodic)
+        contracts.validate_schedule_semantics(periodic)
+
+    def test_periodic_process_cannot_mix_with_batches(self):
+        periodic = copy.deepcopy(self.schedule)
+        periodic["arrival_process"] = {
+            "kind": "deterministic_periodic",
+            "first_arrival": 2.0,
+            "interarrival": 2.0,
+            "jobs_per_arrival": 1,
+        }
+        with self.assertRaisesRegex(ValueError, "cannot be combined"):
+            contracts.validate_schedule_semantics(periodic)
+
     def test_invalid_bin_time_is_rejected(self):
         broken = copy.deepcopy(self.schedule)
         broken["batches"][2]["time"] = 2.5
