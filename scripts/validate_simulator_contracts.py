@@ -178,6 +178,13 @@ def validate_line_adapter_inputs() -> None:
         raise ValueError("LINE smoke currently requires exactly one explicit replication")
     if experiment["termination"]["kind"] != "completions":
         raise ValueError("LINE smoke currently requires completion-count termination")
+    result_path = ROOT / "artifacts" / "line-qpn-v1" / "result.json"
+    if result_path.exists():
+        result = load_json(result_path)
+        validate_schema("result", result)
+        validate_result_semantics(experiment, result)
+        if result["checksums"]["experiment_sha256"] != hashlib.sha256(experiment_path.read_bytes()).hexdigest():
+            raise ValueError("LINE result experiment checksum does not match experiment.json")
 
 
 def validate_fixtures() -> None:
