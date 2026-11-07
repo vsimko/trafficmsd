@@ -162,7 +162,7 @@ def main() -> None:
     # the simulator-neutral normalized result v1 schema.
     station_metrics_path = ARTIFACT_DIR / "station-metrics.json"
     station_metrics_path.write_text(
-        json.dumps(rows, indent=2, sort_keys=True, default=float) + "\\n",
+        json.dumps(rows, indent=2, sort_keys=True, default=float) + "\n",
         encoding="utf-8",
     )
     metric_names = {
@@ -236,7 +236,7 @@ def main() -> None:
         ],
     }
     (ARTIFACT_DIR / "result.json").write_text(
-        json.dumps(result, indent=2, sort_keys=True, default=float) + "\\n",
+        json.dumps(result, indent=2, sort_keys=True, default=float) + "\n",
         encoding="utf-8",
     )
     print(json.dumps(result, indent=2, sort_keys=True, default=float))
