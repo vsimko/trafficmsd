@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "schedule_id": "line-periodic-deterministic-arrivals-v1",
+  "time_unit": "s",
+  "bin_width": 2.0,
+  "arrival_placement": "bin_start",
+  "workload_mapping": {
+    "quantity_unit": "bytes",
+    "bytes_per_job": 1,
+    "remainder_policy": "carry_forward",
+    "final_remainder_bytes": 0
+  },
+  "batches": [],
+  "generation": {
+    "mode": "deterministic",
+    "generator": "trafficmsd-line-qpn-smoke",
+    "generator_version": "1.0",
+    "seed": null
+  },
+  "arrival_process": {
+    "kind": "deterministic_periodic",
+    "first_arrival": 2.0,
+    "interarrival": 2.0,
+    "jobs_per_arrival": 1
+  }
+}
