@@ -121,6 +121,8 @@ This mapping is a workload abstraction. It does not claim that one job equals on
 
 A backend-specific bridge consumes the neutral arrival schedule and a user-authored QPN model. The first implementation targets LINE; a later implementation targets QPME/SimQPN.
 
+The current LINE smoke bridge consumes `experiments/line-qpn-v1/experiment.json` and `arrival-schedule-neutral.json`, checks their declared model/schedule hashes and shared time unit, and takes the seed, completion budget, and MSER-5 warm-up policy from the neutral experiment. Its adapter-specific QPN topology remains in the separate model mapping file. This proves consumption of the neutral workload/experiment inputs for the tested deterministic-periodic case; it does not yet implement the normalized v1 result schema or full adapter conformance.
+
 Responsibilities:
 
 - validate simulator version and model compatibility;
