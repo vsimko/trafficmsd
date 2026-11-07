@@ -18,11 +18,6 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT_DIR = ROOT / "experiments" / "line-qpn-v1"
 ARTIFACT_DIR = ROOT / "artifacts" / "line-qpn-v1"
 PINNED_LINE_VERSION = "3.0.8.0"
-SEED = 23000
-# LDES samples are a service-completion budget, not an observation count.
-# Use the engine's documented default budget and its MSER-5 transient filter.
-SAMPLES = 200_000
-TRANFILTER = "mser5"
 TOLERANCE = 0.03
 
 EXPECTED = {
@@ -46,9 +41,10 @@ def read_json(path: Path) -> tuple[dict, bytes]:
 
 def build_model(model_spec: dict, schedule: dict) -> Network:
     """Build a real LINE QPN: Source -> queueing Place -> immediate Transition -> Sink."""
-    if schedule["kind"] != "deterministic-periodic":
-        raise ValueError("Only the declared deterministic-periodic schedule is supported")
-    if schedule["first_arrival_s"] != schedule["interarrival_s"]:
+    process = schedule["arrival_process"]
+    if process["kind"] != "deterministic_periodic":
+        raise ValueError("LINE smoke supports only deterministic_periodic arrival_process")
+    if process["first_arrival"] != process["interarrival"]:
         raise ValueError("The first arrival must occur one interarrival interval after t=0")
 
     model = Network(model_spec["model_id"])
@@ -59,7 +55,7 @@ def build_model(model_spec: dict, schedule: dict) -> Network:
     sink = Sink(model, model_spec["completion"]["destination"])
     traffic = OpenClass(model, model_spec["job_class"], 0)
 
-    source.set_arrival(traffic, Det(float(schedule["interarrival_s"])))
+    source.set_arrival(traffic, Det(float(process["interarrival"])))
     queue.set_service(
         traffic,
         Det(float(queue_spec["service_distribution"]["duration_s"])),
@@ -90,11 +86,28 @@ def main() -> None:
     os.chdir(ROOT)
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     model_spec, model_spec_raw = read_json(EXPERIMENT_DIR / "model-spec.json")
-    schedule, schedule_raw = read_json(EXPERIMENT_DIR / "arrival-schedule.json")
-    if schedule["first_arrival_s"] != schedule["interarrival_s"]:
-        raise ValueError("The first arrival must occur one interarrival interval after t=0")
+    experiment, experiment_raw = read_json(EXPERIMENT_DIR / "experiment.json")
+    schedule, schedule_raw = read_json(EXPERIMENT_DIR / "arrival-schedule-neutral.json")
+    if experiment["model"]["sha256"] != sha256(model_spec_raw):
+        raise ValueError("Experiment model checksum does not match model-spec.json")
+    if experiment["schedule"]["sha256"] != sha256(schedule_raw):
+        raise ValueError("Experiment schedule checksum does not match neutral arrival schedule")
+    if experiment["schedule"]["schedule_id"] != schedule["schedule_id"]:
+        raise ValueError("Experiment schedule_id does not match neutral arrival schedule")
+    if experiment["time_unit"] != schedule["time_unit"] or experiment["time_unit"] != model_spec["time_unit"]:
+        raise ValueError("Model, schedule, and experiment time units must match")
+    if experiment["termination"]["kind"] != "completions":
+        raise ValueError("LINE smoke currently requires completion-count termination")
+    if experiment["warmup"]["policy"] != "mser5":
+        raise ValueError("LINE smoke currently requires the MSER-5 warm-up policy")
+    if experiment["replications"]["count"] != 1 or len(experiment["replications"]["seeds"]) != 1:
+        raise ValueError("LINE smoke currently supports exactly one explicit replication")
+    seed = experiment["replications"]["seeds"][0]
+    samples = int(experiment["termination"]["value"])
+    tranfilter = experiment["warmup"]["policy"]
     (ARTIFACT_DIR / "model-spec.json").write_bytes(model_spec_raw)
-    (ARTIFACT_DIR / "arrival-schedule.json").write_bytes(schedule_raw)
+    (ARTIFACT_DIR / "experiment.json").write_bytes(experiment_raw)
+    (ARTIFACT_DIR / "arrival-schedule-neutral.json").write_bytes(schedule_raw)
     model = build_model(model_spec, schedule)
 
     # Hash the actual LINE interchange document, not just the human-authored spec.
@@ -122,7 +135,7 @@ def main() -> None:
     )
 
     solver = SolverLDES(
-        model, seed=SEED, samples=SAMPLES, tranfilter=TRANFILTER,
+        model, seed=seed, samples=samples, tranfilter=tranfilter,
         cimethod="none", verbose="silent",
     )
     table = solver.avg_table()
@@ -153,9 +166,11 @@ def main() -> None:
         "backend_version": installed_version,
         "engine": "LDES",
         "headless": True,
-        "seed": SEED,
-        "service_completion_budget": SAMPLES,
-        "transient_filter": TRANFILTER,
+        "seed": seed,
+        "service_completion_budget": samples,
+        "transient_filter": tranfilter,
+        "experiment_sha256": sha256(experiment_raw),
+        "schedule_sha256": sha256(schedule_raw),
         "model_sha256": sha256(model_canonical),
         "model_spec_sha256": sha256(model_spec_raw),
         "arrival_schedule_sha256": sha256(schedule_raw),
