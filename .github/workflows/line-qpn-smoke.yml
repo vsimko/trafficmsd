@@ -1,0 +1,65 @@
+name: LINE QPN smoke test
+
+on:
+  pull_request:
+    branches: [master, main]
+    paths:
+      - ".github/workflows/line-qpn-smoke.yml"
+      - "experiments/line-qpn-v1/**"
+      - "scripts/line_qpn_smoke.py"
+      - "docs/line-solver-validation.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: line-qpn-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: LINE ${{ matrix.python-version }} / headless QPN
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # The bundled Linux x86-64 LDES binary is the primary engine. Java is
+      # installed as the documented fallback if that native executable cannot run.
+      - name: Set up Java fallback
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install pinned LINE release and schema validator
+        run: python -m pip install --disable-pip-version-check "line-solver==3.0.8.0" "jsonschema>=4.20,<5"
+
+      - name: Run deterministic QPN experiment and assertions
+        env:
+          # The pinned native C++ engine currently rejects the replayed open-QPN
+          # fixture (map_sample: D0 and D1 disagree). Exercise the official JVM
+          # LDES engine explicitly; it is still headless and uses the same API.
+          LINE_LDES_FORCE_JAR: "1"
+        run: python scripts/line_qpn_smoke.py
+
+      - name: Validate normalized simulator-neutral result
+        run: python scripts/validate_simulator_contracts.py
+
+      - name: Upload model and result evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: line-qpn-v1-${{ github.run_id }}
+          path: artifacts/line-qpn-v1/
+          if-no-files-found: warn
+          retention-days: 30

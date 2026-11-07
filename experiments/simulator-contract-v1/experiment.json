@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "neutral-contract-fixture-v1",
+  "model": {
+    "model_id": "single-class-fcfs-v1",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "schedule": {
+    "schedule_id": "fixture-cumulative-byte-mapping-v1",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "time_unit": "s",
+  "warmup": {"policy": "mser5"},
+  "termination": {"kind": "completions", "value": 10000},
+  "replications": {"count": 2, "seeds": [23000, 23001]},
+  "required_metrics": ["throughput", "queue_length", "utilization", "residence_time"],
+  "capabilities": {
+    "constructs": ["open_class", "fcfs_queueing_place", "deterministic_service"],
+    "metrics": ["throughput", "queue_length", "utilization", "residence_time"]
+  }
+}

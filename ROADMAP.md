@@ -1,7 +1,7 @@
 # TrafficMSD Technical Roadmap
 
 **Last updated:** 2026-11-03  
-**Architecture decision:** [ADR 0001 — Rust as the TrafficMSD simulation core](docs/adr/0001-rust-core.md)
+**Architecture decisions:** [ADR 0001 — Rust as the TrafficMSD simulation core](docs/adr/0001-rust-core.md); [ADR 0002 — LINE-first simulation backend strategy](docs/adr/0002-line-first-simulator.md)
 
 ## Direction
 
@@ -115,6 +115,16 @@ This technical roadmap complements (and does not replace) research planning and 
 - [ ] Reassess direct R bindings only if process overhead or packaging constraints justify them.
 - [ ] Consider Python or other bindings only when there is a concrete consumer and maintenance plan.
 
+### M8 — LINE-first QPN simulation backend
+
+- [ ] Verify LINE release, license, documented headless interface, QPN construct coverage, and machine-readable outputs ([#79](https://github.com/vsimko/trafficmsd/issues/79)); see the [initial LINE validation report](docs/line-solver-validation.md) and [headless smoke workflow](.github/workflows/line-qpn-smoke.yml).
+- [ ] Define simulator-neutral workload, experiment, capability, and result contracts ([#80](https://github.com/vsimko/trafficmsd/issues/80)).
+- [ ] Implement a minimal source → queue → service LINE proof of concept and compare deterministic results with hand calculations.
+- [ ] Add QPME/SimQPN as a second backend only after LINE and neutral contracts are reproducible ([#81](https://github.com/vsimko/trafficmsd/issues/81)).
+- [ ] Evaluate measured-trace, deterministic replay, and generated workloads under identical QPN configurations ([#82](https://github.com/vsimko/trafficmsd/issues/82)).
+
+The simulator adapter contract is documented in [docs/simulator-adapter-v1.md](docs/simulator-adapter-v1.md). LINE is the first backend to validate, not a presumed ground truth; QPME/SimQPN is deferred for independent cross-validation.
+
 ## Migration acceptance gates
 
 The R implementation is not removed merely because a Rust port exists. A computational operation is eligible to become Rust-backed by default when:
@@ -130,7 +140,8 @@ The R implementation is not removed merely because a Rust port exists. A computa
 ## Out of scope for the initial migration
 
 - Rewriting visualization and plotting in Rust.
-- Building a network simulator integration before the traffic-generation contract is stable.
+- Packet-level protocol/network simulation (e.g. TCP/IP, routing, congestion control); this requires a separate research decision and likely a dedicated network simulator.
+- Implementing QPME/SimQPN before the LINE proof of concept and backend-neutral contracts are reproducible.
 - Direct FFI, Python bindings, WASM, or a server mode.
 - Large-scale scientific experiments or paper preparation as part of the code migration itself.
 
@@ -146,5 +157,9 @@ The migration is tracked through these GitHub issues:
 6. [#37 — Thin R adapter over the Rust CLI](https://github.com/vsimko/trafficmsd/issues/37)
 7. [#38 — Cross-platform Rust CLI binary distribution](https://github.com/vsimko/trafficmsd/issues/38)
 8. [#39 — Rust versus R performance benchmarks](https://github.com/vsimko/trafficmsd/issues/39)
+9. [#79 — Verify LINE Solver QPN semantics and headless integration](https://github.com/vsimko/trafficmsd/issues/79)
+10. [#80 — Define simulator-neutral workload and result contracts](https://github.com/vsimko/trafficmsd/issues/80)
+11. [#81 — Add QPME/SimQPN as a second backend](https://github.com/vsimko/trafficmsd/issues/81)
+12. [#82 — Evaluate generated traffic by its impact on QPN simulation outcomes](https://github.com/vsimko/trafficmsd/issues/82)
 
-The recommended dependency order is workspace and contracts first, followed by algorithm extraction and CLI implementation. Conformance testing should gate the R adapter rollout; binary distribution must be designed together with the adapter. Benchmarking begins once equivalent core and CLI paths exist.
+The recommended dependency order is workspace and contracts first, followed by algorithm extraction and CLI implementation. Conformance testing should gate the R adapter rollout; binary distribution must be designed together with the adapter. Benchmarking begins once equivalent core and CLI paths exist. QPN backend work starts only after the traffic-generation and workload contracts are sufficiently stable; LINE validation precedes QPME/SimQPN integration.
