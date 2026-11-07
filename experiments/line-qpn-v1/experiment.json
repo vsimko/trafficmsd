@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "line-qpn-periodic-smoke-v1",
+  "model": {
+    "model_id": "trafficmsd-line-qpn-source-queue-v1",
+    "sha256": "5a23424cb3a1e158b840006a31b1cc81945d0a68541504c5328a8b744eb606af"
+  },
+  "schedule": {
+    "schedule_id": "line-periodic-deterministic-arrivals-v1",
+    "sha256": "a8e2c4bbeb0a3b98366119ecf4469bbbae589146ba84fe372eed8e677f627ed0"
+  },
+  "time_unit": "s",
+  "warmup": {"policy": "mser5"},
+  "termination": {"kind": "completions", "value": 200000},
+  "replications": {"count": 1, "seeds": [23000]},
+  "required_metrics": ["queue_length", "utilization", "residence_time", "throughput"],
+  "capabilities": {
+    "constructs": ["open_class", "fcfs_queueing_place", "deterministic_service"],
+    "metrics": ["queue_length", "utilization", "residence_time", "throughput"]
+  }
+}
