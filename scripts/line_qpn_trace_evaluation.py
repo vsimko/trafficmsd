@@ -170,7 +170,7 @@ def run_experiment(
         raise ValueError("the configured QPN is unstable for this finite-trace mean arrival rate")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    trace_path = output_dir / f"{schedule['schedule_id']}-interarrivals.trace"
+    trace_path = (output_dir / f"{schedule['schedule_id']}-interarrivals.trace").resolve()
     trace_raw = ("\n".join(format(value, ".17g") for value in interarrivals) + "\n").encode("utf-8")
     trace_path.write_bytes(trace_raw)
     replications = []
