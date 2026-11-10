@@ -118,7 +118,7 @@ def summarize(
     if manifest["model"]["sha256"] != measured["checksums"]["model_sha256"]:
         raise ValueError("QPN model checksum does not match the manifest")
 
-    expected_control_rate = measured_meta["total_jobs"] / measured_meta["horizon"]
+    expected_control_rate = measured_meta["mean_offered_job_rate_per_s"]
     if not math.isclose(
         float(control["arrival_rate_per_s"]), expected_control_rate,
         rel_tol=0.0, abs_tol=1e-12,
@@ -238,6 +238,8 @@ def summarize(
         f"- Replay schedule: `{replay_meta['schedule_sha256']}`",
         f"- Measured bins/jobs/bytes: {measured_meta['bin_count']} / {measured_meta['total_jobs']} / {measured_meta['total_bytes']:.0f}",
         f"- Replay bins/jobs/bytes: {replay_meta['bin_count']} / {replay_meta['total_jobs']} / {replay_meta['total_bytes']:.0f}",
+        f"- Active horizon (measured/replay): {measured_meta['active_horizon']:.6g} / {replay_meta['active_horizon']:.6g} s",
+        f"- Trailing idle bins (measured/replay): {measured_meta['trailing_idle_bins']} / {replay_meta['trailing_idle_bins']}",
         f"- Final carried remainder (measured/replay): {measured_meta['final_remainder_bytes']:.6g} / {replay_meta['final_remainder_bytes']:.6g} bytes",
         f"- Simulation runtime (measured/replay/control): {measured['runtime']['elapsed_seconds_total']:.3f} / {replay['runtime']['elapsed_seconds_total']:.3f} / {control['runtime_seconds_total']:.3f} seconds",
         "",
