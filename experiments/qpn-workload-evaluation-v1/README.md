@@ -11,14 +11,14 @@ The second condition is a deterministic reconstruction control. It is not a stoc
 
 - Input trace: Westermo right observation-point archive, processed by `experiments/model-extraction-v1/run-westermo.R`.
 - Source values: captured frame bytes per one-second bin, including zero-valued empty bins.
-- Workload mapping: 1,000,000 captured-frame bytes represent one abstract QPN job.
+- Workload mapping: 1,000 captured-frame bytes represent one abstract QPN job.
 - Quantization: cumulative bytes are divided by bytes-per-job; the per-bin job count is the difference between consecutive cumulative floors.
 - Fractional bytes are carried into the next bin and the final remainder is recorded.
 - All jobs in a bin are placed at the bin start. No within-bin arrival times are inferred.
 - QPN model: one open class, one FCFS queueing place, one exponential service process, and an immediate completion transition. The service rate is resolved by the predeclared rule `2 × measured mean offered job rate`, giving the Poisson M/M/1 analytical control a 50% target utilization. This is a normalized queueing scenario, not an inferred capacity of the observed network.
 - Both conditions use the exact same resolved model file and service rate, queue discipline, mapping, time unit, warm-up policy, termination policy, replication count, and metric definitions. They use disjoint seed sets so the between-condition interval is an independent two-sample comparison.
 
-The one-megabyte job is an explicit workload abstraction, not a claim that one job is a packet, flow, request, or application transaction. The service-rate calibration rule is user-authored and predeclared; it normalizes the reference workload to a 50% Poisson M/M/1 control utilization. It is not an estimate of the observed network's actual service capacity.
+The one-kilobyte job is an explicit workload abstraction, not a claim that one job is a packet, flow, request, or application transaction. The service-rate calibration rule is user-authored and predeclared; it normalizes the reference workload to a 50% Poisson M/M/1 control utilization. It is not an estimate of the observed network's actual service capacity.
 
 ## Reproduction
 
