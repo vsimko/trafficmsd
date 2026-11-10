@@ -24,16 +24,16 @@ The one-megabyte job is an explicit workload abstraction, not a claim that one j
 
 First run the Westermo extraction workflow or follow [the model-extraction experiment](../model-extraction-v1/README.md) to produce:
 
-- `artifacts/westermo-model-extraction-v1/source-signal.csv`
-- `artifacts/westermo-model-extraction-v1/reconstructed-signal.csv`
+- `artifacts/westermo-model-extraction-v1/model/source-signal.csv`
+- `artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv`
 - `artifacts/westermo-model-extraction-v1/manifest.json`
 
 Then build the two neutral schedules and checksummed experiment definitions:
 
 ```sh
 python scripts/build_qpn_workload_schedules.py \
-  --source-csv artifacts/westermo-model-extraction-v1/source-signal.csv \
-  --replay-csv artifacts/westermo-model-extraction-v1/reconstructed-signal.csv \
+  --source-csv artifacts/westermo-model-extraction-v1/model/source-signal.csv \
+  --replay-csv artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv \
   --source-manifest artifacts/westermo-model-extraction-v1/manifest.json \
   --output-dir artifacts/qpn-workload-evaluation-v1
 ```
