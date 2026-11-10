@@ -111,6 +111,7 @@ jobs:
           python scripts/line_qpn_trace_evaluation.py \
             --experiment artifacts/qpn-workload-evaluation-v1/measured-experiment.json \
             --schedule artifacts/qpn-workload-evaluation-v1/measured-arrival-schedule.json \
+            --model-spec artifacts/qpn-workload-evaluation-v1/resolved-model-spec.json \
             --output-dir artifacts/qpn-workload-evaluation-v1/measured
 
       - name: Run deterministic-replay QPN condition
@@ -120,6 +121,7 @@ jobs:
           python scripts/line_qpn_trace_evaluation.py \
             --experiment artifacts/qpn-workload-evaluation-v1/replay-experiment.json \
             --schedule artifacts/qpn-workload-evaluation-v1/replay-arrival-schedule.json \
+            --model-spec artifacts/qpn-workload-evaluation-v1/resolved-model-spec.json \
             --output-dir artifacts/qpn-workload-evaluation-v1/replay
 
       - name: Derive measured offered job rate for the analytical control
@@ -139,6 +141,7 @@ jobs:
         run: |
           python scripts/line_qpn_analytical_control.py \
             --arrival-rate "${{ steps.measured-rate.outputs.arrival_rate }}" \
+            --model-spec artifacts/qpn-workload-evaluation-v1/resolved-model-spec.json \
             --output artifacts/qpn-workload-evaluation-v1/analytical-control/result.json
 
       - name: Summarize measured versus deterministic replay outcomes
