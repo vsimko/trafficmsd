@@ -242,8 +242,12 @@ def main() -> None:
         raise ValueError("finite trace comparisons must retain the full trace (warmup=none)")
     if config["simulation"]["termination_kind"] != "completions":
         raise ValueError("finite trace comparisons require drain-all-completions termination")
-    if len(config["simulation"]["replication_seeds"]) < 2:
-        raise ValueError("at least two explicit replication seeds are required")
+    measured_seeds = config["simulation"]["measured_replication_seeds"]
+    replay_seeds = config["simulation"]["replay_replication_seeds"]
+    if len(measured_seeds) < 2 or len(replay_seeds) < 2:
+        raise ValueError("at least two explicit replication seeds per condition are required")
+    if set(measured_seeds) & set(replay_seeds):
+        raise ValueError("measured and replay conditions must use disjoint replication seeds")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, Any] = {
