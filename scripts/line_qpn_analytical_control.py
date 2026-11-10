@@ -188,7 +188,7 @@ def main() -> None:
     parser.add_argument("--arrival-rate", type=float, required=True)
     parser.add_argument(
         "--model-spec", type=Path,
-        default=ROOT / "experiments/qpn-workload-evaluation-v1/model-spec.json",
+        default=ROOT / "artifacts/qpn-workload-evaluation-v1/resolved-model-spec.json",
     )
     parser.add_argument(
         "--config", type=Path,
