@@ -37,7 +37,7 @@ jobs:
           echo "revision=$revision" >> "$GITHUB_OUTPUT"
 
       - name: Cache Westermo source downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .cache/westermo
           key: westermo-dataset-${{ steps.upstream.outputs.revision }}-${{ hashFiles('scripts/datasets/validate_westermo.py') }}

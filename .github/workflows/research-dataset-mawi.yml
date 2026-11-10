@@ -61,7 +61,7 @@ jobs:
 
       - name: Restore checksum-keyed dataset cache
         id: cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: data/external/mawi-samplepoint-f-200610031400/200610031400.dump.gz
           key: mawi-samplepoint-f-200610031400-${{ inputs.expected_sha256 }}
@@ -91,7 +91,7 @@ jobs:
 
       - name: Save verified archive in checksum-keyed cache
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: data/external/mawi-samplepoint-f-200610031400/200610031400.dump.gz
           key: mawi-samplepoint-f-200610031400-${{ inputs.expected_sha256 }}
