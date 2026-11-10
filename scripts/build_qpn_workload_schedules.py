@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import copy
 import hashlib
 import json
 import math
@@ -202,6 +203,8 @@ def build_experiment(
             "source_signal_sha256": source_csv_sha256,
             "source_manifest_sha256": source_manifest_sha256,
             "model_id": model["model_id"],
+            "service_rate_per_s": model["queueing_place"]["service_distribution"]["rate_per_s"],
+            "service_rate_policy": model["service_rate_policy"],
         },
     }
 
@@ -223,14 +226,16 @@ def main() -> None:
     args = parser.parse_args()
 
     config, config_raw = load_json(args.config)
-    model, model_raw = load_json(args.model_spec)
+    base_model, base_model_raw = load_json(args.model_spec)
     source_manifest, source_manifest_raw = load_json(args.source_manifest)
     source_values, source_raw = read_signal_csv(args.source_csv)
     replay_values, replay_raw = read_signal_csv(args.replay_csv)
     if len(source_values) != len(replay_values):
         raise ValueError("measured and replay signals must have the same number of bins")
-    if config["time_unit"] != model["time_unit"]:
+    if config["time_unit"] != base_model["time_unit"]:
         raise ValueError("config and QPN model time units must match")
+    if config["qpn_model"]["service_rate_policy"] != base_model["service_rate_policy"]:
+        raise ValueError("config and model service-rate policies must match")
 
     bin_width = Decimal(str(config["bin_width"]))
     bytes_per_job = Decimal(str(config["workload_mapping"]["bytes_per_job"]))
@@ -250,23 +255,11 @@ def main() -> None:
         raise ValueError("measured and replay conditions must use disjoint replication seeds")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    manifest: dict[str, Any] = {
-        "schema_version": "1.0",
-        "experiment_family": config["experiment_family"],
-        "source_dataset_id": source_manifest.get("dataset_id"),
-        "source_manifest_sha256": sha256_bytes(source_manifest_raw),
-        "config_sha256": sha256_bytes(config_raw),
-        "model": {
-            "model_id": model["model_id"],
-            "sha256": sha256_bytes(model_raw),
-        },
-        "conditions": {},
-    }
-
     conditions = [
         ("measured", source_values, source_raw, "measured_trace_reference"),
         ("replay", replay_values, replay_raw, "deterministic_replay_control"),
     ]
+    prepared = []
     for suffix, values, raw_signal, condition_name in conditions:
         schedule, summary = build_schedule(
             values,
@@ -275,24 +268,55 @@ def main() -> None:
             bin_width=bin_width,
             bytes_per_job=bytes_per_job,
         )
-        schedule_raw = canonical_json(schedule)
-        validate_document("schedule", schedule)
-        schedule_path = args.output_dir / f"{suffix}-arrival-schedule.json"
-        schedule_path.write_bytes(schedule_raw)
         if summary["total_jobs"] < 1:
             raise ValueError(f"{condition_name} schedule contains no jobs")
+        schedule_raw = canonical_json(schedule)
+        validate_document("schedule", schedule)
+        prepared.append((suffix, raw_signal, condition_name, schedule, summary, schedule_raw))
+
+    measured_summary = prepared[0][4]
+    measured_arrival_rate = measured_summary["total_jobs"] / measured_summary["horizon"]
+    if not math.isfinite(measured_arrival_rate) or measured_arrival_rate <= 0:
+        raise ValueError("measured offered job rate must be finite and positive")
+    service_rate = 2.0 * measured_arrival_rate
+    resolved_model = copy.deepcopy(base_model)
+    resolved_model["queueing_place"]["service_distribution"]["rate_per_s"] = service_rate
+    resolved_model["resolved_service_rate_policy"] = "twice_measured_offered_rate"
+    resolved_model_raw = canonical_json(resolved_model)
+    resolved_model_path = args.output_dir / "resolved-model-spec.json"
+    resolved_model_path.write_bytes(resolved_model_raw)
+
+    manifest: dict[str, Any] = {
+        "schema_version": "1.0",
+        "experiment_family": config["experiment_family"],
+        "source_dataset_id": source_manifest.get("dataset_id"),
+        "source_manifest_sha256": sha256_bytes(source_manifest_raw),
+        "config_sha256": sha256_bytes(config_raw),
+        "base_model_sha256": sha256_bytes(base_model_raw),
+        "model": {
+            "model_id": resolved_model["model_id"],
+            "sha256": sha256_bytes(resolved_model_raw),
+            "service_rate_per_s": service_rate,
+            "service_rate_policy": resolved_model["resolved_service_rate_policy"],
+            "file": resolved_model_path.name,
+        },
+        "conditions": {},
+    }
+
+    for suffix, raw_signal, condition_name, schedule, summary, schedule_raw in prepared:
         arrival_rate = summary["total_jobs"] / summary["horizon"]
-        service_rate = float(config["qpn_model"]["service_rate_per_s"])
         if not math.isfinite(service_rate) or service_rate <= arrival_rate:
             raise ValueError(
                 f"QPN must be stable for {condition_name}: "
                 f"arrival rate {arrival_rate:.6g}/s must be below service rate {service_rate:.6g}/s"
             )
+        schedule_path = args.output_dir / f"{suffix}-arrival-schedule.json"
+        schedule_path.write_bytes(schedule_raw)
         experiment = build_experiment(
             experiment_id=f"westermo-{suffix}-qpn-v1",
             condition=condition_name,
-            model=model,
-            model_raw=model_raw,
+            model=resolved_model,
+            model_raw=resolved_model_raw,
             schedule=schedule,
             schedule_raw=schedule_raw,
             config=config,
@@ -303,15 +327,17 @@ def main() -> None:
         )
         validate_document("experiment", experiment)
         experiment_raw = canonical_json(experiment)
-        (args.output_dir / f"{suffix}-experiment.json").write_bytes(experiment_raw)
+        experiment_path = args.output_dir / f"{suffix}-experiment.json"
+        experiment_path.write_bytes(experiment_raw)
         manifest["conditions"][suffix] = {
             **summary,
             "condition": condition_name,
+            "mean_offered_job_rate_per_s": arrival_rate,
             "source_signal_sha256": sha256_bytes(raw_signal),
             "schedule_sha256": sha256_bytes(schedule_raw),
             "experiment_sha256": sha256_bytes(experiment_raw),
             "schedule_file": schedule_path.name,
-            "experiment_file": f"{suffix}-experiment.json",
+            "experiment_file": experiment_path.name,
         }
 
     manifest["comparison"] = {
