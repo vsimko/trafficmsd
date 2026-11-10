@@ -38,7 +38,7 @@ python scripts/build_qpn_workload_schedules.py \
   --output-dir artifacts/qpn-workload-evaluation-v1
 ```
 
-The builder validates the input series, preserves empty bins, applies identical cumulative quantization, and writes a manifest with source checksums, model/schedule checksums, workload totals, and the final remainder for each condition. The experiment JSON records the same predeclared replication seeds and metric set for both conditions.
+The builder validates the input series, preserves empty bins, applies identical cumulative quantization, and writes a manifest with source checksums, model/schedule checksums, workload totals, and the final remainder for each condition. The experiment JSON records the same predeclared replication seeds and metric set for both conditions. Each finite-trace run terminates after all jobs offered by its own schedule have completed; the per-condition completion budget is recorded, while the termination policy remains identical (drain all offered jobs). The builder rejects a schedule whose mean offered job rate is not below the fixed service rate.
 
 The LINE trace-driven simulation runner and the analytical/synthetic control are separate validation steps. Until those runs have passed, the generated schedules are inputs ready for simulation, not evidence of a completed QPN comparison.
 
