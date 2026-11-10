@@ -40,7 +40,7 @@ python scripts/build_qpn_workload_schedules.py \
 
 The builder validates the input series, preserves empty bins, applies identical cumulative quantization, and writes a manifest with source checksums, model/schedule checksums, workload totals, and the final remainder for each condition. The experiment JSON records the same predeclared replication seeds and metric set for both conditions. Each finite-trace run terminates after all jobs offered by its own schedule have completed; the per-condition completion budget is recorded, while the termination policy remains identical (drain all offered jobs). The builder rejects a schedule whose mean offered job rate is not below the fixed service rate.
 
-The LINE trace-driven simulation runner and the analytical/synthetic control are separate validation steps. Until those runs have passed, the generated schedules are inputs ready for simulation, not evidence of a completed QPN comparison.
+The LINE trace-driven simulation runner is exercised on a tiny synthetic trace in CI. A separate Poisson-arrival M/M/1 control uses the same QPN topology and exponential service, and checks throughput, mean queue population, utilization, and residence time against their analytical values using 95% Student-t intervals across independent replications. The full Westermo run/report is still required before interpreting measured-versus-replay differences.
 
 ## Predeclared outcomes
 
