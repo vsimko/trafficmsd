@@ -1,0 +1,63 @@
+# Westermo QPN workload evaluation v1
+
+This experiment is designed to compare two inputs against one frozen, authored QPN system model:
+
+1. **Measured-trace reference** — one job schedule derived from the observed captured-frame-byte bins.
+2. **Deterministic replay control** — the same byte-to-job mapping applied to the deterministic reconstruction exported by the model-extraction experiment.
+
+The second condition is a deterministic reconstruction control. It is not a stochastic TrafficMSD generator and must never be labelled as one.
+
+## Frozen workload and QPN interpretation
+
+- Input trace: Westermo right observation-point archive, processed by `experiments/model-extraction-v1/run-westermo.R`.
+- Source values: captured frame bytes per one-second bin, including zero-valued empty bins.
+- Workload mapping: 1,000,000 captured-frame bytes represent one abstract QPN job.
+- Quantization: cumulative bytes are divided by bytes-per-job; the per-bin job count is the difference between consecutive cumulative floors.
+- Fractional bytes are carried into the next bin and the final remainder is recorded.
+- All jobs in a bin are placed at the bin start. No within-bin arrival times are inferred.
+- QPN model: one open class, one FCFS queueing place, one exponential service process (rate 1 job/s), and an immediate completion transition.
+- Both conditions use the exact same model file, service rate, queue discipline, mapping, time unit, warm-up policy, termination policy, replication seeds, and metric definitions.
+
+The one-megabyte job is an explicit workload abstraction, not a claim that one job is a packet, flow, request, or application transaction. The service rate is a user-authored system-model parameter, not inferred from the trace.
+
+## Reproduction
+
+First run the Westermo extraction workflow or follow [the model-extraction experiment](../model-extraction-v1/README.md) to produce:
+
+- `artifacts/westermo-model-extraction-v1/source-signal.csv`
+- `artifacts/westermo-model-extraction-v1/reconstructed-signal.csv`
+- `artifacts/westermo-model-extraction-v1/manifest.json`
+
+Then build the two neutral schedules and checksummed experiment definitions:
+
+```sh
+python scripts/build_qpn_workload_schedules.py \
+  --source-csv artifacts/westermo-model-extraction-v1/source-signal.csv \
+  --replay-csv artifacts/westermo-model-extraction-v1/reconstructed-signal.csv \
+  --source-manifest artifacts/westermo-model-extraction-v1/manifest.json \
+  --output-dir artifacts/qpn-workload-evaluation-v1
+```
+
+The builder validates the input series, preserves empty bins, applies identical cumulative quantization, and writes a manifest with source checksums, model/schedule checksums, workload totals, and the final remainder for each condition. The experiment JSON records the same predeclared replication seeds and metric set for both conditions.
+
+The LINE trace-driven simulation runner and the analytical/synthetic control are separate validation steps. Until those runs have passed, the generated schedules are inputs ready for simulation, not evidence of a completed QPN comparison.
+
+## Predeclared outcomes
+
+Primary outcomes:
+- mean completed-job throughput;
+- mean queue population.
+
+Secondary outcomes:
+- server utilization;
+- job residence-time distribution/mean.
+
+Report per-replication observations, sample standard deviations, 95% confidence intervals, simulation runtime, offered jobs, completed jobs, and input checksums. Preserve measured and deterministic replay results separately.
+
+## Interpretation limits
+
+- The experiment evaluates one authored single-queue QPN system, not a general network.
+- The QPN job mapping is an abstraction of captured bytes.
+- The deterministic reconstruction is not stochastic generation and does not establish generator fidelity.
+- Westermo is industrial-network traffic and is not representative evidence for general Internet traffic.
+- No packet-level TCP/IP, routing, congestion-control, or application semantics are modeled.
