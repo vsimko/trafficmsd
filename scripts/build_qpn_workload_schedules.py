@@ -118,9 +118,14 @@ def build_schedule(
             "seed": None,
         },
     }
+    last_nonempty_bin = max(
+        row["source_bin"] for row in batches if row["job_count"] > 0
+    ) if previous_jobs else -1
     summary = {
         "bin_count": len(values),
         "horizon": float(Decimal(len(values)) * bin_width),
+        "active_horizon": float(Decimal(last_nonempty_bin + 1) * bin_width),
+        "trailing_idle_bins": len(values) - last_nonempty_bin - 1,
         "total_bytes": float(cumulative_bytes),
         "total_jobs": previous_jobs,
         "final_remainder_bytes": float(remainder),
@@ -275,7 +280,7 @@ def main() -> None:
         prepared.append((suffix, raw_signal, condition_name, schedule, summary, schedule_raw))
 
     measured_summary = prepared[0][4]
-    measured_arrival_rate = measured_summary["total_jobs"] / measured_summary["horizon"]
+    measured_arrival_rate = measured_summary["total_jobs"] / measured_summary["active_horizon"]
     if not math.isfinite(measured_arrival_rate) or measured_arrival_rate <= 0:
         raise ValueError("measured offered job rate must be finite and positive")
     service_rate = 2.0 * measured_arrival_rate
@@ -304,7 +309,7 @@ def main() -> None:
     }
 
     for suffix, raw_signal, condition_name, schedule, summary, schedule_raw in prepared:
-        arrival_rate = summary["total_jobs"] / summary["horizon"]
+        arrival_rate = summary["total_jobs"] / summary["active_horizon"]
         if not math.isfinite(service_rate) or service_rate <= arrival_rate:
             raise ValueError(
                 f"QPN must be stable for {condition_name}: "
