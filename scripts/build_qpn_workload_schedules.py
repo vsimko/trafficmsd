@@ -164,7 +164,8 @@ def build_experiment(
     source_csv_sha256: str,
     source_manifest_sha256: str,
 ) -> dict[str, Any]:
-    seeds = config["simulation"]["replication_seeds"]
+    seed_key = "measured_replication_seeds" if condition == "measured_trace_reference" else "replay_replication_seeds"
+    seeds = config["simulation"][seed_key]
     metrics = config["metrics"]["primary"] + config["metrics"]["secondary"]
     constructs = [
         "open_class",
@@ -314,7 +315,9 @@ def main() -> None:
         "same_time_unit": config["time_unit"],
         "same_bin_width": float(bin_width),
         "same_bytes_per_job": float(bytes_per_job),
-        "same_replication_seeds": config["simulation"]["replication_seeds"],
+        "replication_strategy": "10 independent replications per condition with disjoint seed sets",
+        "measured_replication_seeds": config["simulation"]["measured_replication_seeds"],
+        "replay_replication_seeds": config["simulation"]["replay_replication_seeds"],
         "same_warmup_policy": config["simulation"]["warmup_policy"],
         "same_termination_policy": "drain_all_offered_jobs",
         "primary_metrics": config["metrics"]["primary"],
