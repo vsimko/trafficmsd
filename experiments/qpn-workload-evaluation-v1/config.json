@@ -12,9 +12,9 @@
   "qpn_model": {
     "model_id": "trafficmsd-westermo-qpn-mm1-v1",
     "service_distribution": "exponential",
-    "service_rate_per_s": 1,
     "queue_discipline": "FCFS",
-    "servers": 1
+    "servers": 1,
+    "service_rate_policy": "twice_measured_offered_rate"
   },
   "simulation": {
     "warmup_policy": "none",
