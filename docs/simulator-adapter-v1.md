@@ -1,8 +1,11 @@
 # TrafficMSD generator and simulator adapter contract v1
 
-**Status:** design contract; implementation deferred until the generator exists  
-**Initial target:** QPME 2.0 / SimQPN  
+**Status:** neutral v1 schemas and fixture validator implemented; generator/adapter conformance remains in progress  
+**Initial target:** LINE Solver (QPN-capable simulation backend)  
+**Planned second backend:** QPME / SimQPN for independent cross-validation  
 **Scope:** workload-level performance simulation using Queueing Petri Nets (QPNs)
+
+The machine-readable v1 contract and validation rules are specified in [simulator-contract-v1.md](simulator-contract-v1.md), with JSON Schemas under `schemas/simulator/v1/` and deterministic fixtures under `experiments/simulator-contract-v1/`.
 
 ## 1. Purpose and boundary
 
@@ -13,29 +16,42 @@ The adapter is deliberately downstream of model extraction and traffic generatio
 1. The model layer stores the versioned deterministic description.
 2. The generator turns that description into a reproducible time series or arrival schedule.
 3. The adapter maps the generated workload into a simulator-neutral arrival schedule.
-4. A simulator-specific bridge feeds that schedule to QPME/SimQPN.
+4. A simulator-specific bridge feeds that schedule to the selected backend (LINE first; QPME/SimQPN later).
 5. The evaluation layer compares measured-trace and generated-trace runs under identical QPN configurations.
 
 No simulator-specific fields belong in the traffic-model schema.
 
-## 2. Initial simulator choice
+## 2. Simulator strategy
 
-Select **QPME 2.0 with its SimQPN discrete-event simulation engine** as the first target.
+Use **LINE Solver** as the first implementation and experimental backend. Add **QPME/SimQPN** later as a second, independent QPN backend.
 
-Rationale:
+### Why LINE first
 
-- The original TrafficMSD research objective explicitly considered performance simulation using Queuing Petri Nets.
-- QPME is a QPN modeling environment and includes SimQPN for discrete-event simulation.
-- The published QPME feature list documents simulation, empirical service-time distributions, throughput, queue utilization, and token residence-time measurements. These outputs support a first controlled workload-level evaluation.
-- A single QPN target keeps the first adapter narrow; adding OMNeT++, ns-3, or other packet-level/network simulators would be a separate project decision.
+- LINE is an actively maintained queueing-network analysis and simulation framework with native discrete-event simulation support.
+- It documents support for Queueing Petri Nets (QPNs) and stochastic Petri nets, alongside conventional queueing networks.
+- It provides programmatic integration paths (including Python-facing and process/JSON interfaces), which are better suited to reproducible experiments and CI than GUI-only automation.
+- Its open-source BSD-3-Clause license is compatible with evaluating it as an optional external backend; TrafficMSD must still record the exact LINE release and its own dependency/licensing notices.
 
-This choice is for QPN-based performance modeling. It must not be presented as validation of packet-level network behavior.
+LINE's advertised QPN support is not proof that every QPME/SimQPN construct has identical semantics. Before relying on LINE for a scientific comparison, build a small compatibility matrix for the exact QPN constructs required by the experiment (places, transitions, token colours/classes, queue disciplines, routing, service-time distributions, batch arrivals, and measured outputs). Unsupported constructs must be recorded, not silently approximated.
+
+### Why retain QPME/SimQPN as the second backend
+
+QPME/SimQPN is a QPN-specialist environment and provides a useful independent reference implementation. It will be integrated only after the LINE path has a reproducible minimal experiment. The purpose is cross-validation of model semantics and outcomes, not to designate either simulator as ground truth.
+
+### Backend decision gates
+
+1. Verify the exact LINE version, license, documented headless invocation, model format, QPN construct coverage, and machine-readable result export.
+2. Implement a minimal LINE proof of concept with one source, one queue, one service transition, and a measurable completion/throughput result.
+3. Compare results with hand-calculated expectations for a deliberately simple deterministic case.
+4. Freeze and validate the backend-neutral schedule and result contracts before implementing the QPME/SimQPN bridge. The initial schema/fixture set is now versioned; actual LINE/QPME adapter conformance remains a separate gate.
+5. Add QPME/SimQPN and compare both backends on the same supported model subset, input schedule, and experiment settings.
+
+If LINE cannot represent a required construct without changing its semantics, stop and document the gap. Do not weaken the QPN model silently to fit the backend.
 
 References:
-- QPME user guide: https://descartes.ipd.kit.edu/fileadmin/user_upload/descartes/QPME/QPME-UsersGuide.pdf
-- QPME features (v2.00): https://se.informatik.uni-wuerzburg.de/en/tools/qpme/features/
-
-Before implementation, verify the exact QPME/SimQPN version, supported import/automation interface, license, and availability of a headless execution path. The adapter must not depend on undocumented GUI automation.
+- LINE Solver: https://line-solver.sourceforge.net/
+- LINE interoperability: https://line-solver.sourceforge.net/interop.html
+- QPME: https://github.com/DescartesResearch/QPME
 
 ## 3. Generator API contract
 
@@ -71,9 +87,9 @@ A deterministic v1 replay generator may reproduce the serialized reconstruction.
 
 ## 4. Simulator-neutral arrival schedule
 
-The adapter must not pass a byte-valued time series directly into QPME. QPN arrivals represent workload entities (tokens/jobs), so conversion from bytes to jobs requires an explicit workload mapping.
+The adapter must not pass a byte-valued time series directly into a QPN backend. QPN arrivals represent workload entities (tokens/jobs), so conversion from bytes to jobs requires an explicit workload mapping.
 
-The first supported mapping is:
+The first supported mapping is backend-neutral and consists of:
 
 - `bytes_per_job`: positive finite number of bytes represented by one arriving job;
 - `arrival_placement`: `bin_start` for v1;
@@ -88,7 +104,7 @@ jobs_in_bin(k) = jobs_through_bin(k) - jobs_through_bin(k - 1)
 
 This cumulative quantization preserves total represented volume up to the final fractional remainder and avoids independently rounding every bin. The final remainder must be reported in the schedule metadata. Negative values, non-finite values, unit mismatches, and overflow are errors.
 
-The v1 schedule is a table with:
+The v1 schedule is a backend-neutral table with:
 
 | Field | Meaning |
 |---|---|
@@ -101,13 +117,16 @@ The adapter must preserve empty bins as no-arrival intervals. It must not invent
 
 This mapping is a workload abstraction. It does not claim that one job equals one packet, flow, request, or application transaction unless the experiment explicitly defines that interpretation.
 
-## 5. QPME/SimQPN bridge
+## 5. Simulator backend bridge
 
-The simulator-specific bridge consumes the neutral arrival schedule and a user-authored QPN model.
+A backend-specific bridge consumes the neutral arrival schedule and a user-authored QPN model. The first implementation targets LINE; a later implementation targets QPME/SimQPN.
+
+The current LINE smoke bridge consumes `experiments/line-qpn-v1/experiment.json` and `arrival-schedule-neutral.json`, checks their declared model/schedule hashes and shared time unit, and takes the seed, completion budget, and MSER-5 warm-up policy from the neutral experiment. Its adapter-specific QPN topology remains in the separate model mapping file. This proves consumption of the neutral workload/experiment inputs for the tested deterministic-periodic case; it does not yet implement the normalized v1 result schema or full adapter conformance.
 
 Responsibilities:
 
 - validate simulator version and model compatibility;
+- validate that every QPN construct used by the experiment is supported with the intended semantics;
 - map each scheduled job to the configured QPN entry place and token color;
 - preserve batch time and count without reordering;
 - use the QPN model's own service-time and routing definitions;
@@ -117,9 +136,15 @@ Responsibilities:
 
 The bridge must not create or infer queue topology, service rates, routing probabilities, or resource capacities from the TrafficMSD model. Those belong to the QPN system model and its experiment configuration.
 
-The initial integration may use a generated input file if QPME/SimQPN supports a documented batch/import interface. If no stable headless interface exists, stop and reassess the target rather than automating GUI interactions.
+The LINE integration must use a documented programmatic/headless interface. Do not depend on undocumented GUI automation. The later QPME/SimQPN bridge is subject to the same requirement; if no stable headless interface exists, stop and reassess rather than automating GUI interactions.
 
-## 6. Simulation outputs and comparison
+## 6. Backend-neutral experiment and results
+
+The experiment definition must be independent of backend-specific command-line flags and file formats. It records the workload schedule checksum, authored QPN model identifier/checksum, backend identifier and exact version, simulation clock/time unit, warm-up policy, termination condition, replication count, random seeds, and requested metrics.
+
+A normalized result record must preserve backend identity and version and must not erase backend-specific raw observations. At minimum, retain raw per-replication observations where available, aggregate estimates, uncertainty/confidence intervals, and explicit missing/unsupported metric markers. A backend must fail validation when it cannot provide a required metric or model construct; it must not substitute a different metric without documenting the mapping.
+
+## 7. Simulation outputs and comparison
 
 At minimum, retain:
 
@@ -139,7 +164,7 @@ Use identical workload mapping, system model, warm-up, termination policy, and r
 
 Do not compare simulator results from different QPN configurations and attribute the difference to the traffic model.
 
-## 7. Reproducibility and validation gates
+## 8. Reproducibility and validation gates
 
 Every run records:
 
@@ -147,7 +172,7 @@ Every run records:
 - generator version, full configuration, and seed;
 - source trace provenance and preprocessing manifest;
 - workload mapping and generated arrival-schedule checksum;
-- QPME/SimQPN version, QPN model checksum, and simulator settings;
+- backend name and exact version, QPN model checksum, capability-validation result, and simulator settings;
 - operating system/runtime versions, replication count, warm-up, and output artifacts.
 
 Required tests before calling the adapter supported:
@@ -159,12 +184,14 @@ Required tests before calling the adapter supported:
 - simulator bridge conformance against a small hand-calculated arrival schedule;
 - measured-trace and generated-trace reference runs under identical QPN settings.
 
-## 8. Explicit limitations and deferred work
+## 9. Explicit limitations and deferred work
 
 - No packet-level protocol, network topology, link, or congestion simulation.
 - No inference of jobs/requests from packet bytes without a declared workload mapping.
 - No automatic construction of QPN system models.
 - No simulator-specific stochastic service-time fitting in TrafficMSD.
-- No second simulator adapter until the QPME/SimQPN integration has a reproducible test and a concrete use case.
+- QPME/SimQPN is intentionally deferred until the LINE proof of concept and backend-neutral contracts are reproducible.
 
-The contract can be revised after a concrete QPN workload case and the QPME batch interface have been verified.
+Implementation tracking: [#79 — LINE QPN compatibility and headless integration](https://github.com/vsimko/trafficmsd/issues/79), [#80 — simulator-neutral workload/result contracts](https://github.com/vsimko/trafficmsd/issues/80), [#81 — QPME/SimQPN second backend](https://github.com/vsimko/trafficmsd/issues/81), and [#82 — simulation-outcome evaluation](https://github.com/vsimko/trafficmsd/issues/82).
+
+The contract can be revised after the LINE proof of concept verifies a concrete QPN workload case and its documented headless interface.

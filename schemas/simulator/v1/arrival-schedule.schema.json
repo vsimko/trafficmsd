@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trafficmsd.dev/schemas/simulator/v1/arrival-schedule.schema.json",
+  "title": "TrafficMSD simulator-neutral arrival schedule v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "schedule_id",
+    "time_unit",
+    "bin_width",
+    "arrival_placement",
+    "workload_mapping",
+    "batches",
+    "generation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "schedule_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "time_unit": {
+      "enum": [
+        "s",
+        "ms",
+        "us",
+        "ns"
+      ]
+    },
+    "bin_width": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "arrival_placement": {
+      "const": "bin_start"
+    },
+    "workload_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quantity_unit",
+        "bytes_per_job",
+        "remainder_policy",
+        "final_remainder_bytes"
+      ],
+      "properties": {
+        "quantity_unit": {
+          "const": "bytes"
+        },
+        "bytes_per_job": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "remainder_policy": {
+          "const": "carry_forward"
+        },
+        "final_remainder_bytes": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "batches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_bin",
+          "time",
+          "job_count"
+        ],
+        "properties": {
+          "source_bin": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "time": {
+            "type": "number",
+            "minimum": 0
+          },
+          "job_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "generator",
+        "generator_version",
+        "seed"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "deterministic",
+            "stochastic"
+          ]
+        },
+        "generator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generator_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "arrival_process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "first_arrival", "interarrival", "jobs_per_arrival"],
+      "properties": {
+        "kind": {"const": "deterministic_periodic"},
+        "first_arrival": {"type": "number", "minimum": 0},
+        "interarrival": {"type": "number", "exclusiveMinimum": 0},
+        "jobs_per_arrival": {"type": "integer", "minimum": 1}
+      }
+    },
+    "source_model_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

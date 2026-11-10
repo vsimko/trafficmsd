@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "neutral-contract-fixture-v1",
+  "backend": {
+    "id": "example-backend",
+    "version": "1.2.3",
+    "engine": "discrete-event"
+  },
+  "checksums": {
+    "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "schedule_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "experiment_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "validation": "failed",
+  "replications": [
+    {
+      "index": 0,
+      "seed": 23000,
+      "termination_reason": "completed",
+      "raw_observations": [
+        {
+          "metric": "throughput",
+          "value": 0.5,
+          "unit": "jobs/s"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "seed": 23001,
+      "termination_reason": "completed",
+      "raw_observations": [
+        {
+          "metric": "throughput",
+          "value": 0.51,
+          "unit": "jobs/s"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "throughput": {
+      "status": "available",
+      "unit": "jobs/s",
+      "estimate": 0.505,
+      "standard_deviation": 0.0070710678,
+      "confidence_interval": [
+        0.45,
+        0.56
+      ],
+      "reason": null
+    },
+    "queue_length": {
+      "status": "unsupported",
+      "unit": "jobs",
+      "estimate": null,
+      "standard_deviation": null,
+      "confidence_interval": null,
+      "reason": "Not emitted by fixture backend."
+    },
+    "utilization": {
+      "status": "not_recorded",
+      "unit": "ratio",
+      "estimate": null,
+      "standard_deviation": null,
+      "confidence_interval": null,
+      "reason": "Fixture omitted this metric."
+    },
+    "residence_time": {
+      "status": "unsupported",
+      "unit": "s",
+      "estimate": null,
+      "standard_deviation": null,
+      "confidence_interval": null,
+      "reason": "Not emitted by fixture backend."
+    }
+  },
+  "runtime": {
+    "wall_time_seconds": 2.1
+  },
+  "artifacts": [
+    "raw-replications.json"
+  ]
+}

@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+"""Run and verify the minimal headless LINE source -> QPN queue -> sink model."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from importlib.metadata import version
+from pathlib import Path
+
+from line_solver import (
+    Det, GlobalConstants, Network, OpenClass, Place, SchedStrategy, Sink,
+    SolverLDES, Source, TimingStrategy, Transition, model_to_dict,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+EXPERIMENT_DIR = ROOT / "experiments" / "line-qpn-v1"
+ARTIFACT_DIR = ROOT / "artifacts" / "line-qpn-v1"
+PINNED_LINE_VERSION = "3.0.8.0"
+TOLERANCE = 0.03
+
+EXPECTED = {
+    "QLen": 0.5,
+    "Util": 0.5,
+    "RespT": 1.0,
+    "ResidT": 1.0,
+    "ArvR": 0.5,
+    "Tput": 0.5,
+}
+
+
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def read_json(path: Path) -> tuple[dict, bytes]:
+    raw = path.read_bytes()
+    return json.loads(raw), raw
+
+
+def build_model(model_spec: dict, schedule: dict) -> Network:
+    """Build a real LINE QPN: Source -> queueing Place -> immediate Transition -> Sink."""
+    process = schedule["arrival_process"]
+    if process["kind"] != "deterministic_periodic":
+        raise ValueError("LINE smoke supports only deterministic_periodic arrival_process")
+    if process["first_arrival"] != process["interarrival"]:
+        raise ValueError("The first arrival must occur one interarrival interval after t=0")
+    if process["jobs_per_arrival"] != 1:
+        raise ValueError(
+            "LINE smoke currently supports only jobs_per_arrival=1; "
+            "received " + str(process["jobs_per_arrival"])
+        )
+
+    model = Network(model_spec["model_id"])
+    source = Source(model, model_spec["source"]["node"])
+    queue_spec = model_spec["queueing_place"]
+    queue = Place(model, queue_spec["node"], SchedStrategy.FCFS)
+    completion = Transition(model, model_spec["completion"]["transition"])
+    sink = Sink(model, model_spec["completion"]["destination"])
+    traffic = OpenClass(model, model_spec["job_class"], 0)
+
+    source.set_arrival(traffic, Det(float(process["interarrival"])))
+    queue.set_service(
+        traffic,
+        Det(float(queue_spec["service_distribution"]["duration_s"])),
+    )
+    queue.set_state(0)
+
+    mode = completion.add_mode("complete")
+    completion.set_number_of_servers(mode, GlobalConstants.MaxInt)
+    completion.set_timing_strategy(mode, TimingStrategy.IMMEDIATE)
+    completion.set_enabling_conditions(mode, traffic, queue, 1)
+    completion.set_firing_outcome(mode, traffic, sink, 1)
+
+    routing = model.init_routing_matrix()
+    routing.set(traffic, traffic, source, queue, 1.0)
+    routing.set(traffic, traffic, queue, completion, 1.0)
+    routing.set(traffic, traffic, completion, sink, 1.0)
+    model.link(routing)
+    return model
+
+
+def main() -> None:
+    installed_version = version("line-solver")
+    if installed_version != PINNED_LINE_VERSION:
+        raise RuntimeError(
+            f"Expected line-solver {PINNED_LINE_VERSION}, found {installed_version}"
+        )
+
+    os.chdir(ROOT)
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+    model_spec, model_spec_raw = read_json(EXPERIMENT_DIR / "model-spec.json")
+    experiment, experiment_raw = read_json(EXPERIMENT_DIR / "experiment.json")
+    schedule, schedule_raw = read_json(EXPERIMENT_DIR / "arrival-schedule-neutral.json")
+    if experiment["model"]["sha256"] != sha256(model_spec_raw):
+        raise ValueError("Experiment model checksum does not match model-spec.json")
+    if experiment["schedule"]["sha256"] != sha256(schedule_raw):
+        raise ValueError("Experiment schedule checksum does not match neutral arrival schedule")
+    if experiment["schedule"]["schedule_id"] != schedule["schedule_id"]:
+        raise ValueError("Experiment schedule_id does not match neutral arrival schedule")
+    if experiment["time_unit"] != schedule["time_unit"] or experiment["time_unit"] != model_spec["time_unit"]:
+        raise ValueError("Model, schedule, and experiment time units must match")
+    if experiment["termination"]["kind"] != "completions":
+        raise ValueError("LINE smoke currently requires completion-count termination")
+    if experiment["warmup"]["policy"] != "mser5":
+        raise ValueError("LINE smoke currently requires the MSER-5 warm-up policy")
+    if experiment["replications"]["count"] != 1 or len(experiment["replications"]["seeds"]) != 1:
+        raise ValueError("LINE smoke currently supports exactly one explicit replication")
+    seed = experiment["replications"]["seeds"][0]
+    samples = int(experiment["termination"]["value"])
+    tranfilter = experiment["warmup"]["policy"]
+    (ARTIFACT_DIR / "model-spec.json").write_bytes(model_spec_raw)
+    (ARTIFACT_DIR / "experiment.json").write_bytes(experiment_raw)
+    (ARTIFACT_DIR / "arrival-schedule-neutral.json").write_bytes(schedule_raw)
+    # Regression guard: the neutral schema permits multiplicity, but this LINE
+    # adapter currently models one job per periodic arrival only. Never silently
+    # simulate a larger declared batch as a single job.
+    unsupported_schedule = dict(schedule)
+    unsupported_schedule["arrival_process"] = dict(schedule["arrival_process"])
+    unsupported_schedule["arrival_process"]["jobs_per_arrival"] = 2
+    try:
+        build_model(model_spec, unsupported_schedule)
+    except ValueError as error:
+        if "jobs_per_arrival=1" not in str(error):
+            raise
+    else:
+        raise AssertionError("LINE adapter accepted unsupported jobs_per_arrival=2")
+
+    model = build_model(model_spec, schedule)
+
+    # Hash the actual LINE interchange document, not just the human-authored spec.
+    model_document = model_to_dict(model)
+
+    def normalize_paths(value):
+        if isinstance(value, dict):
+            return {key: normalize_paths(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [normalize_paths(item) for item in value]
+        if isinstance(value, str) and value.startswith(str(ROOT)):
+            return Path(value).relative_to(ROOT).as_posix()
+        return value
+
+    normalized_model = normalize_paths(model_document)
+    model_canonical = json.dumps(
+        normalized_model, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+
+    # Keep the artifact relocatable: trace paths are repository-relative.
+    model_path = ARTIFACT_DIR / "line-model.json"
+    model_path.write_text(
+        json.dumps(normalized_model, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    solver = SolverLDES(
+        model, seed=seed, samples=samples, tranfilter=tranfilter,
+        cimethod="none", verbose="silent",
+    )
+    table = solver.avg_table()
+    rows = table.reset_index().to_dict(orient="records")
+    queue_row = next(
+        (
+            row for row in rows
+            if str(row.get("Station", "")) == model_spec["queueing_place"]["node"]
+            and str(row.get("JobClass", "")) == model_spec["job_class"]
+        ),
+        None,
+    )
+    if queue_row is None:
+        raise AssertionError(f"LINE result has no queueing-place row: {rows!r}")
+
+    observed = {metric: float(queue_row[metric]) for metric in EXPECTED}
+    errors = {metric: abs(observed[metric] - expected) for metric, expected in EXPECTED.items()}
+    failures = {
+        metric: {"expected": EXPECTED[metric], "observed": observed[metric], "error": errors[metric]}
+        for metric in EXPECTED if errors[metric] > TOLERANCE
+    }
+
+    # Preserve the complete backend table separately; result.json follows
+    # the simulator-neutral normalized result v1 schema.
+    station_metrics_path = ARTIFACT_DIR / "station-metrics.json"
+    station_metrics_path.write_text(
+        json.dumps(rows, indent=2, sort_keys=True, default=float) + "\n",
+        encoding="utf-8",
+    )
+    metric_names = {
+        "QLen": "queue_length",
+        "Util": "utilization",
+        "ResidT": "residence_time",
+        "Tput": "throughput",
+    }
+    metric_units = {
+        "queue_length": "jobs",
+        "utilization": "ratio",
+        "residence_time": "s",
+        "throughput": "jobs/s",
+    }
+    normalized_metrics = {
+        metric_names[source]: {
+            "status": "available",
+            "unit": metric_units[metric_names[source]],
+            "estimate": observed[source],
+            "standard_deviation": None,
+            "confidence_interval": None,
+        }
+        for source in metric_names
+    }
+    raw_observations = [
+        {
+            "metric": metric_names[source],
+            "value": observed[source],
+            "unit": metric_units[metric_names[source]],
+        }
+        for source in metric_names
+    ]
+    result = {
+        "schema_version": "1.0",
+        "experiment_id": experiment["experiment_id"],
+        "backend": {
+            "id": "line-solver",
+            "version": installed_version,
+            "engine": "LDES",
+        },
+        "checksums": {
+            "model_sha256": experiment["model"]["sha256"],
+            "schedule_sha256": experiment["schedule"]["sha256"],
+            "experiment_sha256": sha256(experiment_raw),
+        },
+        "validation": "failed" if failures else "passed",
+        "replications": [{
+            "index": 0,
+            "seed": seed,
+            "termination_reason": "completed",
+            "raw_observations": raw_observations,
+        }],
+        "metrics": normalized_metrics,
+        "runtime": {
+            "headless": True,
+            "service_completion_budget": samples,
+            "transient_filter": tranfilter,
+            "line_model_sha256": sha256(model_canonical),
+            "model_spec_sha256": sha256(model_spec_raw),
+            "absolute_tolerance": TOLERANCE,
+            "expected_metrics": EXPECTED,
+            "failures": failures,
+            "station_metrics": rows,
+        },
+        "artifacts": [
+            "model-spec.json",
+            "experiment.json",
+            "arrival-schedule-neutral.json",
+            "line-model.json",
+            "station-metrics.json",
+        ],
+    }
+    (ARTIFACT_DIR / "result.json").write_text(
+        json.dumps(result, indent=2, sort_keys=True, default=float) + "\n",
+        encoding="utf-8",
+    )
+    print(json.dumps(result, indent=2, sort_keys=True, default=float))
+    if failures:
+        raise AssertionError(f"Deterministic QPN result outside tolerance: {failures}")
+
+
+if __name__ == "__main__":
+    main()

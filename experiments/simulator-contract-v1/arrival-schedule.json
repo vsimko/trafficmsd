@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "schedule_id": "fixture-cumulative-byte-mapping-v1",
+  "time_unit": "s",
+  "bin_width": 1.0,
+  "arrival_placement": "bin_start",
+  "workload_mapping": {
+    "quantity_unit": "bytes",
+    "bytes_per_job": 1000,
+    "remainder_policy": "carry_forward",
+    "final_remainder_bytes": 500
+  },
+  "batches": [
+    {"source_bin": 0, "time": 0.0, "job_count": 1},
+    {"source_bin": 1, "time": 1.0, "job_count": 0},
+    {"source_bin": 2, "time": 2.0, "job_count": 2},
+    {"source_bin": 3, "time": 3.0, "job_count": 1}
+  ],
+  "generation": {
+    "mode": "deterministic",
+    "generator": "contract-fixture",
+    "generator_version": "1.0",
+    "seed": null
+  }
+}

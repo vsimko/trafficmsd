@@ -1,0 +1,39 @@
+name: Simulator-neutral contract checks
+
+on:
+  pull_request:
+    branches: [master, main]
+    paths:
+      - ".github/workflows/simulator-contracts.yml"
+      - "schemas/simulator/**"
+      - "experiments/simulator-contract-v1/**"
+      - "experiments/line-qpn-v1/experiment.json"
+      - "experiments/line-qpn-v1/arrival-schedule-neutral.json"
+      - "scripts/line_qpn_smoke.py"
+      - "scripts/validate_simulator_contracts.py"
+      - "tests/test_simulator_contracts.py"
+      - "docs/simulator-contract-v1.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simulator-contracts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: JSON Schema and semantic contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4.20,<5"
+      - name: Validate versioned fixtures
+        run: python scripts/validate_simulator_contracts.py
+      - name: Run contract regression tests
+        run: python -m unittest discover -s tests -p "test_simulator_contracts.py" -v

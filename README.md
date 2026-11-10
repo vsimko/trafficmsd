@@ -14,7 +14,7 @@ TrafficMSD is transitioning toward a Rust-based network traffic simulation
 engine. The R package will remain the visualization and statistical-analysis
 interface, while computationally intensive operations move into a standalone
 Rust core and CLI. See the [technical roadmap](ROADMAP.md) and
-[ADR 0001: Rust core architecture](docs/adr/0001-rust-core.md).
+[ADR 0001: Rust core architecture](docs/adr/0001-rust-core.md), and the [LINE-first simulator decision](docs/adr/0002-line-first-simulator.md).
 
 ## Installation
 
@@ -107,7 +107,9 @@ traffic generation and performance-simulation validation.
 - [Dataset storage and CI policy](docs/data-management.md)
 - [Research dataset registry](docs/datasets/README.md)
 - [Westermo holdout fidelity and compactness results](docs/research-results/westermo-contiguous-holdout-v1.md)
-- [Generator and QPME/SimQPN adapter contract v1](docs/simulator-adapter-v1.md)
+- [Generator and backend-neutral simulator adapter contract v1 (LINE first; QPME/SimQPN later)](docs/simulator-adapter-v1.md)
+- [LINE Solver QPN compatibility and headless proof of concept](docs/line-solver-validation.md)
+- [ADR 0002: LINE-first simulator backend strategy](docs/adr/0002-line-first-simulator.md)
 - [CLI binary distribution](docs/cli-binary-distribution.md)
 - [Performance benchmark protocol](docs/performance-benchmarks.md)
 
