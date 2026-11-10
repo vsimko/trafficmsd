@@ -79,7 +79,7 @@ def schedule_interarrivals(schedule: dict[str, Any]) -> list[float]:
     return intervals
 
 
-def build_model(model_spec: dict[str, Any], interarrivals: list[float]) -> Network:
+def build_model(model_spec: dict[str, Any], trace_path: Path) -> Network:
     if model_spec["time_unit"] != "s":
         raise ValueError("this LINE experiment runner currently requires seconds")
     service = model_spec["queueing_place"]["service_distribution"]
@@ -94,7 +94,7 @@ def build_model(model_spec: dict[str, Any], interarrivals: list[float]) -> Netwo
     sink = Sink(model, model_spec["completion"]["destination"])
     traffic = OpenClass(model, model_spec["job_class"], 0)
 
-    source.set_arrival(traffic, Replayer(interarrivals, loop=False))
+    source.set_arrival(traffic, Replayer(str(trace_path), loop=False))
     queue.set_service(traffic, Exp(float(service["rate_per_s"])))
     queue.set_state(int(queue_spec["initial_marking"]))
 
@@ -170,10 +170,13 @@ def run_experiment(
         raise ValueError("the configured QPN is unstable for this finite-trace mean arrival rate")
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    trace_path = output_dir / f"{schedule['schedule_id']}-interarrivals.trace"
+    trace_raw = ("\n".join(format(value, ".17g") for value in interarrivals) + "\n").encode("utf-8")
+    trace_path.write_bytes(trace_raw)
     replications = []
     elapsed_seconds = 0.0
     for index, seed in enumerate(experiment["replications"]["seeds"]):
-        model = build_model(model_spec, interarrivals)
+        model = build_model(model_spec, trace_path)
         started = time.perf_counter()
         solver = SolverLDES(
             model,
@@ -245,8 +248,10 @@ def run_experiment(
             "warmup_policy": "none",
             "service_rate_per_s": service_rate,
             "confidence_level": confidence_level,
+            "interarrival_trace_sha256": sha256_bytes(trace_raw),
+            "interarrival_trace_file": trace_path.name,
         },
-        "artifacts": [experiment_path.name, schedule_path.name, model_path.name],
+        "artifacts": [experiment_path.name, schedule_path.name, model_path.name, trace_path.name],
     }
     result_raw = canonical_json(result)
     output_path = output_dir / "result.json"
