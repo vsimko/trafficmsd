@@ -1,4 +1,4 @@
-name: Westermo model extraction
+name: Westermo model extraction and QPN workload evaluation
 
 on:
   pull_request:
@@ -7,6 +7,11 @@ on:
       - "scripts/datasets/extract_westermo.py"
       - "tests/python/**"
       - "experiments/model-extraction-v1/**"
+      - "experiments/qpn-workload-evaluation-v1/**"
+      - "scripts/build_qpn_workload_schedules.py"
+      - "scripts/line_qpn_trace_evaluation.py"
+      - "scripts/line_qpn_analytical_control.py"
+      - "scripts/summarize_qpn_workload_evaluation.py"
       - ".github/workflows/westermo-model-extraction.yml"
       - "schemas/model/v1/model.schema.json"
       - "schemas/model/v2/model.schema.json"
@@ -50,8 +55,19 @@ jobs:
       - name: Install TrafficMSD
         run: R CMD INSTALL .
 
-      - name: Install JSON Schema validator
-        run: python -m pip install jsonschema
+      - name: Set up Python for LINE
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Java for LINE LDES
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install schema and LINE dependencies
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4.20,<5" "line-solver==3.0.8.0"
 
       - name: Test deterministic packet binning
         run: python -m unittest discover -s tests/python -v
@@ -79,6 +95,61 @@ jobs:
             artifacts/westermo-model-extraction-v1/trace.csv \
             artifacts/westermo-model-extraction-v1/manifest.json \
             artifacts/westermo-model-extraction-v1/model
+
+      - name: Build checksummed measured and deterministic-replay QPN schedules
+        run: |
+          python scripts/build_qpn_workload_schedules.py \
+            --source-csv artifacts/westermo-model-extraction-v1/model/source-signal.csv \
+            --replay-csv artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv \
+            --source-manifest artifacts/westermo-model-extraction-v1/manifest.json \
+            --output-dir artifacts/qpn-workload-evaluation-v1
+
+      - name: Run measured-trace QPN condition
+        env:
+          LINE_LDES_FORCE_JAR: "1"
+        run: |
+          python scripts/line_qpn_trace_evaluation.py \
+            --experiment artifacts/qpn-workload-evaluation-v1/measured-experiment.json \
+            --schedule artifacts/qpn-workload-evaluation-v1/measured-arrival-schedule.json \
+            --output-dir artifacts/qpn-workload-evaluation-v1/measured
+
+      - name: Run deterministic-replay QPN condition
+        env:
+          LINE_LDES_FORCE_JAR: "1"
+        run: |
+          python scripts/line_qpn_trace_evaluation.py \
+            --experiment artifacts/qpn-workload-evaluation-v1/replay-experiment.json \
+            --schedule artifacts/qpn-workload-evaluation-v1/replay-arrival-schedule.json \
+            --output-dir artifacts/qpn-workload-evaluation-v1/replay
+
+      - name: Derive measured offered job rate for the analytical control
+        id: measured-rate
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("artifacts/qpn-workload-evaluation-v1/manifest.json").read_text())
+          condition = manifest["conditions"]["measured"]
+          print(f"arrival_rate={condition['total_jobs'] / condition['horizon']:.17g}")
+          PY
+
+      - name: Run Poisson M/M/1 analytical QPN control
+        env:
+          LINE_LDES_FORCE_JAR: "1"
+        run: |
+          python scripts/line_qpn_analytical_control.py \
+            --arrival-rate "${{ steps.measured-rate.outputs.arrival_rate }}" \
+            --output artifacts/qpn-workload-evaluation-v1/analytical-control/result.json
+
+      - name: Summarize measured versus deterministic replay outcomes
+        run: |
+          python scripts/summarize_qpn_workload_evaluation.py \
+            --manifest artifacts/qpn-workload-evaluation-v1/manifest.json \
+            --measured-result artifacts/qpn-workload-evaluation-v1/measured/result.json \
+            --replay-result artifacts/qpn-workload-evaluation-v1/replay/result.json \
+            --control-result artifacts/qpn-workload-evaluation-v1/analytical-control/result.json \
+            --control-config experiments/qpn-workload-evaluation-v1/analytical-control.json \
+            --output-dir artifacts/qpn-workload-evaluation-v1/report
 
       - name: Validate model and evaluation contracts
         run: |
@@ -108,9 +179,11 @@ jobs:
               print(f"Validated {document_path} against {schema_path}")
           PY
 
-      - name: Upload reproducible extraction outputs
+      - name: Upload reproducible extraction and QPN evaluation outputs
         uses: actions/upload-artifact@v7
         with:
-          name: westermo-model-extraction-v1
-          path: artifacts/westermo-model-extraction-v1/
+          name: westermo-model-extraction-and-qpn-v1
+          path: |
+            artifacts/westermo-model-extraction-v1/
+            artifacts/qpn-workload-evaluation-v1/
           if-no-files-found: error
