@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BUILDER = ROOT / "scripts" / "build_qpn_workload_schedules.py"
 CONFIG = ROOT / "experiments" / "qpn-workload-evaluation-v1" / "config.json"
 MODEL = ROOT / "experiments" / "qpn-workload-evaluation-v1" / "model-spec.json"
+CONTROL = ROOT / "experiments" / "qpn-workload-evaluation-v1" / "analytical-control.json"
+CONTROL_RUNNER = ROOT / "scripts" / "line_qpn_analytical_control.py"
 
 
 def write_signal(path: Path, values: list[int]) -> None:
@@ -67,7 +69,19 @@ def main() -> None:
                 root / f"result-{condition}",
             )
 
-    print("QPN measured/replay trace bridge smoke: passed")
+        subprocess.run(
+            [
+                sys.executable,
+                str(CONTROL_RUNNER),
+                "--arrival-rate", "0.25",
+                "--model-spec", str(MODEL),
+                "--config", str(CONTROL),
+                "--output", str(root / "analytical-control.json"),
+            ],
+            check=True,
+        )
+
+    print("QPN measured/replay trace bridge and M/M/1 analytical control: passed")
 
 
 if __name__ == "__main__":
