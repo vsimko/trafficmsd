@@ -43,7 +43,11 @@ def main() -> None:
         write_signal(source_csv, measured)
         write_signal(replay_csv, replay)
         source_manifest.write_text(
-            json.dumps({"dataset_id": "synthetic-qpn-bridge-smoke-v1"}) + "\n",
+            json.dumps({
+                "dataset_id": "synthetic-qpn-bridge-smoke-v1",
+                "sampling_interval": "1",
+                "sample_count": len(measured),
+            }) + "\n",
             encoding="utf-8",
         )
 
