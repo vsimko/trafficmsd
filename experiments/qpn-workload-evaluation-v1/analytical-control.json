@@ -4,7 +4,18 @@
   "arrival_process": "exponential",
   "samples_per_replication": 50000,
   "warmup_policy": "mser5",
-  "replication_seeds": [23000, 23001, 23002, 23003, 23004, 23005, 23006, 23007, 23008, 23009],
+  "replication_seeds": [
+    43000,
+    43001,
+    43002,
+    43003,
+    43004,
+    43005,
+    43006,
+    43007,
+    43008,
+    43009
+  ],
   "confidence_level": 0.95,
   "acceptance": "each analytical M/M/1 mean must lie inside the corresponding 95% Student-t interval across independent LDES replications"
 }
