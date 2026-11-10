@@ -16,7 +16,7 @@ The second condition is a deterministic reconstruction control. It is not a stoc
 - Fractional bytes are carried into the next bin and the final remainder is recorded.
 - All jobs in a bin are placed at the bin start. No within-bin arrival times are inferred.
 - QPN model: one open class, one FCFS queueing place, one exponential service process, and an immediate completion transition. The service rate is resolved by the predeclared rule `2 × measured mean offered job rate`, giving the Poisson M/M/1 analytical control a 50% target utilization. This is a normalized queueing scenario, not an inferred capacity of the observed network.
-- Both conditions use the exact same model file, service rate, queue discipline, mapping, time unit, warm-up policy, termination policy, replication seeds, and metric definitions.
+- Both conditions use the exact same resolved model file and service rate, queue discipline, mapping, time unit, warm-up policy, termination policy, replication count, and metric definitions. They use disjoint seed sets so the between-condition interval is an independent two-sample comparison.
 
 The one-megabyte job is an explicit workload abstraction, not a claim that one job is a packet, flow, request, or application transaction. The service-rate calibration rule is user-authored and predeclared; it normalizes the reference workload to a 50% Poisson M/M/1 control utilization. It is not an estimate of the observed network's actual service capacity.
 
@@ -38,9 +38,9 @@ python scripts/build_qpn_workload_schedules.py \
   --output-dir artifacts/qpn-workload-evaluation-v1
 ```
 
-The builder validates the input series, preserves empty bins, applies identical cumulative quantization, and writes a manifest with source checksums, model/schedule checksums, workload totals, and the final remainder for each condition. The builder writes a checksummed `resolved-model-spec.json`: its exponential service rate is twice the measured reference's mean offered job rate. This predeclared calibration yields a 50% utilization target in the Poisson M/M/1 control; the same resolved model is used unchanged for measured and replay conditions. The experiment JSON records the same replication count and metric set for both conditions, using disjoint explicit seed sets for independent replications. Each finite-trace run terminates after all jobs offered by its own schedule have completed; the per-condition completion budget is recorded, while the termination policy remains identical (drain all offered jobs). The builder rejects a schedule whose mean offered job rate is not below the fixed service rate.
+The builder validates the input series, preserves empty bins, applies identical cumulative quantization, and writes a manifest with source checksums, model/schedule checksums, workload totals, and the final remainder for each condition. The builder writes a checksummed `resolved-model-spec.json`: its exponential service rate is twice the measured reference's mean offered job rate. This predeclared calibration yields a 50% utilization target in the Poisson M/M/1 control; the same resolved model is used unchanged for measured and replay conditions. The experiment JSON records the same replication count and metric set for both conditions, using disjoint explicit seed sets for independent replications. Each finite-trace run terminates after all jobs offered by its own schedule have completed; the per-condition completion budget is recorded, while the termination policy remains identical (drain all offered jobs). The builder rejects a replay schedule whose mean offered job rate is not below the resolved service rate.
 
-The LINE trace-driven simulation runner is exercised on a tiny synthetic trace in CI. A separate Poisson-arrival M/M/1 control uses the same QPN topology and exponential service, and checks throughput, mean queue population, utilization, and residence time against their analytical values using 95% Student-t intervals across independent replications. The full Westermo run/report is still required before interpreting measured-versus-replay differences.
+The LINE trace-driven simulation runner is exercised on a tiny synthetic trace in CI. The Westermo workflow also runs the full measured and deterministic-replay schedules, the Poisson-arrival M/M/1 analytical control, and the machine-readable comparison report. The control checks throughput, mean queue population, utilization, and residence time against their analytical values using 95% Student-t intervals across independent replications.
 
 ## Predeclared outcomes
 
@@ -50,7 +50,7 @@ Primary outcomes:
 
 Secondary outcomes:
 - server utilization;
-- job residence-time distribution/mean.
+- mean job residence time. Per-job residence-time samples are not yet exposed by the pinned Python LDES wrapper; distributional comparisons remain an explicit limitation.
 
 Report per-replication observations, sample standard deviations, 95% confidence intervals, simulation runtime, offered jobs, completed jobs, and input checksums. Preserve measured and deterministic replay results separately.
 
