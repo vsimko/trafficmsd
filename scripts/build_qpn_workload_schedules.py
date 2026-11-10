@@ -239,6 +239,10 @@ def main() -> None:
         raise ValueError("measured and replay signals must have the same number of bins")
     if config["time_unit"] != base_model["time_unit"]:
         raise ValueError("config and QPN model time units must match")
+    if Decimal(str(source_manifest["sampling_interval"])) != Decimal(str(config["bin_width"])):
+        raise ValueError("QPN bin_width must match the source manifest sampling_interval")
+    if int(source_manifest["sample_count"]) != len(source_values):
+        raise ValueError("source signal length must match the source manifest sample_count")
     if config["qpn_model"]["service_rate_policy"] != base_model["service_rate_policy"]:
         raise ValueError("config and model service-rate policies must match")
 
