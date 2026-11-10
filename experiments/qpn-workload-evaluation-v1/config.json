@@ -5,7 +5,7 @@
   "bin_width": 1,
   "workload_mapping": {
     "quantity_unit": "bytes",
-    "bytes_per_job": 1000000,
+    "bytes_per_job": 1000,
     "remainder_policy": "carry_forward",
     "arrival_placement": "bin_start"
   },
