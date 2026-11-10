@@ -41,6 +41,8 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
             [(0, 0.0, 0), (1, 0.5, 0), (2, 1.0, 1)],
         )
         self.assertEqual(summary["bin_count"], 3)
+        self.assertEqual(summary["active_horizon"], 1.5)
+        self.assertEqual(summary["trailing_idle_bins"], 0)
         validate_document("schedule", schedule)
 
     def test_signal_csv_requires_contiguous_indices_and_finite_nonnegative_values(self):
@@ -62,6 +64,19 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
             path.write_text("sample_index,value\n0,nan\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "finite"):
                 read_signal_csv(path)
+
+    def test_trailing_empty_bins_are_retained_outside_active_horizon(self):
+        schedule, summary = build_schedule(
+            [Decimal("10"), Decimal("0"), Decimal("0")],
+            schedule_id="test-trailing-idle",
+            time_unit="s",
+            bin_width=Decimal("0.5"),
+            bytes_per_job=Decimal("10"),
+        )
+        self.assertEqual(summary["horizon"], 1.5)
+        self.assertEqual(summary["active_horizon"], 0.5)
+        self.assertEqual(summary["trailing_idle_bins"], 2)
+        self.assertEqual([row["job_count"] for row in schedule["batches"]], [1, 0, 0])
 
     def test_schedule_rejects_nonpositive_mapping(self):
         with self.assertRaisesRegex(ValueError, "bytes_per_job"):
