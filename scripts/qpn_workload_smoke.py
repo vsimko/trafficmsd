@@ -61,11 +61,12 @@ def main() -> None:
             check=True,
         )
 
+        resolved_model = schedule_dir / "resolved-model-spec.json"
         for condition in ("measured", "replay"):
             run_experiment(
                 schedule_dir / f"{condition}-experiment.json",
                 schedule_dir / f"{condition}-arrival-schedule.json",
-                MODEL,
+                resolved_model,
                 root / f"result-{condition}",
             )
 
@@ -73,8 +74,8 @@ def main() -> None:
             [
                 sys.executable,
                 str(CONTROL_RUNNER),
-                "--arrival-rate", "0.25",
-                "--model-spec", str(MODEL),
+                "--arrival-rate", str(json.loads((schedule_dir / "manifest.json").read_text())["conditions"]["measured"]["mean_offered_job_rate_per_s"]),
+                "--model-spec", str(resolved_model),
                 "--config", str(CONTROL),
                 "--output", str(root / "analytical-control.json"),
             ],
