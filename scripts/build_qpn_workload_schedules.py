@@ -159,6 +159,7 @@ def build_experiment(
     schedule_raw: bytes,
     config: dict[str, Any],
     horizon: float,
+    total_jobs: int,
     source_csv_sha256: str,
     source_manifest_sha256: str,
 ) -> dict[str, Any]:
@@ -186,7 +187,7 @@ def build_experiment(
         "warmup": {"policy": config["simulation"]["warmup_policy"]},
         "termination": {
             "kind": config["simulation"]["termination_kind"],
-            "value": horizon,
+            "value": total_jobs,
         },
         "replications": {"count": len(seeds), "seeds": seeds},
         "required_metrics": metrics,
@@ -237,8 +238,8 @@ def main() -> None:
         raise ValueError("only bin_start arrival placement is supported")
     if config["simulation"]["warmup_policy"] != "none":
         raise ValueError("finite trace comparisons must retain the full trace (warmup=none)")
-    if config["simulation"]["termination_kind"] != "simulated_time":
-        raise ValueError("finite trace comparisons require simulated_time termination")
+    if config["simulation"]["termination_kind"] != "completions":
+        raise ValueError("finite trace comparisons require drain-all-completions termination")
     if len(config["simulation"]["replication_seeds"]) < 2:
         raise ValueError("at least two explicit replication seeds are required")
 
@@ -272,6 +273,15 @@ def main() -> None:
         validate_document("schedule", schedule)
         schedule_path = args.output_dir / f"{suffix}-arrival-schedule.json"
         schedule_path.write_bytes(schedule_raw)
+        if summary["total_jobs"] < 1:
+            raise ValueError(f"{condition_name} schedule contains no jobs")
+        arrival_rate = summary["total_jobs"] / summary["horizon"]
+        service_rate = float(config["qpn_model"]["service_rate_per_s"])
+        if not math.isfinite(service_rate) or service_rate <= arrival_rate:
+            raise ValueError(
+                f"QPN must be stable for {condition_name}: "
+                f"arrival rate {arrival_rate:.6g}/s must be below service rate {service_rate:.6g}/s"
+            )
         experiment = build_experiment(
             experiment_id=f"westermo-{suffix}-qpn-v1",
             condition=condition_name,
@@ -281,6 +291,7 @@ def main() -> None:
             schedule_raw=schedule_raw,
             config=config,
             horizon=summary["horizon"],
+            total_jobs=summary["total_jobs"],
             source_csv_sha256=sha256_bytes(raw_signal),
             source_manifest_sha256=sha256_bytes(source_manifest_raw),
         )
@@ -304,7 +315,7 @@ def main() -> None:
         "same_bytes_per_job": float(bytes_per_job),
         "same_replication_seeds": config["simulation"]["replication_seeds"],
         "same_warmup_policy": config["simulation"]["warmup_policy"],
-        "same_termination_policy": config["simulation"]["termination_kind"],
+        "same_termination_policy": "drain_all_offered_jobs",
         "primary_metrics": config["metrics"]["primary"],
         "secondary_metrics": config["metrics"]["secondary"],
         "confidence_level": config["simulation"]["confidence_level"],
