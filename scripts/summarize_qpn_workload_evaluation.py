@@ -171,6 +171,12 @@ def summarize(
         "dataset_id": manifest.get("source_dataset_id"),
         "backend": measured["backend"],
         "model_sha256": manifest["model"]["sha256"],
+        "service_rate_per_s": manifest["model"]["service_rate_per_s"],
+        "service_rate_policy": manifest["model"]["service_rate_policy"],
+        "mean_offered_load": {
+            "measured": measured_meta["mean_offered_job_rate_per_s"] / manifest["model"]["service_rate_per_s"],
+            "deterministic_replay": replay_meta["mean_offered_job_rate_per_s"] / manifest["model"]["service_rate_per_s"],
+        },
         "source_manifest_sha256": manifest["source_manifest_sha256"],
         "builder_config_sha256": manifest["config_sha256"],
         "input_checksums": {
@@ -226,6 +232,8 @@ def summarize(
         f"- Dataset: `{comparison['dataset_id']}`",
         f"- LINE: `{measured['backend']['version']}` / `{measured['backend']['engine']}`",
         f"- QPN model SHA-256: `{comparison['model_sha256']}`",
+        f"- Service rate: {comparison['service_rate_per_s']:.6g} jobs/s ({comparison['service_rate_policy']})",
+        f"- Mean offered load (measured/replay): {comparison['mean_offered_load']['measured']:.6g} / {comparison['mean_offered_load']['deterministic_replay']:.6g}",
         f"- Measured schedule: `{measured_meta['schedule_sha256']}`",
         f"- Replay schedule: `{replay_meta['schedule_sha256']}`",
         f"- Measured bins/jobs/bytes: {measured_meta['bin_count']} / {measured_meta['total_jobs']} / {measured_meta['total_bytes']:.0f}",
