@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "experiment_family": "westermo-qpn-workload-evaluation-v1",
   "time_unit": "s",
-  "bin_width": 1.0,
+  "bin_width": 1,
   "workload_mapping": {
     "quantity_unit": "bytes",
     "bytes_per_job": 1000000,
@@ -12,19 +12,48 @@
   "qpn_model": {
     "model_id": "trafficmsd-westermo-qpn-mm1-v1",
     "service_distribution": "exponential",
-    "service_rate_per_s": 1.0,
+    "service_rate_per_s": 1,
     "queue_discipline": "FCFS",
     "servers": 1
   },
   "simulation": {
     "warmup_policy": "none",
     "termination_kind": "completions",
-    "replication_seeds": [23000, 23001, 23002, 23003, 23004, 23005, 23006, 23007, 23008, 23009],
-    "confidence_level": 0.95
+    "confidence_level": 0.95,
+    "measured_replication_seeds": [
+      23000,
+      23001,
+      23002,
+      23003,
+      23004,
+      23005,
+      23006,
+      23007,
+      23008,
+      23009
+    ],
+    "replay_replication_seeds": [
+      33000,
+      33001,
+      33002,
+      33003,
+      33004,
+      33005,
+      33006,
+      33007,
+      33008,
+      33009
+    ]
   },
   "metrics": {
-    "primary": ["throughput", "queue_length"],
-    "secondary": ["utilization", "residence_time"]
+    "primary": [
+      "throughput",
+      "queue_length"
+    ],
+    "secondary": [
+      "utilization",
+      "residence_time"
+    ]
   },
   "limitations": [
     "One abstract QPN job represents 1000000 captured-frame bytes; it is not a packet, flow, request, or application transaction.",
