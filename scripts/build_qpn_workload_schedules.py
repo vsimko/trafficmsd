@@ -135,6 +135,7 @@ def validate_document(name: str, value: dict[str, Any]) -> None:
     schema_path = SCHEMA_DIR / {
         "schedule": "arrival-schedule.schema.json",
         "experiment": "experiment.schema.json",
+        "result": "result.schema.json",
     }[name]
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     errors = sorted(
