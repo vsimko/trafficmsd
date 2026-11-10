@@ -15,10 +15,10 @@ The second condition is a deterministic reconstruction control. It is not a stoc
 - Quantization: cumulative bytes are divided by bytes-per-job; the per-bin job count is the difference between consecutive cumulative floors.
 - Fractional bytes are carried into the next bin and the final remainder is recorded.
 - All jobs in a bin are placed at the bin start. No within-bin arrival times are inferred.
-- QPN model: one open class, one FCFS queueing place, one exponential service process (rate 1 job/s), and an immediate completion transition.
+- QPN model: one open class, one FCFS queueing place, one exponential service process, and an immediate completion transition. The service rate is resolved by the predeclared rule `2 × measured mean offered job rate`, giving the Poisson M/M/1 analytical control a 50% target utilization. This is a normalized queueing scenario, not an inferred capacity of the observed network.
 - Both conditions use the exact same model file, service rate, queue discipline, mapping, time unit, warm-up policy, termination policy, replication seeds, and metric definitions.
 
-The one-megabyte job is an explicit workload abstraction, not a claim that one job is a packet, flow, request, or application transaction. The service rate is a user-authored system-model parameter, not inferred from the trace.
+The one-megabyte job is an explicit workload abstraction, not a claim that one job is a packet, flow, request, or application transaction. The service-rate calibration rule is user-authored and predeclared; it normalizes the reference workload to a 50% Poisson M/M/1 control utilization. It is not an estimate of the observed network's actual service capacity.
 
 ## Reproduction
 
