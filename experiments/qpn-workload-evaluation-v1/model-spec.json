@@ -4,15 +4,41 @@
   "description": "Authored single-class open QPN: external arrivals enter one FCFS queueing place with exponential service and leave through an immediate completion transition.",
   "time_unit": "s",
   "job_class": "Traffic",
-  "source": {"node": "Source", "kind": "open"},
+  "source": {
+    "node": "Source",
+    "kind": "open"
+  },
   "queueing_place": {
     "node": "Queue",
     "semantics": "QPN queueing place",
     "discipline": "FCFS",
     "servers": 1,
     "initial_marking": 0,
-    "service_distribution": {"kind": "exponential", "rate_per_s": 1.0}
+    "service_distribution": {
+      "kind": "exponential"
+    }
   },
-  "completion": {"transition": "Complete", "timing": "immediate", "destination": "Sink"},
-  "routing": [["Source", "Queue", 1.0], ["Queue", "Complete", 1.0], ["Complete", "Sink", 1.0]]
+  "completion": {
+    "transition": "Complete",
+    "timing": "immediate",
+    "destination": "Sink"
+  },
+  "routing": [
+    [
+      "Source",
+      "Queue",
+      1
+    ],
+    [
+      "Queue",
+      "Complete",
+      1
+    ],
+    [
+      "Complete",
+      "Sink",
+      1
+    ]
+  ],
+  "service_rate_policy": "twice_measured_offered_rate"
 }
