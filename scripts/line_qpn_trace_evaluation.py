@@ -262,7 +262,7 @@ def main() -> None:
     parser.add_argument("--schedule", type=Path, required=True)
     parser.add_argument(
         "--model-spec", type=Path,
-        default=ROOT / "experiments/qpn-workload-evaluation-v1/model-spec.json",
+        default=ROOT / "artifacts/qpn-workload-evaluation-v1/resolved-model-spec.json",
     )
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
