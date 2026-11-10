@@ -6,7 +6,11 @@ on:
     paths:
       - ".github/workflows/line-qpn-smoke.yml"
       - "experiments/line-qpn-v1/**"
+      - "experiments/qpn-workload-evaluation-v1/**"
       - "scripts/line_qpn_smoke.py"
+      - "scripts/build_qpn_workload_schedules.py"
+      - "scripts/line_qpn_trace_evaluation.py"
+      - "scripts/qpn_workload_smoke.py"
       - "docs/line-solver-validation.md"
   workflow_dispatch:
 
@@ -54,6 +58,11 @@ jobs:
 
       - name: Validate normalized simulator-neutral result
         run: python scripts/validate_simulator_contracts.py
+
+      - name: Run finite measured/replay QPN trace bridge smoke
+        env:
+          LINE_LDES_FORCE_JAR: "1"
+        run: python scripts/qpn_workload_smoke.py
 
       - name: Upload model and result evidence
         if: always()
