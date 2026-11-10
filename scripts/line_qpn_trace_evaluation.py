@@ -24,7 +24,6 @@ from line_solver import (
     Source,
     TimingStrategy,
     Transition,
-    model_to_dict,
 )
 
 from build_qpn_workload_schedules import (
@@ -226,8 +225,6 @@ def run_experiment(
             "confidence_interval": [lower, upper],
         }
 
-    line_model = model_to_dict(build_model(model_spec, interarrivals))
-    line_model_raw = canonical_json(line_model)
     result = {
         "schema_version": "1.0",
         "experiment_id": experiment["experiment_id"],
@@ -246,7 +243,6 @@ def run_experiment(
             "schedule_horizon_s": horizon,
             "termination_policy": "drain_all_offered_jobs",
             "warmup_policy": "none",
-            "line_model_sha256": sha256_bytes(line_model_raw),
             "service_rate_per_s": service_rate,
             "confidence_level": confidence_level,
         },
