@@ -7,6 +7,7 @@ on:
       - ".github/workflows/line-qpn-smoke.yml"
       - "experiments/line-qpn-v1/**"
       - "experiments/qpn-workload-evaluation-v1/**"
+      - "scripts/line_qpn_analytical_control.py"
       - "scripts/line_qpn_smoke.py"
       - "scripts/build_qpn_workload_schedules.py"
       - "scripts/line_qpn_trace_evaluation.py"
