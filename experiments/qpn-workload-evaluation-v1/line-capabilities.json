@@ -23,5 +23,5 @@
     "No packet-level network behavior is modeled."
   ],
   "supported_warmup_policies": ["none"],
-  "supported_termination_kinds": ["simulated_time"]
+  "supported_termination_kinds": ["completions"]
 }
