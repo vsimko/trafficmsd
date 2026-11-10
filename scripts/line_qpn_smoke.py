@@ -46,6 +46,11 @@ def build_model(model_spec: dict, schedule: dict) -> Network:
         raise ValueError("LINE smoke supports only deterministic_periodic arrival_process")
     if process["first_arrival"] != process["interarrival"]:
         raise ValueError("The first arrival must occur one interarrival interval after t=0")
+    if process["jobs_per_arrival"] != 1:
+        raise ValueError(
+            "LINE smoke currently supports only jobs_per_arrival=1; "
+            "received " + str(process["jobs_per_arrival"])
+        )
 
     model = Network(model_spec["model_id"])
     source = Source(model, model_spec["source"]["node"])
@@ -108,6 +113,20 @@ def main() -> None:
     (ARTIFACT_DIR / "model-spec.json").write_bytes(model_spec_raw)
     (ARTIFACT_DIR / "experiment.json").write_bytes(experiment_raw)
     (ARTIFACT_DIR / "arrival-schedule-neutral.json").write_bytes(schedule_raw)
+    # Regression guard: the neutral schema permits multiplicity, but this LINE
+    # adapter currently models one job per periodic arrival only. Never silently
+    # simulate a larger declared batch as a single job.
+    unsupported_schedule = dict(schedule)
+    unsupported_schedule["arrival_process"] = dict(schedule["arrival_process"])
+    unsupported_schedule["arrival_process"]["jobs_per_arrival"] = 2
+    try:
+        build_model(model_spec, unsupported_schedule)
+    except ValueError as error:
+        if "jobs_per_arrival=1" not in str(error):
+            raise
+    else:
+        raise AssertionError("LINE adapter accepted unsupported jobs_per_arrival=2")
+
     model = build_model(model_spec, schedule)
 
     # Hash the actual LINE interchange document, not just the human-authored spec.
