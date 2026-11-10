@@ -165,9 +165,14 @@ def run_experiment(
     if int(experiment["termination"]["value"]) != offered_jobs:
         raise ValueError("completion budget must equal the number of offered jobs")
     service_rate = float(model_spec["queueing_place"]["service_distribution"]["rate_per_s"])
-    horizon = len(schedule["batches"]) * float(schedule["bin_width"])
-    if offered_jobs / horizon >= service_rate:
-        raise ValueError("the configured QPN is unstable for this finite-trace mean arrival rate")
+    full_horizon = len(schedule["batches"]) * float(schedule["bin_width"])
+    last_arrival_bin = max(
+        int(batch["source_bin"]) for batch in schedule["batches"] if int(batch["job_count"]) > 0
+    )
+    horizon = (last_arrival_bin + 1) * float(schedule["bin_width"])
+    mean_offered_rate = offered_jobs / horizon
+    if mean_offered_rate >= service_rate:
+        raise ValueError("the configured QPN is unstable over the active finite-trace horizon")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     trace_path = (output_dir / f"{schedule['schedule_id']}-interarrivals.trace").resolve()
@@ -244,6 +249,9 @@ def run_experiment(
             "elapsed_seconds_total": elapsed_seconds,
             "offered_jobs": offered_jobs,
             "schedule_horizon_s": horizon,
+            "full_schedule_horizon_s": full_horizon,
+            "trailing_idle_bins": len(schedule["batches"]) - last_arrival_bin - 1,
+            "mean_offered_job_rate_per_s": mean_offered_rate,
             "termination_policy": "drain_all_offered_jobs",
             "warmup_policy": "none",
             "service_rate_per_s": service_rate,
