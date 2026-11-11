@@ -292,7 +292,7 @@ evaluate_segment <- function(source, cutoff, segment_name) {
       reconstruction_max_run_length = optional_max(reconstructed_runs)
     ),
     compactness = list(
-      component_count = length(model$components),
+      component_count = length(sparse_model$components),
       scale_zero_residual_count = sum(vapply(model$components, function(item) {
         identical(as.integer(item$scale_index), 0L)
       }, logical(1))),
@@ -362,9 +362,9 @@ validation_rows <- lapply(seq_along(cutoffs), function(index) {
       } else {
         result$bursts$reconstruction_max_run_length
       },
-    component_count = result$compactness$v1_component_count,
-    serialized_model_bytes = result$compactness$v1_serialized_model_bytes,
-    model_size_ratio = result$compactness$v1_model_size_ratio
+    component_count = result$compactness$v2_component_count,
+    serialized_model_bytes = result$compactness$v2_serialized_model_bytes,
+    model_size_ratio = result$compactness$v2_model_size_ratio
   )
 })
 validation_table <- do.call(rbind, validation_rows)
@@ -403,7 +403,7 @@ if (!identical(
 }
 
 # Fidelity objectives are selected from metrics that are defined for this trace.
-# Component count and exact v1 JSON bytes are always minimized as separate costs.
+# Sparse-v2 component count and exact serialized v2 JSON bytes are minimized as separate costs.
 objective_columns <- c("component_count", "serialized_model_bytes")
 if (all(is.finite(validation_table$relative_l1_error))) {
   objective_columns <- c("relative_l1_error", objective_columns)
