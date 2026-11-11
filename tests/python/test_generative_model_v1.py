@@ -161,11 +161,11 @@ class GenerativeModelSemanticValidationTests(unittest.TestCase):
 
     def test_mark_offsets_must_align_and_anchor_regime_zero(self):
         model = valid_model()
-        model["mark_model"]["regime_log_mean_offsets"] = [0.2]
+        model["mark_model"]["regime_log_mean_offsets"] = [0.0]
         self.assert_invalid(model, "offsets length must equal")
         model = valid_model()
         model["mark_model"]["regime_log_mean_offsets"][0] = 0.2
-        self.assert_invalid(model, "zero reference offset")
+        self.assert_invalid(model, "0 was expected")
 
     def test_supported_scales_must_match_active_scales(self):
         model = valid_model()
