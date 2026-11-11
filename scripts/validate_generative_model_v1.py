@@ -56,6 +56,8 @@ def semantic_errors(model: dict[str, Any], tolerance: float = 1e-8) -> list[str]
             "fit.training_end_sample_exclusive - training_start_sample "
             "must equal training_sample_count and be positive"
         )
+    if count > 0 and count & (count - 1) == 0 and start % count != 0:
+        errors.append("power-of-two training ranges must start on a globally aligned sample boundary")
 
     selection = fit["regime_selection"]
     candidates = selection["candidate_counts"]
@@ -77,6 +79,8 @@ def semantic_errors(model: dict[str, Any], tolerance: float = 1e-8) -> list[str]
     if state_ids != expected_ids:
         errors.append("regimes.states regime_id values must be ordered and contiguous from 0")
     initial = regimes["initial_probabilities"]
+    if selection["selected_count"] != regime_count:
+        errors.append("fit.regime_selection.selected_count must equal the number of regime states")
     if len(initial) != regime_count:
         errors.append("regimes.initial_probabilities length must equal the number of states")
     else:
