@@ -170,9 +170,14 @@ def run_experiment(
     last_arrival_bin = max(
         int(batch["source_bin"]) for batch in schedule["batches"] if int(batch["job_count"]) > 0
     )
-    horizon = (last_arrival_bin + 1) * float(schedule["bin_width"])
+    horizon = last_arrival_bin * float(schedule["bin_width"])
+    if not math.isfinite(horizon) or horizon <= 0:
+        raise ValueError(
+            "finite trace must span a positive arrival horizon; "
+            "all jobs cannot arrive only at time zero"
+        )
     mean_offered_rate = offered_jobs / horizon
-    if mean_offered_rate >= service_rate:
+    if not math.isfinite(mean_offered_rate) or mean_offered_rate >= service_rate:
         raise ValueError("the configured QPN is unstable over the active finite-trace horizon")
 
     output_dir.mkdir(parents=True, exist_ok=True)
