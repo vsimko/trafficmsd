@@ -43,7 +43,7 @@ Rscript experiments/generative-fidelity-v1/evaluate.R \
   artifacts/generative-fidelity-v1/evaluation.json
 ```
 
-The evaluator requires `jsonlite`; the metric tests use base R only. It fails on malformed input, mismatched lengths, or fewer than two replicates.
+The evaluator and end-to-end CLI tests require `jsonlite`; the underlying metric functions use base R. It fails on malformed input, mismatched lengths, or fewer than two replicates.
 
 ## Controls and interpretation
 
