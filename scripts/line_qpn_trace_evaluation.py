@@ -180,7 +180,11 @@ def run_experiment(
             model,
             seed=int(seed),
             samples=completion_budget,
-            tranfilter="none",
+            # LINE 3.0.8.0 applies warmupfrac in non-MSER modes too.
+            # Use fixed with 0.0 explicitly; tranfilter="none" alone still
+            # inherits the default 20% warmup and inflates Tput.
+            tranfilter="fixed",
+            warmupfrac=0.0,
             cimethod="none",
             verbose="silent",
         )
