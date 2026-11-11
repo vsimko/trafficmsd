@@ -76,7 +76,7 @@ The initial event probability is recorded separately for every scale. Regime con
 
 ### 2.3 Amplitude marks and emission
 
-When E_(s,k)=1, draw a strictly positive amplitude mark from a Gamma distribution with shape a_(s,j)>0 and scale b_(s,j)>0, conditioned on the current regime j. When E=0, emit zero.
+When E_(s,k)=1, draw a strictly positive amplitude mark. The independent per-(scale, regime) Gamma distribution with shape a_(s,j)>0 and scale b_(s,j)>0 is only the baseline specification: the Westermo training-only audit shows that it is not estimable for most fine-scale/regime cells. The proposed replacement is a shared-shape Gamma model with a scale-dependent log mean and shrinkage-controlled regime offsets; see [the sparse-mark audit](generative-model-v1-sparse-mark-audit.md). A scale with no positive training marks is unfit unless explicitly disabled by policy; it must not be assigned fabricated Gamma parameters. When E=0, emit zero.
 
 Emit the mark at the scale's deterministic emission tick. If multiple scales emit at the same base tick, sum their marks. The generated output is therefore non-negative and uses the same value unit and base sampling interval as the source. The model does not add random within-bin timing: that would require a different observation and workload contract.
 
@@ -89,7 +89,7 @@ This construction explicitly samples both event occurrence and amplitude. Tempor
 3. Run the deterministic decomposition on training data only. Extract one event opportunity sequence per scale using the scale interval and emission phase above. Do not fit on a reconstruction of the entire trace and then claim a held-out evaluation.
 4. Fit the Gaussian-emission HMM to log1p(X_t) on the training interval only, evaluate K=1,2,3 by BIC, and canonicalize regime labels by increasing emission mean.
 5. Decode the training regime path using Viterbi. For each scale and regime, estimate p01 and p11 from the corresponding event transitions, with a declared Beta(1,1) smoothing prior. Estimate positive Gamma marks by maximum likelihood from event amplitudes assigned to that regime.
-6. A scale/regime pair with fewer than 30 positive training events is not fitted: fail with a diagnostic rather than silently borrowing holdout samples or fabricating parameters. A later protocol revision may define principled partial pooling.
+6. For the independent-cell baseline, a scale/regime pair with fewer than 30 positive training events is not fitted. Do not lower this threshold. Evaluate the shared scale-and-regime mark model with shrinkage as a separate, predeclared candidate on training-only folds. A scale with no positive marks is unfit unless explicitly disabled by policy; fail rather than silently borrowing holdout samples or fabricating parameters.
 7. Record algorithm/library versions, fitting seed, convergence diagnostics, selected K, BIC values, training interval, source and derived-input checksums, decomposition parameters, and all units.
 
 The fitted process is a proposal, not a claim that the current deterministic coefficients are unbiased event observations. The exact center-left emission mapping is now audited against compute_emits() and synthetic conformance tests are included; see [the emission semantics audit](generative-model-v1-emission-audit.md). Regime alignment at those emission ticks remains an open modelling choice and must be compared using training data only before fitter implementation.
@@ -137,7 +137,7 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 
 - The HMM's geometric regime durations may underfit long-tailed bursts.
 - Gamma marks may be inadequate for heavy-tailed amplitudes; a lognormal alternative should be evaluated only as a predeclared model comparison, not chosen after holdout inspection.
-- A minimum 30 events per scale/regime may make fine scales or rare regimes unfit. Failures must be reported; partial pooling is not silently applied.
+- A minimum 30 events per scale/regime makes fine scales or rare regimes unfit under independent-cell Gamma estimation. The shared scale-and-regime mark model is a research candidate, not yet a validated replacement; its schema and calibration gates must be completed before fitting/generation.
 - Training intervals must preserve global scale-window alignment: for a power-of-two training length N, require the global training start index to be divisible by N. The emission mask itself is covered by the accompanying conformance tests.
 - A power-of-two training interval limits split flexibility; a future decomposition-window protocol may relax this without changing the v1 schema semantics.
 
