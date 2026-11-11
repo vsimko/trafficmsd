@@ -173,6 +173,7 @@ def validate_model(
 ) -> None:
     """Raise ValueError with all structural and semantic errors."""
     schema = json.loads(Path(schema_path).read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
     validator = Draft202012Validator(schema, format_checker=FormatChecker())
     structural = [
         f"{'.'.join(map(str, error.absolute_path)) or '$'}: {error.message}"
