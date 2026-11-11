@@ -45,7 +45,9 @@ if (is.null(seed_names) || !setequal(seed_names, basename(replicate_files))) {
 }
 seeds <- unlist(manifest$replicate_seeds, use.names = FALSE)
 if (length(seeds) != length(replicate_files) || any(!is.finite(as.numeric(seeds))) ||
-    any(as.numeric(seeds) < 0) || anyDuplicated(as.numeric(seeds))) {
+    any(as.numeric(seeds) < 0) ||
+    any(as.numeric(seeds) != floor(as.numeric(seeds))) ||
+    anyDuplicated(as.numeric(seeds))) {
   stop("Replicate seeds must be unique non-negative finite numbers.", call. = FALSE)
 }
 
