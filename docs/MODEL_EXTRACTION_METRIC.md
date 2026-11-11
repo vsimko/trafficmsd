@@ -55,7 +55,7 @@ MAE and RMSE are scale-dependent and should not be compared across traces with s
 
 ### 2.2 Marginal-distribution fidelity
 
-Report the empirical 1-Wasserstein distance between the source and reconstructed bin-value distributions:
+Report the empirical 1-Wasserstein distance between the source and reconstructed bin-value distributions, along with the source/reconstruction coefficient of variation when the corresponding mean is non-zero:
 \[
 D_{W1}=W_1(\{x_t\},\{\hat x_t\}).
 \]
@@ -82,7 +82,7 @@ For a full-trace diagnostic, compute the threshold once as the source trace's p9
 - median, p95, and maximum exceedance-run length;
 - absolute differences in those run-length summaries where both are defined.
 
-These are diagnostics by default. Promote a burst measure into the primary fidelity constraint only when the target simulation use case is demonstrably sensitive to burst structure. Runs are measured on the observed, unpadded time axis.
+These are diagnostics by default. The holdout report includes exceedance-fraction difference, run counts, median/p95/max run lengths, and run-length differences where defined. Promote a burst measure into the primary fidelity constraint only when the target simulation use case is demonstrably sensitive to burst structure. Runs are measured on the observed, unpadded time axis.
 
 ### 2.5 Use-case-specific primary fidelity set
 
