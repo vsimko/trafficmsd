@@ -75,8 +75,8 @@ python experiments/generative-model-v1-sparse-marks/audit_occurrence_markov.py \
   --output experiments/generative-model-v1-sparse-marks/occurrence-markov-results.json
 ```
 
-The audit reports (n_{00}, n_{01}, n_{10}, n_{11}), plus the separate
-previous-zero and previous-one trial counts for (p_{01}) and (p_{11}). It
+The audit reports `n00`, `n01`, `n10`, and `n11`, plus separate
+previous-zero and previous-one trial counts for `p01` and `p11`. It
 does not fit occurrence probabilities or choose a regime. The current
 `mark_status` field is not sufficient to express occurrence identifiability;
 a separate occurrence status/support contract is required before any fitter.
