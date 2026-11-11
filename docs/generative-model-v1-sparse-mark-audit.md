@@ -92,7 +92,7 @@ For the current Westermo prefix, scale zero is **unfit** unless an explicit inac
 5. Add per-scale and per-regime calibration diagnostics, including upper-tail and quantile coverage. The pooled log score alone is insufficient.
 6. Re-run with an independently validated/canonical HMM implementation before using these results to select regime alignment or implement a production fitter.
 
-The current schema still requires a separate Gamma object in every scale/regime cell and cannot express an inactive channel or shared mark parameters. It must be revised before implementing this candidate; do not serialize this exploratory fit into the current schema.
+The draft schema on this branch has now been revised to carry one shared Gamma mark model and per-scale active/inactive-by-policy/unfit status. The semantic validator still needs to enforce regime-offset alignment, supported-scale consistency, zero occurrence probabilities for inactive scales, and rejection of unfit scales. Do not serialize the exploratory parameter estimates as a production model.
 
 ## 7. Decision
 
