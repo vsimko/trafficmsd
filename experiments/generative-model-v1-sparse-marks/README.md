@@ -57,3 +57,26 @@ Fold 4 coverage at the 99% quantile fell to 87.16% (Gamma) and 82.57%
 Scores are conditional on positive events, not joint occurrence-plus-mark
 scores. No A/B/C regime or mark family is selected; no production fitter,
 generator, or QPN condition is implemented.
+
+
+## Occurrence-Markov support audit
+
+The companion [occurrence-Markov audit](../../docs/generative-model-v1-occurrence-markov-audit.md)
+reports training-only event and transition support for each scale/regime. In the
+frozen prefix, scale 0 is all-zero and scales 4–11 are all-one at their aligned
+opportunities; only scales 1–3 have both event states. Several regime cells in
+scales 1–3 also have very small transition denominators.
+
+Reproduce it with:
+
+```sh
+python experiments/generative-model-v1-sparse-marks/audit_occurrence_markov.py \
+  artifacts/westermo-model-extraction-v1/trace.csv \
+  --output experiments/generative-model-v1-sparse-marks/occurrence-markov-results.json
+```
+
+The audit reports (n_{00}, n_{01}, n_{10}, n_{11}), plus the separate
+previous-zero and previous-one trial counts for (p_{01}) and (p_{11}). It
+does not fit occurrence probabilities or choose a regime. The current
+`mark_status` field is not sufficient to express occurrence identifiability;
+a separate occurrence status/support contract is required before any fitter.
