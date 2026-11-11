@@ -76,7 +76,7 @@ This is dimensionless. Report the per-lag differences as well as their mean. If 
 
 ### 2.4 Burst fidelity
 
-Compute the threshold once as the source trace's p95 and apply it unchanged to both series. Report:
+For a full-trace diagnostic, compute the threshold once as the source trace's p95 and apply it unchanged to both series. For a contiguous holdout, estimate the threshold from the training segment's p95 and apply it unchanged to validation and test; never estimate it from the evaluated segment. Report:
 - absolute difference in the fraction of bins above the threshold;
 - source and reconstruction exceedance-run counts;
 - median, p95, and maximum exceedance-run length;
