@@ -44,6 +44,7 @@ T_CRITICAL_95 = {
     26: 2.055529, 27: 2.051831, 28: 2.048407, 29: 2.045230,
 }
 METRICS = {
+    "arrival_rate": ("ArvR", "jobs/s"),
     "throughput": ("Tput", "jobs/s"),
     "queue_length": ("QLen", "jobs"),
     "utilization": ("Util", "ratio"),
@@ -204,6 +205,20 @@ def run_experiment(
         )
         if queue_row is None:
             raise AssertionError(f"LINE result has no queueing-place row: {rows!r}")
+        observed_arrival_rate = float(queue_row["ArvR"])
+        observed_throughput = float(queue_row["Tput"])
+        if not math.isfinite(observed_arrival_rate) or not math.isfinite(observed_throughput):
+            raise ValueError(f"LINE returned non-finite arrival rate or throughput for seed {seed}")
+        if not math.isclose(observed_arrival_rate, mean_offered_rate, rel_tol=0.02, abs_tol=1e-6):
+            raise ValueError(
+                f"LINE replay arrival rate {observed_arrival_rate:.9g} jobs/s does not "
+                f"match the finite schedule rate {mean_offered_rate:.9g} jobs/s"
+            )
+        if not math.isclose(observed_throughput, observed_arrival_rate, rel_tol=0.05, abs_tol=1e-6):
+            raise ValueError(
+                f"LINE throughput {observed_throughput:.9g} jobs/s does not conserve "
+                f"the observed arrival rate {observed_arrival_rate:.9g} jobs/s"
+            )
         raw_observations = []
         for metric, (source_name, unit) in METRICS.items():
             value = float(queue_row[source_name])
