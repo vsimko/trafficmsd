@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "experiment_id": "replace-with-immutable-experiment-id",
+  "dataset_id": "replace-with-source-dataset-id",
+  "sampling_interval": 1,
+  "time_unit": "second",
+  "value_unit": "bytes",
+  "preprocessing_version": "replace-with-preprocessing-version",
+  "generator_name": "replace-with-generator-name",
+  "generator_version": "replace-with-generator-version",
+  "replicate_seeds": {
+    "replicate-001.csv": 1001,
+    "replicate-002.csv": 1002
+  }
+}
