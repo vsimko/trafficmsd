@@ -46,7 +46,9 @@ The current R package provides multiscale decomposition, reconstruction, and amp
 - Define extraction algorithms and parameter-selection rules.
 - Evaluate information retained and lost during extraction.
 - Measure model complexity consistently (component/parameter count and serialized size at minimum).
-- Define a fidelity–complexity Pareto analysis and predeclared holdout selection rule.
+- Compute the validation Pareto frontier over predeclared fidelity metrics, component count, and exact serialized bytes; select the smallest feasible model only when use-case tolerances are justified and fixed in advance.
+- Report the full candidate grid and evaluate the frozen selection once on the contiguous test segment.
+- Follow [Model-extraction fidelity and complexity metric v1](MODEL_EXTRACTION_METRIC.md) and [evaluation protocol v1](model-extraction-evaluation-v1.md).
 - Test robustness across traces, trace lengths, sampling intervals, and traffic regimes.
 - Provide inspectable examples and diagnostics.
 
