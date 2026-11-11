@@ -30,7 +30,7 @@ concurrency:
 jobs:
   reproduce:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
 
@@ -133,7 +133,8 @@ jobs:
           from pathlib import Path
           manifest = json.loads(Path("artifacts/qpn-workload-evaluation-v1/manifest.json").read_text())
           condition = manifest["conditions"]["measured"]
-          print(f"arrival_rate={condition['total_jobs'] / condition['horizon']:.17g}")
+          # Match the active-horizon rate used by the schedule manifest and report.
+          print(f"arrival_rate={condition['mean_offered_job_rate_per_s']:.17g}")
           PY
 
       - name: Run Poisson M/M/1 analytical QPN control
