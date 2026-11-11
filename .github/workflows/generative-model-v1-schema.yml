@@ -1,0 +1,32 @@
+name: Generative model v1 schema and semantic validation
+
+on:
+  pull_request:
+    branches: [master, main]
+    paths:
+      - ".github/workflows/generative-model-v1-schema.yml"
+      - "schemas/generative-model/v1/**"
+      - "scripts/validate_generative_model_v1.py"
+      - "tests/python/test_generative_model_v1.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: generative-model-v1-schema-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Schema and semantic invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema>=4.20,<5"
+      - name: Run semantic validation tests
+        run: python -m unittest discover -s tests/python -p "test_generative_model_v1.py" -v
