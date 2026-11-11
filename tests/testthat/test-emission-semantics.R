@@ -32,7 +32,7 @@ test_that("compute_emits adds simultaneous emissions from different scales", {
   expect_equal(reconstructed[2L], 3)
   # One-based sample 4 (zero-based 3): scales 0, 1, and 3.
   expect_equal(reconstructed[4L], 3)
-  # One-based sample 16 (zero-based 15): scales 0, 1, 2, 3, and 5.
+  # One-based sample 16 (zero-based 15): scales 0, 1, and 5.
   expect_equal(reconstructed[16L], 3)
   # One-based sample 32 (zero-based 31): scales 0 and 1.
   expect_equal(reconstructed[32L], 2)
