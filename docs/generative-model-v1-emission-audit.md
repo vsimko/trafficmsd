@@ -13,20 +13,20 @@ For a coefficient matrix with rows indexed by scale plus one:
 - Exactly one coefficient is retained per window, at one-based local position L/2, equivalent to zero-based offset L/2-1.
 - The window starts are 0,L,2L,... . The position is therefore globally aligned; it is not a phase that restarts at an arbitrary trace crop.
 
-The implementation constructs a row filter with wfilter[wlen / 2] <- 1 and multiplies the coefficient matrix by that filter. reconstruct_traffic() sums the resulting emitted matrix column-wise. Contributions from different scales at the same sample are additive.
+The implementation constructs a row filter with wfilter[wlen / 2] <- 1 and relies on R's vector recycling to repeat that filter across the row. reconstruct_traffic() sums the resulting emitted matrix column-wise.
 
 For a 32-sample matrix, example emission indices (zero-based) are:
 
 | Scale | Window length | Emission indices |
 |---:|---:|---|
 | 0 | 1 | 0 through 31 |
-| 1 | 2 | 1, 3, 5, ..., 31 |
+| 1 | 2 | 0, 2, 4, ..., 30 |
 | 2 | 4 | 1, 5, 9, ..., 29 |
 | 3 | 8 | 3, 11, 19, 27 |
 | 4 | 16 | 7, 23 |
 | 5 | 32 | 15 |
 
-This yields simultaneous emissions: for example, sample 1 receives scales 0, 1, and 2; sample 3 receives scales 0, 1, and 3. The reconstruction is the sum of those contributions.
+The higher-scale phase sets are pairwise disjoint: at any base sample, at most one scale greater than zero emits. Scale 0 is retained at every sample, so a sample receives either its scale-zero residual alone or that residual plus one higher-scale contribution. For example, zero-based sample 1 receives scales 0 and 2; sample 3 receives scales 0 and 3; sample 15 receives scales 0 and 5. The reconstruction is the sum of the retained contributions.
 
 ## 2. How decomposition populates the rows
 
@@ -48,7 +48,7 @@ After all higher scales, row 1 is produced by applying optimize_intervals() to t
 - A zero at the center-left position means no emitted event for that scale/window, even if the original unique source value was at another position in the window.
 - A non-zero center-left coefficient is the emitted mark amplitude. It is not a timestamp of the original source packet.
 - For scale 0, every sample is an opportunity; a positive residual is an emission and zero is no emission.
-- Sum emissions from all scales at each base sample. Do not overwrite simultaneous contributions.
+- Higher-scale event opportunities have disjoint phases; scale-zero emissions coexist with the higher-scale component at the same tick by construction. Sum the retained contributions rather than overwriting them.
 - Keep the global sample origin and window alignment in the training/holdout split. A crop that restarts scale windows at its own index changes the model's event assignment.
 - Candidate optimization can interpolate between windows and change candidate values. Higher-scale event marks are therefore properties of the extracted reconstruction, not necessarily unchanged observed packet sizes.
 - Reconstruction is deterministic but not guaranteed to equal the original input sample by sample. The generative evaluation must continue to distinguish reconstruction fidelity from generated statistical fidelity.
@@ -67,4 +67,4 @@ Do not select among them using holdout metrics. Record the choice and its traini
 
 ## 5. Synthetic conformance coverage
 
-The accompanying test file uses a 6-row, 32-column coefficient matrix with distinct values to assert the exact emission mask at all scales. A second fixture places unit coefficients at every scale and checks simultaneous emissions by column sum. These tests validate the legacy filter contract; they do not validate a stochastic model, fitting procedure, or empirical fidelity.
+The accompanying test file uses a 6-row, 32-column coefficient matrix with distinct values to assert the exact emission mask at all scales. A second fixture places unit coefficients at every scale and checks that higher-scale phases are disjoint and each active higher-scale sample also retains scale 0. These tests validate the legacy filter contract; they do not validate a stochastic model, fitting procedure, or empirical fidelity.
