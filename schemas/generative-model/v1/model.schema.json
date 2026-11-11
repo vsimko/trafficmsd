@@ -4,70 +4,219 @@
   "title": "TrafficMSD stochastic generative model v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "model_id", "model_kind", "provenance", "observation", "source_model", "fit", "regimes", "scale_processes"],
+  "required": [
+    "schema_version",
+    "model_id",
+    "model_kind",
+    "provenance",
+    "observation",
+    "source_model",
+    "fit",
+    "regimes",
+    "mark_model",
+    "scale_processes"
+  ],
   "properties": {
-    "schema_version": {"const": "1.0"},
-    "model_id": {"type": "string", "minLength": 1},
-    "model_kind": {"const": "multiscale_regime_marked_event_process"},
+    "schema_version": {
+      "const": "1.0"
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_kind": {
+      "const": "multiscale_regime_marked_event_process"
+    },
     "provenance": {
-      "type": "object", "additionalProperties": false,
-      "required": ["dataset_id", "source_sha256", "preprocessing_version", "fitted_with"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "source_sha256",
+        "preprocessing_version",
+        "fitted_with"
+      ],
       "properties": {
-        "dataset_id": {"type": "string", "minLength": 1},
-        "source_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
-        "preprocessing_version": {"type": "string", "minLength": 1},
-        "fitted_with": {"type": "string", "minLength": 1},
-        "fitted_at": {"type": ["string", "null"], "format": "date-time"}
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "preprocessing_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fitted_with": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fitted_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
       }
     },
     "observation": {
-      "type": "object", "additionalProperties": false,
-      "required": ["quantity", "sampling_interval", "time_unit", "value_unit", "bin_convention"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quantity",
+        "sampling_interval",
+        "time_unit",
+        "value_unit",
+        "bin_convention"
+      ],
       "properties": {
-        "quantity": {"type": "string", "minLength": 1},
-        "sampling_interval": {"type": "number", "exclusiveMinimum": 0},
-        "time_unit": {"type": "string", "minLength": 1},
-        "value_unit": {"type": "string", "minLength": 1},
-        "bin_convention": {"const": "left_closed_right_open"}
+        "quantity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sampling_interval": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "time_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bin_convention": {
+          "const": "left_closed_right_open"
+        }
       }
     },
     "source_model": {
-      "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "model_id", "model_kind", "sha256"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "model_id",
+        "model_kind",
+        "sha256"
+      ],
       "properties": {
-        "schema_version": {"enum": ["1.0", "2.0"]},
-        "model_id": {"type": "string", "minLength": 1},
-        "model_kind": {"const": "multiscale_reconstruction"},
-        "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
+        "schema_version": {
+          "enum": [
+            "1.0",
+            "2.0"
+          ]
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_kind": {
+          "const": "multiscale_reconstruction"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
       }
     },
     "fit": {
-      "type": "object", "additionalProperties": false,
-      "required": ["algorithm", "algorithm_version", "training_start_sample", "training_end_sample_exclusive", "training_sample_count", "training_signal_sha256", "decomposition_cutoff_fraction", "fitting_seed", "regime_selection"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "algorithm_version",
+        "training_start_sample",
+        "training_end_sample_exclusive",
+        "training_sample_count",
+        "training_signal_sha256",
+        "decomposition_cutoff_fraction",
+        "fitting_seed",
+        "regime_selection"
+      ],
       "properties": {
-        "algorithm": {"const": "hmm_regime_plus_scale_markov_gamma_v1"},
-        "algorithm_version": {"type": "string", "minLength": 1},
-        "training_start_sample": {"type": "integer", "minimum": 0},
-        "training_end_sample_exclusive": {"type": "integer", "minimum": 1},
-        "training_sample_count": {"type": "integer", "minimum": 16},
-        "training_signal_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
-        "decomposition_cutoff_fraction": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
-        "fitting_seed": {"type": "integer", "minimum": 0},
+        "algorithm": {
+          "const": "hmm_regime_plus_scale_markov_gamma_v1"
+        },
+        "algorithm_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_start_sample": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "training_end_sample_exclusive": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "training_sample_count": {
+          "type": "integer",
+          "minimum": 16
+        },
+        "training_signal_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "decomposition_cutoff_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "fitting_seed": {
+          "type": "integer",
+          "minimum": 0
+        },
         "regime_selection": {
-          "type": "object", "additionalProperties": false,
-          "required": ["candidate_counts", "selected_count", "criterion", "bic_by_count"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "candidate_counts",
+            "selected_count",
+            "criterion",
+            "bic_by_count"
+          ],
           "properties": {
-            "candidate_counts": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 3}, "minItems": 1, "uniqueItems": true},
-            "selected_count": {"type": "integer", "minimum": 1, "maximum": 3},
-            "criterion": {"const": "BIC"},
-            "bic_by_count": {
-              "type": "array", "minItems": 1,
+            "candidate_counts": {
+              "type": "array",
               "items": {
-                "type": "object", "additionalProperties": false,
-                "required": ["regime_count", "bic"],
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "selected_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "criterion": {
+              "const": "BIC"
+            },
+            "bic_by_count": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "regime_count",
+                  "bic"
+                ],
                 "properties": {
-                  "regime_count": {"type": "integer", "minimum": 1, "maximum": 3},
-                  "bic": {"type": "number"}
+                  "regime_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "bic": {
+                    "type": "number"
+                  }
                 }
               }
             }
@@ -76,56 +225,186 @@
       }
     },
     "regimes": {
-      "type": "object", "additionalProperties": false,
-      "required": ["initial_probabilities", "states"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initial_probabilities",
+        "states"
+      ],
       "properties": {
-        "initial_probabilities": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}, "minItems": 1},
-        "states": {
-          "type": "array", "minItems": 1,
+        "initial_probabilities": {
+          "type": "array",
           "items": {
-            "type": "object", "additionalProperties": false,
-            "required": ["regime_id", "transition_probabilities", "log_volume_mean", "log_volume_sd"],
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 1
+        },
+        "states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "regime_id",
+              "transition_probabilities",
+              "log_volume_mean",
+              "log_volume_sd"
+            ],
             "properties": {
-              "regime_id": {"type": "integer", "minimum": 0},
-              "transition_probabilities": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}, "minItems": 1},
-              "log_volume_mean": {"type": "number"},
-              "log_volume_sd": {"type": "number", "exclusiveMinimum": 0}
+              "regime_id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "transition_probabilities": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 1
+              },
+              "log_volume_mean": {
+                "type": "number"
+              },
+              "log_volume_sd": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
             }
           }
         }
       }
     },
     "scale_processes": {
-      "type": "array", "minItems": 1,
+      "type": "array",
+      "minItems": 1,
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["scale_index", "opportunity_interval_samples", "phase_offset_samples", "regime_parameters"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scale_index",
+          "opportunity_interval_samples",
+          "phase_offset_samples",
+          "mark_status",
+          "regime_parameters"
+        ],
         "properties": {
-          "scale_index": {"type": "integer", "minimum": 0},
-          "opportunity_interval_samples": {"type": "integer", "minimum": 1},
-          "phase_offset_samples": {"type": "integer", "minimum": 0},
+          "scale_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "opportunity_interval_samples": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "phase_offset_samples": {
+            "type": "integer",
+            "minimum": 0
+          },
           "regime_parameters": {
-            "type": "array", "minItems": 1,
+            "type": "array",
+            "minItems": 1,
             "items": {
-              "type": "object", "additionalProperties": false,
-              "required": ["regime_id", "initial_event_probability", "event_p01", "event_p11", "amplitude"],
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "regime_id",
+                "initial_event_probability",
+                "event_p01",
+                "event_p11"
+              ],
               "properties": {
-                "regime_id": {"type": "integer", "minimum": 0},
-                "initial_event_probability": {"type": "number", "minimum": 0, "maximum": 1},
-                "event_p01": {"type": "number", "minimum": 0, "maximum": 1},
-                "event_p11": {"type": "number", "minimum": 0, "maximum": 1},
-                "amplitude": {
-                  "type": "object", "additionalProperties": false,
-                  "required": ["family", "shape", "scale"],
-                  "properties": {
-                    "family": {"const": "gamma"},
-                    "shape": {"type": "number", "exclusiveMinimum": 0},
-                    "scale": {"type": "number", "exclusiveMinimum": 0}
-                  }
+                "regime_id": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "initial_event_probability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "event_p01": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "event_p11": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
                 }
               }
             }
+          },
+          "mark_status": {
+            "enum": [
+              "active",
+              "inactive_by_policy",
+              "unfit"
+            ]
           }
+        }
+      }
+    },
+    "mark_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "shape",
+        "log_mean_intercept",
+        "log_mean_scale_slope",
+        "regime_log_mean_offsets",
+        "regime_offset_penalty",
+        "fitted_mark_count",
+        "fitted_scale_indices"
+      ],
+      "properties": {
+        "family": {
+          "const": "gamma"
+        },
+        "shape": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "log_mean_intercept": {
+          "type": "number"
+        },
+        "log_mean_scale_slope": {
+          "type": "number"
+        },
+        "regime_log_mean_offsets": {
+          "type": "array",
+          "minItems": 1,
+          "prefixItems": [
+            {
+              "const": 0
+            }
+          ],
+          "items": {
+            "type": "number"
+          }
+        },
+        "regime_offset_penalty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fitted_mark_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fitted_scale_indices": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 1,
+          "uniqueItems": true
         }
       }
     }
