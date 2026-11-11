@@ -123,7 +123,7 @@ Only after the statistical gate passes, add a generated condition to issue #82. 
 
 ## 6. Schema contract
 
-The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural contract. It now represents one shared Gamma mark model (shape, log-mean scale trend, regime offsets and shrinkage penalty) plus per-scale active/inactive-by-policy/unfit status. A semantic validator must additionally enforce:
+The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural contract. It now represents one shared Gamma mark model (shape, log-mean scale trend, regime offsets and shrinkage penalty) plus per-scale active/inactive-by-policy/unfit status. The Python validator in scripts/validate_generative_model_v1.py and its regression tests now enforce the cross-field invariants below (in addition to structural JSON Schema validation):
 
 - unique contiguous scale indices from zero and scale interval/phase consistency;
 - exactly one occurrence parameter set for every (scale_index, regime_id) pair;
@@ -140,7 +140,7 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 ## 7. Known risks and decision points
 
 - The HMM's geometric regime durations may underfit long-tailed bursts.
-- Gamma marks may be inadequate for heavy-tailed amplitudes; a lognormal alternative should be evaluated only as a predeclared model comparison, not chosen after holdout inspection.
+- Gamma marks may be inadequate for heavy-tailed amplitudes. A same-fold training-only Gamma/lognormal diagnostic on 472 positive marks slightly favored lognormal in weighted conditional mark log score (-7.0618 vs -7.1413), but Gamma won fold 4 and both families under-covered the upper tail there (q99 coverage 87.16% Gamma, 82.57% lognormal). The independent HMM reimplementation is not canonical; neither family is selected. See the [sparse-mark audit](generative-model-v1-sparse-mark-audit.md) and [reproducibility bundle](../experiments/generative-model-v1-sparse-marks/README.md).
 - A minimum 30 events per scale/regime makes fine scales or rare regimes unfit under independent-cell Gamma estimation. The shared scale-and-regime mark model is a research candidate, not yet a validated replacement; its schema and calibration gates must be completed before fitting/generation.
 - Training intervals must preserve global scale-window alignment: for a power-of-two training length N, require the global training start index to be divisible by N. The emission mask itself is covered by the accompanying conformance tests.
 - A power-of-two training interval limits split flexibility; a future decomposition-window protocol may relax this without changing the v1 schema semantics.
@@ -148,7 +148,7 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 ## 8. Implementation sequence
 
 1. Review the code-confirmed emission mapping and settle the still-open regime alignment using training-only comparisons.
-2. Implement schema validation and semantic invariant tests only.
+2. Implement schema validation and semantic invariant tests only. (The initial semantic validator and regression suite are now present; the new dedicated CI workflow must pass before this gate is considered complete.)
 3. Implement fitting with synthetic fixtures and deterministic reproducibility tests.
 4. Implement generation and output/manifest contract.
 5. Run training-only baseline fitting and untouched contiguous holdout evaluation.
