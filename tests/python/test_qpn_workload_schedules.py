@@ -45,7 +45,7 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         self.assertEqual(summary["last_arrival_bin"], 2)
         self.assertEqual(summary["active_horizon"], 0.0)
         self.assertEqual(summary["trailing_idle_bins"], 0)
-        self.assertAlmostEqual(summary["simulation_horizon"], 1.0000000005)
+        self.assertAlmostEqual(summary["simulation_horizon"], 1.5)
         validate_document("schedule", schedule)
 
     def test_active_horizon_is_between_first_and_last_nonempty_bins(self):
@@ -113,6 +113,7 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         self.assertEqual(summary["horizon"], 1.5)
         self.assertEqual(summary["active_horizon"], 0.0)
         self.assertEqual(summary["trailing_idle_bins"], 2)
+        self.assertAlmostEqual(summary["simulation_horizon"], 1.5e-9, places=15)
         self.assertEqual([row["job_count"] for row in schedule["batches"]], [1, 0, 0])
 
     def test_schedule_rejects_nonpositive_mapping(self):
