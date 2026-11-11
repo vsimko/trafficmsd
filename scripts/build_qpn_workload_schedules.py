@@ -127,18 +127,21 @@ def build_schedule(
         for row in batches
         for _ in range(int(row["job_count"]))
     ]
-    event_intervals = [event_epochs[0]]
-    event_intervals.extend(
-        event_epochs[index] - event_epochs[index - 1]
-        for index in range(1, len(event_epochs))
-    )
-    # Native LDES Replayer cycles and floors non-positive intervals to 1e-9.
-    # Stop halfway through the first interval of the next cycle, after every
-    # event in this schedule has arrived but before the replay repeats.
-    effective_intervals = [max(value, 1e-9) for value in event_intervals]
-    simulation_horizon = (
-        sum(effective_intervals) + effective_intervals[0] * 0.5
-    )
+    if event_epochs:
+        event_intervals = [event_epochs[0]]
+        event_intervals.extend(
+            event_epochs[index] - event_epochs[index - 1]
+            for index in range(1, len(event_epochs))
+        )
+        # Native LDES Replayer cycles and floors non-positive intervals to 1e-9.
+        # Stop halfway through the first interval of the next cycle, after every
+        # event in this schedule has arrived but before the replay repeats.
+        effective_intervals = [max(value, 1e-9) for value in event_intervals]
+        simulation_horizon = (
+            sum(effective_intervals) + effective_intervals[0] * 0.5
+        )
+    else:
+        simulation_horizon = 0.0
     summary = {
         "bin_count": len(values),
         "horizon": float(Decimal(len(values)) * bin_width),
