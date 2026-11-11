@@ -7,9 +7,9 @@ This document defines the technical decisions needed to extend `trafficmsd` from
 
 ## 1. Immediate objective
 
-Develop a method that extracts a compact, interpretable, reusable model from measured network traffic.
+Develop a method that extracts a compact, interpretable, reusable model from PCAP-derived network traffic, with a defined path to reproducible simulation workloads.
 
-The initial objective is model extraction, not synthetic traffic generation or simulator integration. Those are downstream capabilities that depend on a well-defined and evaluated model representation.
+The central research question is: given a measured trace and a defined simulation use case, what is the smallest model that preserves the traffic properties that materially affect that simulation? Model extraction is the primary contribution; generation and simulator integration are downstream realization and validation stages, not independent feature goals.
 
 The central distinction is:
 
@@ -133,6 +133,7 @@ The first implementation iteration should explicitly decide:
 5. The initial trace datasets and their licenses.
 6. The extraction-quality metrics and acceptance criteria.
 7. The minimal example that demonstrates the complete extraction path.
+8. The fidelity–complexity objectives, Pareto/constraint-based selection rule, and holdout protocol.
 
 These decisions should be captured before substantial implementation begins.
 
@@ -144,7 +145,7 @@ The model-extraction foundation is ready when:
 - the model representation is documented and versioned;
 - extraction from a trace to a model is reproducible;
 - model contents can be inspected and validated;
-- quality metrics and acceptance criteria are defined;
+- quality and compactness metrics, together with a predeclared fidelity–complexity selection rule, are defined;
 - a minimal example works with a redistributable dataset;
 - limitations and assumptions are documented.
 
