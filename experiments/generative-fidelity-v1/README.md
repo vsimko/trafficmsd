@@ -16,7 +16,7 @@ Passing one layer does not imply passing another. The evaluator deliberately doe
 
 - `REFERENCE.csv`: CSV with exactly `sample_index,value`.
 - `GENERATED_DIR/replicate-*.csv`: at least two independent realization files with the same columns and sample count.
-- `MANIFEST.json`: experiment/dataset identifiers, sampling interval and units, preprocessing version, generator name/version, and a filename-to-unique-seed mapping.
+- `MANIFEST.json`: experiment/dataset identifiers, sampling interval and units, preprocessing version, generator name/version, and a filename-to-unique-seed mapping. See [manifest.example.json](manifest.example.json) for the required structure.
 - Sample indices are contiguous zero-based integers; values are finite and non-negative.
 - All files use the same time origin, regular bin width, value unit, packet/flow selection, and preprocessing contract. These semantics must be recorded in the experiment manifest.
 - Each replicate must have its own recorded random seed and generator/configuration version in the experiment manifest. Do not treat repeated copies of one realization as independent replicates.
