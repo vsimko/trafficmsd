@@ -2,7 +2,8 @@
 
 **Status:** exploratory, training-only; not model selection or validation  
 **Input:** checksum-verified Westermo right-observation-point trace  
-**Frozen prefix:** `[0,2048)`; validation/test observations not read  
+**Frozen prefix:** `[0,2048)`; validation/test rows not consumed or parsed  
+**Training-prefix SHA-256:** `017e38220cc7590653c630455732c90c2c4c80e148a105e1dabe02e133ebe032`  
 **Positive marks by scale 0–11:** 0, 193, 287, 224, 128, 64, 32, 16, 8, 4, 2, 1
 
 ## Protocol
@@ -31,9 +32,9 @@ mark.
 | Fold | Held-out marks | Selected K | Gamma | Lognormal |
 |---:|---:|---:|---:|---:|
 | 1 | 127 | 2 | -6.9644 | **-6.7790** |
-| 2 | 121 | 3 | -6.8535 | **-6.6605** |
+| 2 | 121 | 3 | -6.8537 | **-6.6605** |
 | 3 | 115 | 2 | -6.7257 | **-6.5340** |
-| 4 | 109 | 2 | **-8.1051** | -8.3938 |
+| 4 | 109 | 2 | **-8.1052** | -8.3938 |
 | Weighted | 472 | — | -7.1413 | **-7.0618** |
 
 Lognormal's weighted advantage is 0.0794 nats per mark, but Gamma wins fold 4.
