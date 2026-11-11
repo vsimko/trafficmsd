@@ -95,7 +95,7 @@ def build_model(model_spec: dict[str, Any], trace_path: Path) -> Network:
     sink = Sink(model, model_spec["completion"]["destination"])
     traffic = OpenClass(model, model_spec["job_class"], 0)
 
-    source.set_arrival(traffic, Replayer(str(trace_path), loop=False))
+    # The native LDES serializer drops Replayer.loop; the finite timespan below\n    # prevents the cyclic trace from reaching its next iteration.\n    source.set_arrival(traffic, Replayer(str(trace_path)))
     queue.set_service(traffic, Exp(float(service["rate_per_s"])))
     queue.set_state(int(queue_spec["initial_marking"]))
 
