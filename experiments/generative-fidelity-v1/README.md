@@ -40,7 +40,7 @@ From the repository root:
 ```sh
 Rscript experiments/generative-fidelity-v1/tests.R
 Rscript experiments/generative-fidelity-v1/evaluate.R \
-  path/to/reference.csv path/to/generated-replicates \
+  path/to/reference.csv path/to/generated-replicates path/to/manifest.json \
   artifacts/generative-fidelity-v1/evaluation.json
 ```
 
