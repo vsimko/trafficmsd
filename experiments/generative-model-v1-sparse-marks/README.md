@@ -7,8 +7,8 @@ inside the frozen Westermo training prefix `[0,2048)`.
 ## Reproduction
 
 Requirements: Python 3.10+, NumPy, SciPy. Obtain the checksum-verified
-`westermo-model-extraction-v1` workflow artifact (run 42001977735), extract
-`trace.csv`, then run:
+`westermo-model-extraction-and-qpn-v1` workflow artifact (run 43079950800), extract
+`westermo-model-extraction-v1/trace.csv`, then run:
 
 ```sh
 python experiments/generative-model-v1-sparse-marks/compare_gamma_lognormal.py \
@@ -16,11 +16,11 @@ python experiments/generative-model-v1-sparse-marks/compare_gamma_lognormal.py \
   --output experiments/generative-model-v1-sparse-marks/results.json
 ```
 
-The script reads exactly the first 2,048 CSV rows and stops. It does not read
-validation `[3267,4356)` or test `[4356,5445)`, pad the signal, add synthetic
-events, or fabricate marks. The full trace artifact SHA-256 is recorded from
-the verified artifact metadata; the derived trace checksum is
-`6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7`.
+The script reads exactly the CSV header and first 2,048 rows using an unbuffered,
+line-bounded reader, then verifies the training-prefix SHA-256
+`017e38220cc7590653c630455732c90c2c4c80e148a105e1dabe02e133ebe032`.
+It does not consume or parse validation `[3267,4356)` or test `[4356,5445)`
+rows, pad the signal, add synthetic events, or fabricate marks.
 
 The decomposition is computed once on the full frozen training prefix, so these are rolling-origin folds for HMM/mark fitting, not strict end-to-end causal decomposition replays. Neighbor-window interval optimization can use context elsewhere inside the same training prefix; treat scores as conditional diagnostics, not unbiased real-time forecast estimates. The decomposition port is checked against the frozen positive mark counts
 `0,193,287,224,128,64,32,16,8,4,2,1`. Each fold fits a diagonal-Gaussian HMM
