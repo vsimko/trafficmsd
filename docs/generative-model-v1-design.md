@@ -128,6 +128,7 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 - unique contiguous scale indices from zero and scale interval/phase consistency;
 - exactly one occurrence parameter set for every (scale_index, regime_id) pair;
 - the shared mark-model regime-offset vector has exactly one entry per regime and uses regime 0 as the zero-offset reference;
+- each scale records its positive_training_mark_count; active scales require positive evidence, and fitted_mark_count must equal the sum over active scales;
 - fitted_scale_indices exactly match scale processes whose mark_status is active; unfit scales remain explicit and are excluded rather than coerced to policy-inactive;
 - inactive_by_policy scales have zero initial/event probabilities; their explicit policy status is distinct from insufficient evidence (unfit);
 - all regime transition rows and initial probabilities sum to one within a documented tolerance;
@@ -141,7 +142,7 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 
 - The HMM's geometric regime durations may underfit long-tailed bursts.
 - Gamma marks may be inadequate for heavy-tailed amplitudes. A same-fold training-only Gamma/lognormal diagnostic on 472 positive marks slightly favored lognormal in weighted conditional mark log score (-7.0618 vs -7.1413), but Gamma won fold 4 and both families under-covered the upper tail there (q99 coverage 87.16% Gamma, 82.57% lognormal). The independent HMM reimplementation is not canonical; neither family is selected. See the [sparse-mark audit](generative-model-v1-sparse-mark-audit.md) and [reproducibility bundle](../experiments/generative-model-v1-sparse-marks/README.md).
-- A minimum 30 events per scale/regime makes fine scales or rare regimes unfit under independent-cell Gamma estimation. The shared scale-and-regime mark model is a research candidate, not yet a validated replacement; its schema and calibration gates must be completed before fitting/generation.
+- A minimum 30 positive events per (scale, regime) remains mandatory for any independent Gamma estimate. The schema represents only one shared-shape Gamma regression with scale trend and regularized regime offsets; this partial-pooling candidate is not an independent per-cell estimate and does not waive that threshold. The shared model remains exploratory, not a validated replacement.
 - Training intervals must preserve global scale-window alignment: for a power-of-two training length N, require the global training start index to be divisible by N. The emission mask itself is covered by the accompanying conformance tests.
 - A power-of-two training interval limits split flexibility; a future decomposition-window protocol may relax this without changing the v1 schema semantics.
 
