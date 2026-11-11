@@ -129,10 +129,12 @@ class GenerativeModelSemanticValidationTests(unittest.TestCase):
     def test_valid_model_with_explicit_policy_inactive_scale(self):
         validate_model(valid_model(), DEFAULT_SCHEMA)
 
-    def test_unfit_scale_is_rejected_not_silently_zeroed(self):
+    def test_unfit_scale_remains_distinct_from_policy_inactive(self):
         model = valid_model()
         model["scale_processes"][0]["mark_status"] = "unfit"
-        self.assert_invalid(model, "unfit scales")
+        model["scale_processes"][0]["regime_parameters"][0]["event_p11"] = 0.1
+        validate_model(model, DEFAULT_SCHEMA)
+        self.assertEqual(model["mark_model"]["fitted_scale_indices"], [1])
 
     def test_inactive_scale_requires_zero_occurrence_probabilities(self):
         model = valid_model()
