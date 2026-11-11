@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one finite, trace-driven QPN workload experiment with LINE Solver."""
+"""Run one fixed-horizon, trace-driven QPN workload experiment with LINE Solver."""
 
 from __future__ import annotations
 
@@ -156,8 +156,8 @@ def run_experiment(
         raise ValueError("model, schedule, and experiment time units must match")
     if experiment["warmup"]["policy"] != "none":
         raise ValueError("finite trace runs must use warmup=none")
-    if experiment["termination"]["kind"] != "completions":
-        raise ValueError("finite trace runs must drain all offered jobs")
+    if experiment["termination"]["kind"] != "simulated_time":
+        raise ValueError("finite trace runs require a fixed simulated-time horizon")
     if len(experiment["replications"]["seeds"]) != experiment["replications"]["count"]:
         raise ValueError("replication count must match the explicit seed list")
 
@@ -167,6 +167,18 @@ def run_experiment(
         raise ValueError("completion budget must equal the number of offered jobs")
     service_rate = float(model_spec["queueing_place"]["service_distribution"]["rate_per_s"])
     full_horizon = len(schedule["batches"]) * float(schedule["bin_width"])
+    effective_interarrivals = [max(value, 1e-9) for value in interarrivals]
+    last_arrival_epoch = sum(effective_interarrivals)
+    first_arrival_epoch = effective_interarrivals[0]
+    simulation_horizon = last_arrival_epoch + first_arrival_epoch * 0.5
+    configured_horizon = float(experiment["termination"]["value"])
+    if not math.isclose(
+        configured_horizon, simulation_horizon, rel_tol=1e-12, abs_tol=1e-12
+    ):
+        raise ValueError(
+            "experiment simulated-time termination does not match the finite "
+            "schedule horizon ending halfway through the next replay cycle"
+        )
     arrival_bins = [
         int(batch["source_bin"])
         for batch in schedule["batches"]
@@ -174,20 +186,17 @@ def run_experiment(
     ]
     first_arrival_bin = min(arrival_bins)
     last_arrival_bin = max(arrival_bins)
-    first_arrival_epoch = first_arrival_bin * float(schedule["bin_width"])
-    last_arrival_epoch = last_arrival_bin * float(schedule["bin_width"])
-    horizon = last_arrival_epoch - first_arrival_epoch
+    first_schedule_arrival_epoch = first_arrival_bin * float(schedule["bin_width"])
+    last_schedule_arrival_epoch = last_arrival_bin * float(schedule["bin_width"])
+    horizon = simulation_horizon
     if not math.isfinite(horizon) or horizon <= 0:
-        raise ValueError(
-            "finite trace must span a positive interval between first and last arrivals; "
-            "a single arrival epoch has no measurable interarrival horizon"
-        )
+        raise ValueError("finite trace must define a positive simulated-time horizon")
     mean_offered_rate = offered_jobs / horizon
-    trace_mean_interarrival_rate = offered_jobs / sum(interarrivals)
+    trace_mean_interarrival_rate = offered_jobs / sum(effective_interarrivals)
     if not math.isfinite(trace_mean_interarrival_rate) or trace_mean_interarrival_rate <= 0:
         raise ValueError("trace mean interarrival rate must be finite and positive")
     if not math.isfinite(mean_offered_rate) or mean_offered_rate >= service_rate:
-        raise ValueError("the configured QPN is unstable over the active finite-trace horizon")
+        raise ValueError("the configured QPN is unstable over the finite simulation horizon")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     trace_path = (output_dir / f"{schedule['schedule_id']}-interarrivals.trace").resolve()
@@ -201,7 +210,8 @@ def run_experiment(
         solver = SolverLDES(
             model,
             seed=int(seed),
-            samples=offered_jobs,
+            samples=max(200000, offered_jobs * 100),
+            timespan=[0.0, simulation_horizon],
             tranfilter="none",
             cimethod="none",
             verbose="silent",
@@ -245,7 +255,7 @@ def run_experiment(
         replications.append({
             "index": index,
             "seed": int(seed),
-            "termination_reason": "completed",
+            "termination_reason": "simulated_time_horizon",
             "raw_observations": raw_observations,
         })
 
@@ -284,11 +294,13 @@ def run_experiment(
             "full_schedule_horizon_s": full_horizon,
             "first_arrival_epoch_s": first_arrival_epoch,
             "last_arrival_epoch_s": last_arrival_epoch,
+            "last_schedule_arrival_epoch_s": last_schedule_arrival_epoch,
+            "first_schedule_arrival_epoch_s": first_schedule_arrival_epoch,
             "leading_idle_bins": first_arrival_bin,
             "trailing_idle_bins": len(schedule["batches"]) - last_arrival_bin - 1,
             "mean_offered_job_rate_per_s": mean_offered_rate,
             "trace_mean_interarrival_rate_per_s": trace_mean_interarrival_rate,
-            "termination_policy": "drain_all_offered_jobs",
+            "termination_policy": "fixed_simulated_time_before_next_replay_cycle",
             "warmup_policy": "none",
             "service_rate_per_s": service_rate,
             "confidence_level": confidence_level,
