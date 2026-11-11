@@ -23,6 +23,33 @@ Fit the regime process to log(1 + X_t), where X_t is the training-only observed 
 
 This is an intentionally simple regime model. Its geometric dwell-time assumption is a known limitation and must be tested against burst-run metrics; a hidden semi-Markov extension is out of v1 scope.
 
+
+### 2.1.1 Regime-alignment alternatives and training-only comparison
+
+The HMM observation used to define Z_t is not yet selected. Compare these three alternatives on the same contiguous training prefix, with identical scale extraction and event targets:
+
+| Candidate | Regime observation | What it preserves | Main risk |
+|---|---|---|---|
+| A — original-signal HMM | Scalar log1p(X_t); use the predicted regime distribution at each scale's emission tick | The original measured base-tick level and its aggregate bursts | The signal includes contributions that decomposition later relocates or removes; it can assign a regime from a sample whose original value is not the emitted mark |
+| B — scale-aware emitted HMM | Per-tick vector (log1p(C_0,t), ..., log1p(C_S,t)), where C_s,t is the emitted contribution of scale s at tick t; use a multivariate diagonal-Gaussian HMM | Which scale contributed at each tick, including scale-zero residual versus higher-scale marks | Sparse higher-scale channels and many near-zero dimensions can make covariance estimates and rare-regime occupancy unstable |
+| C — aggregate-emission HMM | Scalar log1p(R_t), where R_t = sum_s C_s,t; use the predicted regime distribution at each scale's emission tick | The exact base-tick signal represented by the emitted reconstruction | Summation discards scale identity; different scale combinations can produce the same aggregate |
+
+Here C_s,t is zero except at the audited emission opportunities. It must be extracted from the training-only decomposition; do not reconstruct the features from the full trace. Candidate B is a distinct multivariate observation model, not an HMM fitted independently to each scale.
+
+**Common training-only evaluation protocol**
+
+1. Freeze the dataset checksum, preprocessing and global sample origin. Use the already declared contiguous training segment only. Select the largest power-of-two prefix beginning at global sample zero that fits inside that segment; do not pad observed training values with synthetic zeros. Record the exact half-open range. Validation and test samples must not be read by this comparison.
+2. Build X_t, C_s,t, and R_t from that same prefix. Use identical deterministic decomposition settings for B and C.
+3. Fit K=1,2,3 regime candidates for each observation representation, recording convergence and parameter counts. Do not compare raw HMM BIC values across A/B/C as if they were on a common likelihood scale: the observation spaces and dimensions differ.
+4. To compare the alternatives on a common target, use blocked rolling-origin folds wholly inside the training prefix. For each fold, fit the regime model on the preceding training block, then obtain the one-step predictive regime distribution at tick t from observations only through t-1. Do not use the current tick's observation or a smoothed full-sequence posterior to condition the event at t; either would leak the target emission into its own regime assignment.
+5. With that predictive regime distribution, score the same scale-specific event indicators and positive marks for all candidates. Use the same Beta(1,1)-smoothed event-transition estimator and the same Gamma mark family for every candidate. Report joint held-out-within-training log predictive density per opportunity, separately for occurrence and positive amplitude, plus per-scale coverage and calibration diagnostics. Folds, minimum event counts and all tie-breakers must be fixed before inspecting scores.
+6. Report regime occupancy, transition matrices, convergence failures and state stability across folds as secondary diagnostics. Canonicalize labels by the fitted emission mean for univariate candidates; for B, use a deterministic ordering based on the vector of scale-wise emission means. Do not treat numeric state labels as comparable across fits.
+7. Prefer an alternative only if its common-target predictive score improves consistently across training folds without material instability or unfit scale/regime cells. If evidence is tied or fold-sensitive, retain the simplest adequate representation and document the uncertainty; do not consult the final holdout to break the tie.
+
+The predictive-prior rule is important for all three candidates: regime inference at tick t must not condition on the same-tick observed event or mark whose conditional distribution is being evaluated. At generation time the regime is sampled from its Markov transition law, not inferred from a future or contemporaneous generated observation.
+
+**Current comparison result (11 November 2026): not empirically determined.** The completed PR CI validates the deterministic emission mask and package behavior, but its model-extraction smoke artifact contains only a 32-sample synthetic fixture. It is not a Westermo training trace and cannot support regime selection. The immutable Westermo source is published as a release archive, but no extracted training-signal artifact from the Westermo extraction workflow is currently attached to this PR's CI runs. Therefore no A/B/C scores, selected K, or regime winner are claimed. The comparison is blocked on producing and checksum-verifying the training-only Westermo signal and emitted scale channels. This is an explicit data-availability blocker, not evidence in favour of any candidate.
+
 ### 2.2 Scale-specific event process
 
 For scale s, define the event opportunity interval and emission phase using the deterministic decomposition convention:
