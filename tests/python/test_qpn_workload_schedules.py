@@ -9,6 +9,7 @@ from pathlib import Path
 from scripts.build_qpn_workload_schedules import (
     build_schedule,
     read_signal_csv,
+    schedule_interarrivals,
     validate_document,
 )
 
@@ -68,6 +69,19 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
             [row["job_count"] for row in schedule["batches"]],
             [0, 1, 0, 1, 0],
         )
+
+    def test_periodic_interarrivals_include_the_cycle_boundary_gap(self):
+        schedule, summary = build_schedule(
+            [Decimal("0"), Decimal("10"), Decimal("0"), Decimal("10"), Decimal("0")],
+            schedule_id="test-periodic-cycle",
+            time_unit="s",
+            bin_width=Decimal("0.5"),
+            bytes_per_job=Decimal("10"),
+        )
+        intervals = schedule_interarrivals(schedule)
+        self.assertEqual(intervals, [1.5, 1.0])
+        self.assertEqual(sum(intervals), summary["periodic_replay_period"])
+        self.assertEqual(len(intervals), summary["total_jobs"])
 
     def test_periodic_replay_gap_preserves_cycle_after_batched_arrivals(self):
         schedule, summary = build_schedule(
