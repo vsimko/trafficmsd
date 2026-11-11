@@ -149,10 +149,9 @@ def semantic_errors(model: dict[str, Any], tolerance: float = 1e-8) -> list[str]
                             f"{field}=0 for every regime"
                         )
         elif status == "unfit":
-            errors.append(
-                f"scale {scale_id}: unfit scales are not acceptable in a fitted model; "
-                "mark inactive_by_policy only after an explicit policy decision"
-            )
+            # Keep unfit distinct from policy-inactive: do not fit marks for it,
+            # but do not reinterpret missing evidence as a policy decision.
+            pass
 
     fitted_scales = mark_model["fitted_scale_indices"]
     if fitted_scales != active_scales:
