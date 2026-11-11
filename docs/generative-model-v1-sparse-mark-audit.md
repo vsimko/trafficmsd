@@ -126,7 +126,7 @@ parameterizes the same arithmetic mean as the Gamma model.
 
 Lognormal improves the pooled conditional mark score by 0.0795 nats/mark and
 wins three folds; Gamma wins fold 4. This is not stable enough to select a
-family. The independently reimplemented HMM selected K=2,3,2,2, differing
+family. The decomposition is frozen once on the complete 2,048-sample training prefix; interval optimization can therefore use neighboring-window context beyond an individual fold origin. The rolling origins apply to HMM and mark-parameter fitting, not to a strict end-to-end causal decomposition replay. The independently reimplemented HMM selected K=2,3,2,2, differing
 from the earlier A/B/C exploratory run. The result is therefore a separate
 diagnostic, not a canonical HMM reproduction.
 
