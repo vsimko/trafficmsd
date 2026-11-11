@@ -93,6 +93,7 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         )
         self.assertEqual(summary["total_jobs"], 3)
         self.assertEqual(summary["active_horizon"], 0.0)
+        self.assertEqual(schedule_interarrivals(schedule), [1.0, 0.0, 0.0])
         # Three simultaneous jobs occupy one epoch. The cyclic Replayer
         # must wait one full signal period before the next batch.
         self.assertAlmostEqual(summary["periodic_replay_gap"], 1.0)
