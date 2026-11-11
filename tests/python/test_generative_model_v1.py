@@ -177,6 +177,17 @@ class GenerativeModelSemanticValidationTests(unittest.TestCase):
         model["fit"]["training_end_sample_exclusive"] = 65
         self.assert_invalid(model, "must equal training_sample_count")
 
+    def test_selected_regime_count_must_match_state_count(self):
+        model = valid_model()
+        model["fit"]["regime_selection"]["selected_count"] = 1
+        self.assert_invalid(model, "selected_count must equal the number of regime states")
+
+    def test_power_of_two_training_range_must_be_globally_aligned(self):
+        model = valid_model()
+        model["fit"]["training_start_sample"] = 1
+        model["fit"]["training_end_sample_exclusive"] = 65
+        self.assert_invalid(model, "globally aligned sample boundary")
+
     def test_bic_rows_must_cover_each_candidate_once(self):
         model = valid_model()
         model["fit"]["regime_selection"]["bic_by_count"].pop()
