@@ -214,6 +214,12 @@ def run_experiment(
             cimethod="none",
             verbose="silent",
         )
+        # Run the finite transient path without requesting the optional
+        # trajectory payload. Then consume the metrics block from that same
+        # result; avg_table() otherwise re-enters getTranAvg() and its sparse
+        # trajectory-only station table for Replayer-driven QPN models.
+        solver.runAnalyzer(trajectory=False)
+        solver.options.timespan = None
         table = solver.avg_table()
         elapsed_seconds += time.perf_counter() - started
         rows = table.reset_index().to_dict(orient="records")
@@ -226,7 +232,11 @@ def run_experiment(
             None,
         )
         if queue_row is None:
-            raise AssertionError(f"LINE result has no queueing-place row: {rows!r}")
+            raise AssertionError(
+                f"LINE result has no queueing-place row: {rows!r}; "
+                f"stations={getattr(solver, '_station_names', None)!r}; "
+                f"stopping_reason={getattr(getattr(solver, '_result', None), 'stopping_reason', None)!r}"
+            )
         observed_arrival_rate = float(queue_row["ArvR"])
         observed_throughput = float(queue_row["Tput"])
         if not math.isfinite(observed_arrival_rate) or not math.isfinite(observed_throughput):
