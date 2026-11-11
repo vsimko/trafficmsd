@@ -4,7 +4,7 @@
 **Scope:** deterministic model extraction and reconstruction  
 **Not covered:** claims of statistically realistic synthetic generation or simulator validity
 
-This protocol defines how to evaluate the first TrafficMSD model-extraction representation. It is deliberately limited to properties that can be tested against the measured input trace. A good reconstruction score does not establish that the model is a stochastic traffic generator.
+This protocol defines how to evaluate the first TrafficMSD model-extraction representation. It is deliberately limited to properties that can be tested against the measured input trace. A good reconstruction score does not establish that the model is a stochastic traffic generator. The operational fidelity vector, complexity objectives, Pareto dominance rule, and selection procedure are defined in [Model-extraction fidelity and complexity metric v1](MODEL_EXTRACTION_METRIC.md).
 
 ## 1. Evaluation unit and input contract
 
