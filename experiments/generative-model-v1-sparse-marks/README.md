@@ -37,7 +37,7 @@ mean scale.
 
 ## Results
 
-See [results.json](results.json). The weighted conditional mark log score over
+See [results.md](results.md) for the committed result summary; rerunning the command writes a fresh machine-readable JSON report. The weighted conditional mark log score over
 472 held-out-within-training marks was -7.1413 for Gamma and -7.0618 for
 lognormal (lognormal advantage 0.0794 nats/mark). Lognormal was better in folds
 1–3; Gamma was better in fold 4. The selected HMM state counts were 2,3,2,2,
