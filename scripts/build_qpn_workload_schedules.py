@@ -321,6 +321,11 @@ def main() -> None:
     }
 
     for suffix, raw_signal, condition_name, schedule, summary, schedule_raw in prepared:
+        if summary["active_horizon"] <= 0:
+            raise ValueError(
+                f"{condition_name} must contain arrivals at two distinct epochs "
+                "to define a positive first-to-last arrival span"
+            )
         arrival_rate = summary["total_jobs"] / summary["active_horizon"]
         if not math.isfinite(service_rate) or service_rate <= arrival_rate:
             raise ValueError(
