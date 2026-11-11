@@ -22,7 +22,7 @@ events, or fabricate marks. The full trace artifact SHA-256 is recorded from
 the verified artifact metadata; the derived trace checksum is
 `6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7`.
 
-The decomposition port is checked against the frozen positive mark counts
+The decomposition is computed once on the full frozen training prefix, so these are rolling-origin folds for HMM/mark fitting, not strict end-to-end causal decomposition replays. Neighbor-window interval optimization can use context elsewhere inside the same training prefix; treat scores as conditional diagnostics, not unbiased real-time forecast estimates. The decomposition port is checked against the frozen positive mark counts
 `0,193,287,224,128,64,32,16,8,4,2,1`. Each fold fits a diagonal-Gaussian HMM
 to the observations available before its origin, selects K=1,2,3 by BIC, fits
 both mark families with the same scale trend and L2 regime-offset penalty
