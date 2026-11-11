@@ -149,7 +149,7 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 ## 8. Implementation sequence
 
 1. Review the code-confirmed emission mapping and settle the still-open regime alignment using training-only comparisons.
-2. Implement schema validation and semantic invariant tests only. (The initial semantic validator and 15-case regression suite are present; the dedicated schema/semantic CI workflow passed on the current PR head.)
+2. Implement schema validation and semantic invariant tests only. (The initial semantic validator and 17-case regression suite are present; the dedicated schema/semantic CI workflow passed on the current PR head.)
 3. Implement fitting with synthetic fixtures and deterministic reproducibility tests.
 4. Implement generation and output/manifest contract.
 5. Run training-only baseline fitting and untouched contiguous holdout evaluation.
