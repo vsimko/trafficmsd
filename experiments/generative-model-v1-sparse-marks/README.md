@@ -85,3 +85,17 @@ stored separately; a fitted value requires observed support, an unfit value is
 statuses are independent of `mark_status`. A nonzero denominator can remain
 `unfit` under a future predeclared sufficiency rule; no threshold or pooling
 strength is selected here.
+
+## Decomposition cutoff sensitivity
+
+The [cutoff sensitivity report](cutoff-sensitivity.md) checks occurrence-count stability across six descriptive interval-cutoff fractions using only the pinned training prefix. It is not a cutoff-selection procedure.
+
+Requirements: Python 3.10+ and NumPy. Reproduce with:
+
+```sh
+python experiments/generative-model-v1-sparse-marks/audit_cutoff_sensitivity.py \
+  artifacts/westermo-model-extraction-v1/trace.csv \
+  --output experiments/generative-model-v1-sparse-marks/cutoff-sensitivity-results.json
+```
+
+The script reads exactly the header plus 2,048 training rows, verifies the prefix SHA-256, and checks that fraction 0.004 reproduces the committed occurrence counts. It never reads validation/test rows or adds events.

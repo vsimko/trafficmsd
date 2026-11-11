@@ -1,0 +1,634 @@
+{
+  "experiment": "westermo-training-prefix-decomposition-cutoff-sensitivity",
+  "status": "descriptive_training_only_not_model_selection",
+  "training_prefix": [
+    0,
+    2048
+  ],
+  "training_prefix_sha256": "017e38220cc7590653c630455732c90c2c4c80e148a105e1dabe02e133ebe032",
+  "validation_test_rows_read": false,
+  "synthetic_or_artificial_events": false,
+  "cutoff_fractions": [
+    0.001,
+    0.002,
+    0.004,
+    0.008,
+    0.016,
+    0.032
+  ],
+  "results": [
+    {
+      "cutoff_fraction": 0.001,
+      "scales": [
+        {
+          "scale": 0,
+          "opportunities": 2048,
+          "positive_events": 134,
+          "zero_events": 1914,
+          "occupancy": 0.0654296875,
+          "variation": "variable"
+        },
+        {
+          "scale": 1,
+          "opportunities": 1024,
+          "positive_events": 609,
+          "zero_events": 415,
+          "occupancy": 0.5947265625,
+          "variation": "variable"
+        },
+        {
+          "scale": 2,
+          "opportunities": 512,
+          "positive_events": 442,
+          "zero_events": 70,
+          "occupancy": 0.86328125,
+          "variation": "variable"
+        },
+        {
+          "scale": 3,
+          "opportunities": 256,
+          "positive_events": 234,
+          "zero_events": 22,
+          "occupancy": 0.9140625,
+          "variation": "variable"
+        },
+        {
+          "scale": 4,
+          "opportunities": 128,
+          "positive_events": 128,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 5,
+          "opportunities": 64,
+          "positive_events": 64,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 6,
+          "opportunities": 32,
+          "positive_events": 32,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 7,
+          "opportunities": 16,
+          "positive_events": 16,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 8,
+          "opportunities": 8,
+          "positive_events": 8,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 9,
+          "opportunities": 4,
+          "positive_events": 4,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 10,
+          "opportunities": 2,
+          "positive_events": 2,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 11,
+          "opportunities": 1,
+          "positive_events": 1,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        }
+      ]
+    },
+    {
+      "cutoff_fraction": 0.002,
+      "scales": [
+        {
+          "scale": 0,
+          "opportunities": 2048,
+          "positive_events": 64,
+          "zero_events": 1984,
+          "occupancy": 0.03125,
+          "variation": "variable"
+        },
+        {
+          "scale": 1,
+          "opportunities": 1024,
+          "positive_events": 360,
+          "zero_events": 664,
+          "occupancy": 0.3515625,
+          "variation": "variable"
+        },
+        {
+          "scale": 2,
+          "opportunities": 512,
+          "positive_events": 403,
+          "zero_events": 109,
+          "occupancy": 0.787109375,
+          "variation": "variable"
+        },
+        {
+          "scale": 3,
+          "opportunities": 256,
+          "positive_events": 234,
+          "zero_events": 22,
+          "occupancy": 0.9140625,
+          "variation": "variable"
+        },
+        {
+          "scale": 4,
+          "opportunities": 128,
+          "positive_events": 128,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 5,
+          "opportunities": 64,
+          "positive_events": 64,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 6,
+          "opportunities": 32,
+          "positive_events": 32,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 7,
+          "opportunities": 16,
+          "positive_events": 16,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 8,
+          "opportunities": 8,
+          "positive_events": 8,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 9,
+          "opportunities": 4,
+          "positive_events": 4,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 10,
+          "opportunities": 2,
+          "positive_events": 2,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 11,
+          "opportunities": 1,
+          "positive_events": 1,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        }
+      ]
+    },
+    {
+      "cutoff_fraction": 0.004,
+      "scales": [
+        {
+          "scale": 0,
+          "opportunities": 2048,
+          "positive_events": 0,
+          "zero_events": 2048,
+          "occupancy": 0,
+          "variation": "all_zero"
+        },
+        {
+          "scale": 1,
+          "opportunities": 1024,
+          "positive_events": 193,
+          "zero_events": 831,
+          "occupancy": 0.1884765625,
+          "variation": "variable"
+        },
+        {
+          "scale": 2,
+          "opportunities": 512,
+          "positive_events": 287,
+          "zero_events": 225,
+          "occupancy": 0.560546875,
+          "variation": "variable"
+        },
+        {
+          "scale": 3,
+          "opportunities": 256,
+          "positive_events": 224,
+          "zero_events": 32,
+          "occupancy": 0.875,
+          "variation": "variable"
+        },
+        {
+          "scale": 4,
+          "opportunities": 128,
+          "positive_events": 128,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 5,
+          "opportunities": 64,
+          "positive_events": 64,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 6,
+          "opportunities": 32,
+          "positive_events": 32,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 7,
+          "opportunities": 16,
+          "positive_events": 16,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 8,
+          "opportunities": 8,
+          "positive_events": 8,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 9,
+          "opportunities": 4,
+          "positive_events": 4,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 10,
+          "opportunities": 2,
+          "positive_events": 2,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 11,
+          "opportunities": 1,
+          "positive_events": 1,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        }
+      ]
+    },
+    {
+      "cutoff_fraction": 0.008,
+      "scales": [
+        {
+          "scale": 0,
+          "opportunities": 2048,
+          "positive_events": 0,
+          "zero_events": 2048,
+          "occupancy": 0,
+          "variation": "all_zero"
+        },
+        {
+          "scale": 1,
+          "opportunities": 1024,
+          "positive_events": 43,
+          "zero_events": 981,
+          "occupancy": 0.0419921875,
+          "variation": "variable"
+        },
+        {
+          "scale": 2,
+          "opportunities": 512,
+          "positive_events": 217,
+          "zero_events": 295,
+          "occupancy": 0.423828125,
+          "variation": "variable"
+        },
+        {
+          "scale": 3,
+          "opportunities": 256,
+          "positive_events": 155,
+          "zero_events": 101,
+          "occupancy": 0.60546875,
+          "variation": "variable"
+        },
+        {
+          "scale": 4,
+          "opportunities": 128,
+          "positive_events": 128,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 5,
+          "opportunities": 64,
+          "positive_events": 64,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 6,
+          "opportunities": 32,
+          "positive_events": 32,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 7,
+          "opportunities": 16,
+          "positive_events": 16,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 8,
+          "opportunities": 8,
+          "positive_events": 8,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 9,
+          "opportunities": 4,
+          "positive_events": 4,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 10,
+          "opportunities": 2,
+          "positive_events": 2,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 11,
+          "opportunities": 1,
+          "positive_events": 1,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        }
+      ]
+    },
+    {
+      "cutoff_fraction": 0.016,
+      "scales": [
+        {
+          "scale": 0,
+          "opportunities": 2048,
+          "positive_events": 0,
+          "zero_events": 2048,
+          "occupancy": 0,
+          "variation": "all_zero"
+        },
+        {
+          "scale": 1,
+          "opportunities": 1024,
+          "positive_events": 0,
+          "zero_events": 1024,
+          "occupancy": 0,
+          "variation": "all_zero"
+        },
+        {
+          "scale": 2,
+          "opportunities": 512,
+          "positive_events": 56,
+          "zero_events": 456,
+          "occupancy": 0.109375,
+          "variation": "variable"
+        },
+        {
+          "scale": 3,
+          "opportunities": 256,
+          "positive_events": 126,
+          "zero_events": 130,
+          "occupancy": 0.4921875,
+          "variation": "variable"
+        },
+        {
+          "scale": 4,
+          "opportunities": 128,
+          "positive_events": 128,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 5,
+          "opportunities": 64,
+          "positive_events": 64,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 6,
+          "opportunities": 32,
+          "positive_events": 32,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 7,
+          "opportunities": 16,
+          "positive_events": 16,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 8,
+          "opportunities": 8,
+          "positive_events": 8,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 9,
+          "opportunities": 4,
+          "positive_events": 4,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 10,
+          "opportunities": 2,
+          "positive_events": 2,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 11,
+          "opportunities": 1,
+          "positive_events": 1,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        }
+      ]
+    },
+    {
+      "cutoff_fraction": 0.032,
+      "scales": [
+        {
+          "scale": 0,
+          "opportunities": 2048,
+          "positive_events": 0,
+          "zero_events": 2048,
+          "occupancy": 0,
+          "variation": "all_zero"
+        },
+        {
+          "scale": 1,
+          "opportunities": 1024,
+          "positive_events": 0,
+          "zero_events": 1024,
+          "occupancy": 0,
+          "variation": "all_zero"
+        },
+        {
+          "scale": 2,
+          "opportunities": 512,
+          "positive_events": 0,
+          "zero_events": 512,
+          "occupancy": 0,
+          "variation": "all_zero"
+        },
+        {
+          "scale": 3,
+          "opportunities": 256,
+          "positive_events": 32,
+          "zero_events": 224,
+          "occupancy": 0.125,
+          "variation": "variable"
+        },
+        {
+          "scale": 4,
+          "opportunities": 128,
+          "positive_events": 123,
+          "zero_events": 5,
+          "occupancy": 0.9609375,
+          "variation": "variable"
+        },
+        {
+          "scale": 5,
+          "opportunities": 64,
+          "positive_events": 64,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 6,
+          "opportunities": 32,
+          "positive_events": 32,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 7,
+          "opportunities": 16,
+          "positive_events": 16,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 8,
+          "opportunities": 8,
+          "positive_events": 8,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 9,
+          "opportunities": 4,
+          "positive_events": 4,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 10,
+          "opportunities": 2,
+          "positive_events": 2,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        },
+        {
+          "scale": 11,
+          "opportunities": 1,
+          "positive_events": 1,
+          "zero_events": 0,
+          "occupancy": 1,
+          "variation": "all_one"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "The cutoff grid is descriptive, not a selected cutoff.",
+    "Only the interval cutoff fraction varies; extraction semantics are unchanged.",
+    "Results are conditional on this single training prefix and dataset.",
+    "No occurrence probability, pooling, policy status, regime, or mark family is fitted or selected.",
+    "Validation/test rows are not read; no synthetic events are added."
+  ]
+}
