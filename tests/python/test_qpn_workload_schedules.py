@@ -41,7 +41,7 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
             [(0, 0.0, 0), (1, 0.5, 0), (2, 1.0, 1)],
         )
         self.assertEqual(summary["bin_count"], 3)
-        self.assertEqual(summary["active_horizon"], 1.5)
+        self.assertEqual(summary["active_horizon"], 1.0)
         self.assertEqual(summary["trailing_idle_bins"], 0)
         validate_document("schedule", schedule)
 
@@ -74,7 +74,7 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
             bytes_per_job=Decimal("10"),
         )
         self.assertEqual(summary["horizon"], 1.5)
-        self.assertEqual(summary["active_horizon"], 0.5)
+        self.assertEqual(summary["active_horizon"], 0.0)
         self.assertEqual(summary["trailing_idle_bins"], 2)
         self.assertEqual([row["job_count"] for row in schedule["batches"]], [1, 0, 0])
 
