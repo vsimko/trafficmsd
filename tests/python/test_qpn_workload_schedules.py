@@ -45,7 +45,8 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         self.assertEqual(summary["last_arrival_bin"], 2)
         self.assertEqual(summary["active_horizon"], 0.0)
         self.assertEqual(summary["trailing_idle_bins"], 0)
-        self.assertAlmostEqual(summary["simulation_horizon"], 1.5)
+        self.assertAlmostEqual(summary["periodic_replay_gap"], 1.5)
+        self.assertAlmostEqual(summary["periodic_replay_period"], 1.5)
         validate_document("schedule", schedule)
 
     def test_active_horizon_is_between_first_and_last_nonempty_bins(self):
@@ -61,13 +62,14 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         self.assertEqual(summary["active_horizon"], 1.0)
         self.assertEqual(summary["horizon"], 2.5)
         self.assertEqual(summary["trailing_idle_bins"], 1)
-        self.assertAlmostEqual(summary["simulation_horizon"], 1.75)
+        self.assertAlmostEqual(summary["periodic_replay_gap"], 1.5)
+        self.assertAlmostEqual(summary["periodic_replay_period"], 2.5)
         self.assertEqual(
             [row["job_count"] for row in schedule["batches"]],
             [0, 1, 0, 1, 0],
         )
 
-    def test_simulation_horizon_stops_before_next_cycle_after_batched_arrivals(self):
+    def test_periodic_replay_gap_preserves_cycle_after_batched_arrivals(self):
         schedule, summary = build_schedule(
             [Decimal("30")],
             schedule_id="test-simultaneous-batch",
@@ -77,10 +79,10 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         )
         self.assertEqual(summary["total_jobs"], 3)
         self.assertEqual(summary["active_horizon"], 0.0)
-        # The native LDES sampler floors each zero interval to 1e-9:
-        # three arrivals occur at 1e-9, 2e-9, and 3e-9; the next
-        # cyclic arrival would be at 4e-9.
-        self.assertAlmostEqual(summary["simulation_horizon"], 3.5e-9, places=15)
+        # Three simultaneous jobs occupy one epoch. The cyclic Replayer
+        # must wait one full signal period before the next batch.
+        self.assertAlmostEqual(summary["periodic_replay_gap"], 1.0)
+        self.assertAlmostEqual(summary["periodic_replay_period"], 1.0)
 
     def test_signal_csv_requires_contiguous_indices_and_finite_nonnegative_values(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -113,7 +115,8 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         self.assertEqual(summary["horizon"], 1.5)
         self.assertEqual(summary["active_horizon"], 0.0)
         self.assertEqual(summary["trailing_idle_bins"], 2)
-        self.assertAlmostEqual(summary["simulation_horizon"], 1.5e-9, places=15)
+        self.assertAlmostEqual(summary["periodic_replay_gap"], 1.0)
+        self.assertAlmostEqual(summary["periodic_replay_period"], 1.0)
         self.assertEqual([row["job_count"] for row in schedule["batches"]], [1, 0, 0])
 
     def test_schedule_rejects_nonpositive_mapping(self):
