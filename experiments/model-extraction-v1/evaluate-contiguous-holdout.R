@@ -392,6 +392,16 @@ pareto_frontier <- function(table, objective_columns, tolerance = 1e-12) {
   which(keep)
 }
 
+# Small deterministic check for the dominance rule: candidates 1 and 2 trade
+# fidelity against complexity; candidate 3 is dominated by candidate 1.
+pareto_smoke <- data.frame(fidelity = c(0.1, 0.2, 0.1), complexity = c(2, 1, 3))
+if (!identical(
+  pareto_frontier(pareto_smoke, c("fidelity", "complexity")),
+  c(1L, 2L)
+)) {
+  stop("Pareto-frontier dominance smoke check failed.", call. = FALSE)
+}
+
 # Fidelity objectives are selected from metrics that are defined for this trace.
 # Component count and exact v1 JSON bytes are always minimized as separate costs.
 objective_columns <- c("component_count", "serialized_model_bytes")
