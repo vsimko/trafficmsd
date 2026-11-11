@@ -56,7 +56,7 @@
     ]
   },
   "limitations": [
-    "One abstract QPN job represents 1000000 captured-frame bytes; it is not a packet, flow, request, or application transaction.",
+    "One abstract QPN job represents 1000 captured-frame bytes; it is not a packet, flow, request, or application transaction.",
     "The model is a single FCFS queue with exponential service and is an illustrative workload-level system model.",
     "The deterministic reconstruction condition is not a stochastic traffic generator."
   ]
