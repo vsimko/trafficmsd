@@ -87,9 +87,9 @@ These are diagnostics by default. Promote a burst measure into the primary fidel
 ### 2.5 Use-case-specific primary fidelity set
 
 The default extraction report contains all metrics above. The **primary fidelity vector** used for model selection must be declared before final holdout evaluation:
-- always include relative L1 error when source volume is non-zero;
-- include ACF discrepancy when temporal dependence matters to the target use case;
-- include one or more burst/distribution measures when the target use case depends on those properties.
+- always include relative L1 error when source volume is non-zero (otherwise use MAE);
+- include ACF discrepancy for the initial time-series extraction profile;
+- include burst/distribution measures as primary objectives only when the target use case requires them.
 
 MAE, RMSE, bias, volume error, and all secondary diagnostics remain visible even when they are not selection objectives. This prevents a selected model from appearing good merely because an irrelevant metric was optimized.
 
@@ -173,6 +173,6 @@ Retain failed and excluded candidates with reasons. Report the full candidate gr
 
 1. Confirm which temporal and burst measures are primary for the first stated simulation use case.
 2. Set defensible, predeclared fidelity tolerances or keep the result as a Pareto frontier only.
-3. Implement Pareto-frontier calculation in the holdout experiment and emit candidate-level complexity/fidelity rows.
+3. **Implemented in this PR:** calculate the validation Pareto frontier and evaluate every non-dominated candidate on the untouched test segment. A future iteration may add a configuration interface for explicit use-case tolerances.
 4. Keep full-trace cutoff sensitivity explicitly diagnostic; use validation for selection and test only for final reporting.
 5. Repeat the protocol on independent captures before making generality claims.
