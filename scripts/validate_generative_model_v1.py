@@ -114,6 +114,7 @@ def semantic_errors(model: dict[str, Any], tolerance: float = 1e-8) -> list[str]
         errors.append("scale_processes scale_index values must be unique, ordered, and contiguous from 0")
 
     active_scales: list[int] = []
+    active_mark_count = 0
     for index, scale in enumerate(scales):
         scale_id = scale["scale_index"]
         expected_interval = 1 if scale_id == 0 else 2 ** scale_id
@@ -134,8 +135,12 @@ def semantic_errors(model: dict[str, Any], tolerance: float = 1e-8) -> list[str]
             )
 
         status = scale["mark_status"]
+        positive_count = scale["positive_training_mark_count"]
         if status == "active":
+            if positive_count < 1:
+                errors.append(f"scale {scale_id}: active mark status requires at least one positive training mark")
             active_scales.append(scale_id)
+            active_mark_count += positive_count
         elif status == "inactive_by_policy":
             for regime in parameters:
                 for field in (
@@ -161,6 +166,11 @@ def semantic_errors(model: dict[str, Any], tolerance: float = 1e-8) -> list[str]
         )
     if not active_scales:
         errors.append("at least one active scale is required by the shared mark model")
+    if mark_model["fitted_mark_count"] != active_mark_count:
+        errors.append(
+            "mark_model.fitted_mark_count must equal the sum of "
+            "positive_training_mark_count over active scales"
+        )
 
     return errors
 
