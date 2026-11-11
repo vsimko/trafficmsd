@@ -206,7 +206,7 @@ def build_experiment(
         "warmup": {"policy": config["simulation"]["warmup_policy"]},
         "termination": {
             "kind": config["simulation"]["termination_kind"],
-            "value": max(200000, total_jobs * 100),
+            "value": max(200000, total_jobs * 20),
         },
         "replications": {"count": len(seeds), "seeds": seeds},
         "required_metrics": metrics,
