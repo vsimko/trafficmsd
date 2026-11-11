@@ -40,11 +40,8 @@ jobs:
           path: artifacts
       - name: Re-run cutoff sensitivity audit against immutable training artifact
         run: |
-          python experiments/generative-model-v1-sparse-marks/audit_cutoff_sensitivity.py \\
-            artifacts/westermo-model-extraction-v1/trace.csv \\
-            --output /tmp/cutoff-sensitivity-results.json
-          cmp /tmp/cutoff-sensitivity-results.json \\
-            experiments/generative-model-v1-sparse-marks/cutoff-sensitivity-results.json
+          python experiments/generative-model-v1-sparse-marks/audit_cutoff_sensitivity.py artifacts/westermo-model-extraction-v1/trace.csv --output /tmp/cutoff-sensitivity-results.json
+          cmp /tmp/cutoff-sensitivity-results.json experiments/generative-model-v1-sparse-marks/cutoff-sensitivity-results.json
       - name: Compile sparse mark comparison experiment
         run: python -m py_compile experiments/generative-model-v1-sparse-marks/compare_gamma_lognormal.py
       - name: Compile occurrence Markov support audit
