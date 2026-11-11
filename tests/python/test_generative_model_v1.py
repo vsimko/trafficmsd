@@ -81,6 +81,7 @@ def valid_model():
                 "scale_index": 0,
                 "opportunity_interval_samples": 1,
                 "phase_offset_samples": 0,
+                "positive_training_mark_count": 0,
                 "mark_status": "inactive_by_policy",
                 "regime_parameters": [
                     {
@@ -101,6 +102,7 @@ def valid_model():
                 "scale_index": 1,
                 "opportunity_interval_samples": 2,
                 "phase_offset_samples": 0,
+                "positive_training_mark_count": 42,
                 "mark_status": "active",
                 "regime_parameters": [
                     {
@@ -135,6 +137,18 @@ class GenerativeModelSemanticValidationTests(unittest.TestCase):
         model["scale_processes"][0]["regime_parameters"][0]["event_p11"] = 0.1
         validate_model(model, DEFAULT_SCHEMA)
         self.assertEqual(model["mark_model"]["fitted_scale_indices"], [1])
+
+
+    def test_active_scale_requires_positive_training_marks(self):
+        model = valid_model()
+        model["scale_processes"][1]["positive_training_mark_count"] = 0
+        model["mark_model"]["fitted_mark_count"] = 0
+        self.assert_invalid(model, "active mark status requires at least one")
+
+    def test_fitted_mark_count_matches_active_scale_counts(self):
+        model = valid_model()
+        model["mark_model"]["fitted_mark_count"] = 41
+        self.assert_invalid(model, "must equal the sum of positive_training_mark_count")
 
     def test_inactive_scale_requires_zero_occurrence_probabilities(self):
         model = valid_model()
