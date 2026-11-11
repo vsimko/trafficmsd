@@ -100,7 +100,7 @@ For every candidate, report at least:
 1. \(C_{components}\): number of serialized model components;
 2. \(C_{bytes}\): exact byte length of the serialized model file.
 
-Use the same schema version, serializer, formatting, metadata policy, and encoding for every candidate. Measure the final artifact written to disk, not an in-memory object estimate. Component count and serialized bytes are separate objectives: a model with fewer components can still serialize larger due to metadata or verbose parameters.
+Use the same schema version, serializer, formatting, metadata policy, and encoding for every candidate. For the current extraction experiment, the sparse model v2 artifact is the candidate model being optimized; use its component count and exact serialized file bytes as the primary complexity objectives. Retain model v1 size/count as a compatibility/reference diagnostic, not as the Pareto complexity input. Measure the final artifact written to disk, not an in-memory object estimate. Component count and serialized bytes are separate objectives: a model with fewer components can still serialize larger due to metadata or verbose parameters.
 
 Report the number of scale-zero residual entries separately. A free-parameter count may be added once the model schema defines which fields are independent fitted parameters; do not equate component count with parameter count without justification.
 
