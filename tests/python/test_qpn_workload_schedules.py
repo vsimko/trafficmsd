@@ -67,6 +67,21 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
             [0, 1, 0, 1, 0],
         )
 
+    def test_simulation_horizon_stops_before_next_cycle_after_batched_arrivals(self):
+        schedule, summary = build_schedule(
+            [Decimal("30")],
+            schedule_id="test-simultaneous-batch",
+            time_unit="s",
+            bin_width=Decimal("1"),
+            bytes_per_job=Decimal("10"),
+        )
+        self.assertEqual(summary["total_jobs"], 3)
+        self.assertEqual(summary["active_horizon"], 0.0)
+        # The native LDES sampler floors each zero interval to 1e-9:
+        # three arrivals occur at 1e-9, 2e-9, and 3e-9; the next
+        # cyclic arrival would be at 4e-9.
+        self.assertAlmostEqual(summary["simulation_horizon"], 3.5e-9, places=15)
+
     def test_signal_csv_requires_contiguous_indices_and_finite_nonnegative_values(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "signal.csv"
