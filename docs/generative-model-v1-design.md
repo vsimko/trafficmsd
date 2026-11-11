@@ -128,12 +128,12 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 - unique contiguous scale indices from zero and scale interval/phase consistency;
 - exactly one occurrence parameter set for every (scale_index, regime_id) pair;
 - the shared mark-model regime-offset vector has exactly one entry per regime and uses regime 0 as the zero-offset reference;
-- fitted_scale_indices exactly match active scale processes with positive training marks;
-- inactive_by_policy scales have zero initial/event probabilities and no mark parameters; unfit scales block model acceptance;
+- fitted_scale_indices exactly match scale processes whose mark_status is active; unfit scales remain explicit and are excluded rather than coerced to policy-inactive;
+- inactive_by_policy scales have zero initial/event probabilities; their explicit policy status is distinct from insufficient evidence (unfit);
 - all regime transition rows and initial probabilities sum to one within a documented tolerance;
 - probabilities are in [0,1], shared Gamma shape is positive, and all numbers are finite;
 - shared mark mean is exp(log_mean_intercept + log_mean_scale_slope * (scale_index - 3) + regime_log_mean_offsets[regime_id]); Gamma scale is that mean divided by the shared shape;
-- the training range is contiguous, non-empty, and within the declared source signal;
+- the training range is contiguous, non-empty, and its declared sample count matches its endpoints; checking the end against the source signal length remains an external provenance check because the source length is not part of this schema;
 - source model schema kind is deterministic reconstruction, never another generative model;
 - checksum and fitting provenance are present and consistent.
 
