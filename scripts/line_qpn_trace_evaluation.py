@@ -105,7 +105,8 @@ def build_model(model_spec: dict[str, Any], trace_path: Path) -> Network:
     sink = Sink(model, model_spec["completion"]["destination"])
     traffic = OpenClass(model, model_spec["job_class"], 0)
 
-    # The native LDES serializer drops Replayer.loop; the finite timespan below\n    # prevents the cyclic trace from reaching its next iteration.\n    source.set_arrival(traffic, Replayer(str(trace_path)))
+    # Native LDES Replayer is cyclic; schedule_interarrivals includes the
+    # full cycle-boundary gap so the replay period matches the source signal.\n    source.set_arrival(traffic, Replayer(str(trace_path)))
     queue.set_service(traffic, Exp(float(service["rate_per_s"])))
     queue.set_state(int(queue_spec["initial_marking"]))
 
@@ -200,7 +201,7 @@ def run_experiment(
     if not math.isfinite(trace_mean_interarrival_rate) or trace_mean_interarrival_rate <= 0:
         raise ValueError("trace mean interarrival rate must be finite and positive")
     if not math.isfinite(mean_offered_rate) or mean_offered_rate >= service_rate:
-        raise ValueError("the configured QPN is unstable over the finite simulation horizon")
+        raise ValueError("the configured QPN is unstable over the periodic replay period")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     trace_path = (output_dir / f"{schedule['schedule_id']}-interarrivals.trace").resolve()
@@ -247,7 +248,7 @@ def run_experiment(
         if observed_throughput > mean_offered_rate * 1.05:
             raise ValueError(
                 f"LINE throughput {observed_throughput:.9g} jobs/s exceeds the "
-                f"finite schedule's offered rate {mean_offered_rate:.9g} jobs/s"
+                f"periodic schedule's offered rate {mean_offered_rate:.9g} jobs/s"
             )
         raw_observations = []
         for metric, (source_name, unit) in METRICS.items():
@@ -295,8 +296,8 @@ def run_experiment(
             "offered_jobs": offered_jobs,
             "schedule_horizon_s": horizon,
             "full_schedule_horizon_s": full_horizon,
-            "first_arrival_epoch_s": first_arrival_epoch,
-            "last_arrival_epoch_s": last_arrival_epoch,
+            "first_schedule_arrival_epoch_s": first_arrival_epoch,
+            "last_schedule_arrival_epoch_s": last_arrival_epoch,
             "active_arrival_span_s": active_horizon,
             "periodic_replay_gap_s": periodic_replay_gap,
             "leading_idle_bins": first_arrival_bin,
