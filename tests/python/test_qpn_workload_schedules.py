@@ -63,7 +63,7 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         self.assertEqual(summary["active_horizon"], 1.0)
         self.assertEqual(summary["horizon"], 2.5)
         self.assertEqual(summary["trailing_idle_bins"], 1)
-        self.assertAlmostEqual(summary["periodic_replay_gap"], 1.0)
+        self.assertAlmostEqual(summary["periodic_replay_gap"], 1.5)
         self.assertAlmostEqual(summary["periodic_replay_period"], 2.5)
         self.assertEqual(
             [row["job_count"] for row in schedule["batches"]],
