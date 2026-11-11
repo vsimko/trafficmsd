@@ -128,7 +128,7 @@ The tolerances (epsilon_j) must be declared before final holdout evaluation and 
 
 #### Mahimahi
 
-- **Reference:** Ravi Netravali et al., “Mahimahi: A Lightweight Toolkit for Reproducible Web Measurement,” ACM SIGCOMM 2014. [Paper](https://mahimahi.mit.edu/mahimahi_atc.pdf) · [Project](https://mahimahi.mit.edu/)
+- **Reference:** Ravi Netravali et al., “Mahimahi: Accurate Record-and-Replay for HTTP,” USENIX ATC 2015, pp. 417–429. [USENIX paper and citation](https://www.usenix.org/conference/atc15/technical-session/presentation/netravali) · [Project](https://mahimahi.mit.edu/). A shorter earlier demo appeared at ACM SIGCOMM 2014.
 - **Approach:** records HTTP application traffic and replays it under emulated network conditions using composable shells.
 - **Relation to TrafficMSD:** relevant to reproducible measurement and replay experiments.
 - **Difference:** it preserves and replays application/web activity under controlled network conditions; it is not primarily a compact, general-purpose model extractor from arbitrary PCAP traces.
@@ -136,7 +136,7 @@ The tolerances (epsilon_j) must be declared before final holdout evaluation and 
 
 #### tcpreplay
 
-- **Reference:** [Official documentation](https://tcpreplay.appneta.com/) · [Timing and speed control](https://tcpreplay.appneta.com/guide/concepts/timing-and-speed/)
+- **Reference:** [Official documentation](https://tcpreplay.appneta.com/)
 - **Approach:** replays captured packets onto a network interface, preserving original packet timing or applying a selected rate; it also supports packet rewriting.
 - **Relation to TrafficMSD:** useful baseline for exact trace replay and a reference point for the value added by abstraction.
 - **Difference:** replay reproduces a recorded packet sequence; it does not infer a smaller parameterized model or generalize to new traffic sequences.
