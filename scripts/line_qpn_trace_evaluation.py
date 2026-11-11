@@ -167,16 +167,25 @@ def run_experiment(
         raise ValueError("completion budget must equal the number of offered jobs")
     service_rate = float(model_spec["queueing_place"]["service_distribution"]["rate_per_s"])
     full_horizon = len(schedule["batches"]) * float(schedule["bin_width"])
-    last_arrival_bin = max(
-        int(batch["source_bin"]) for batch in schedule["batches"] if int(batch["job_count"]) > 0
-    )
-    horizon = last_arrival_bin * float(schedule["bin_width"])
+    arrival_bins = [
+        int(batch["source_bin"])
+        for batch in schedule["batches"]
+        if int(batch["job_count"]) > 0
+    ]
+    first_arrival_bin = min(arrival_bins)
+    last_arrival_bin = max(arrival_bins)
+    first_arrival_epoch = first_arrival_bin * float(schedule["bin_width"])
+    last_arrival_epoch = last_arrival_bin * float(schedule["bin_width"])
+    horizon = last_arrival_epoch - first_arrival_epoch
     if not math.isfinite(horizon) or horizon <= 0:
         raise ValueError(
-            "finite trace must span a positive arrival horizon; "
-            "all jobs cannot arrive only at time zero"
+            "finite trace must span a positive interval between first and last arrivals; "
+            "a single arrival epoch has no measurable interarrival horizon"
         )
     mean_offered_rate = offered_jobs / horizon
+    trace_mean_interarrival_rate = offered_jobs / sum(interarrivals)
+    if not math.isfinite(trace_mean_interarrival_rate) or trace_mean_interarrival_rate <= 0:
+        raise ValueError("trace mean interarrival rate must be finite and positive")
     if not math.isfinite(mean_offered_rate) or mean_offered_rate >= service_rate:
         raise ValueError("the configured QPN is unstable over the active finite-trace horizon")
 
@@ -214,10 +223,13 @@ def run_experiment(
         observed_throughput = float(queue_row["Tput"])
         if not math.isfinite(observed_arrival_rate) or not math.isfinite(observed_throughput):
             raise ValueError(f"LINE returned non-finite arrival rate or throughput for seed {seed}")
-        if not math.isclose(observed_arrival_rate, mean_offered_rate, rel_tol=0.02, abs_tol=1e-6):
+        if not math.isclose(
+            observed_arrival_rate, trace_mean_interarrival_rate, rel_tol=0.02, abs_tol=1e-6
+        ):
             raise ValueError(
                 f"LINE replay arrival rate {observed_arrival_rate:.9g} jobs/s does not "
-                f"match the finite schedule rate {mean_offered_rate:.9g} jobs/s"
+                f"match the reciprocal mean of the supplied interarrival trace "
+                f"{trace_mean_interarrival_rate:.9g} jobs/s"
             )
         if observed_throughput > mean_offered_rate * 1.05:
             raise ValueError(
@@ -270,8 +282,12 @@ def run_experiment(
             "offered_jobs": offered_jobs,
             "schedule_horizon_s": horizon,
             "full_schedule_horizon_s": full_horizon,
+            "first_arrival_epoch_s": first_arrival_epoch,
+            "last_arrival_epoch_s": last_arrival_epoch,
+            "leading_idle_bins": first_arrival_bin,
             "trailing_idle_bins": len(schedule["batches"]) - last_arrival_bin - 1,
             "mean_offered_job_rate_per_s": mean_offered_rate,
+            "trace_mean_interarrival_rate_per_s": trace_mean_interarrival_rate,
             "termination_policy": "drain_all_offered_jobs",
             "warmup_policy": "none",
             "service_rate_per_s": service_rate,
