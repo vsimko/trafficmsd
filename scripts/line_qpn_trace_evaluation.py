@@ -190,7 +190,7 @@ def run_experiment(
     if not math.isfinite(horizon) or horizon <= 0:
         raise ValueError("finite trace must define a positive simulated-time horizon")
     mean_offered_rate = offered_jobs / horizon
-    trace_mean_interarrival_rate = offered_jobs / sum(effective_interarrivals)
+    trace_mean_interarrival_rate = offered_jobs / sum(interarrivals)
     if not math.isfinite(trace_mean_interarrival_rate) or trace_mean_interarrival_rate <= 0:
         raise ValueError("trace mean interarrival rate must be finite and positive")
     if not math.isfinite(mean_offered_rate) or mean_offered_rate >= service_rate:
