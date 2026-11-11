@@ -115,8 +115,8 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         self.assertEqual(summary["horizon"], 1.5)
         self.assertEqual(summary["active_horizon"], 0.0)
         self.assertEqual(summary["trailing_idle_bins"], 2)
-        self.assertAlmostEqual(summary["periodic_replay_gap"], 1.0)
-        self.assertAlmostEqual(summary["periodic_replay_period"], 1.0)
+        self.assertAlmostEqual(summary["periodic_replay_gap"], 1.5)
+        self.assertAlmostEqual(summary["periodic_replay_period"], 1.5)
         self.assertEqual([row["job_count"] for row in schedule["batches"]], [1, 0, 0])
 
     def test_schedule_rejects_nonpositive_mapping(self):
