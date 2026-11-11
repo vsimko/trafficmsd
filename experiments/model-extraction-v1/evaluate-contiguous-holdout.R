@@ -312,11 +312,15 @@ evaluate_segment <- function(source, cutoff, segment_name) {
   )
 }
 
-validation_rows <- lapply(cutoffs, function(cutoff) {
-  result <- evaluate_segment(
+validation_candidate_results <- lapply(cutoffs, function(cutoff) {
+  evaluate_segment(
     validation, cutoff,
     paste0("validation-cutoff-", format(cutoff, scientific = FALSE))
   )
+})
+validation_rows <- lapply(seq_along(cutoffs), function(index) {
+  result <- validation_candidate_results[[index]]
+  cutoff <- cutoffs[[index]]
   data.frame(
     cutoff_fraction = cutoff,
     mae = result$trafficmsd$mae,
@@ -450,6 +454,7 @@ result <- list(
     validation_sweep = lapply(seq_len(nrow(validation_table)), function(i) {
       as.list(validation_table[i, , drop = FALSE])
     }),
+    validation_candidates = validation_candidate_results,
     validation_pareto_frontier = lapply(seq_len(nrow(validation_frontier)), function(i) {
       as.list(validation_frontier[i, , drop = FALSE])
     })
