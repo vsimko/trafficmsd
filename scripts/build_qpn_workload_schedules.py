@@ -118,13 +118,16 @@ def build_schedule(
             "seed": None,
         },
     }
-    last_nonempty_bin = max(
-        row["source_bin"] for row in batches if row["job_count"] > 0
-    ) if previous_jobs else -1
+    nonempty_bins = [row["source_bin"] for row in batches if row["job_count"] > 0]
+    first_nonempty_bin = min(nonempty_bins) if nonempty_bins else -1
+    last_nonempty_bin = max(nonempty_bins) if nonempty_bins else -1
+    active_horizon_bins = max(last_nonempty_bin - first_nonempty_bin, 0)
     summary = {
         "bin_count": len(values),
         "horizon": float(Decimal(len(values)) * bin_width),
-        "active_horizon": float(Decimal(max(last_nonempty_bin, 0)) * bin_width),
+        "first_arrival_bin": first_nonempty_bin,
+        "last_arrival_bin": last_nonempty_bin,
+        "active_horizon": float(Decimal(active_horizon_bins) * bin_width),
         "trailing_idle_bins": len(values) - last_nonempty_bin - 1,
         "total_bytes": float(cumulative_bytes),
         "total_jobs": previous_jobs,
