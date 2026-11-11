@@ -144,6 +144,43 @@ def build_schedule(
     return schedule, summary
 
 
+def schedule_interarrivals(schedule: dict[str, Any]) -> list[float]:
+    """Expand bins into cyclic interarrivals whose sum preserves the full signal period."""
+    events: list[float] = []
+    previous_bin = -1
+    width = float(schedule["bin_width"])
+    for batch in schedule["batches"]:
+        source_bin = int(batch["source_bin"])
+        if source_bin != previous_bin + 1:
+            raise ValueError("schedule source_bin values must be contiguous from zero")
+        previous_bin = source_bin
+        expected_time = source_bin * width
+        if not math.isclose(float(batch["time"]), expected_time, rel_tol=0.0, abs_tol=1e-12):
+            raise ValueError("schedule bin-start time does not match source_bin * bin_width")
+        count = int(batch["job_count"])
+        if count < 0:
+            raise ValueError("schedule job_count must be non-negative")
+        events.extend([expected_time] * count)
+    if not events:
+        raise ValueError("schedule contains no jobs")
+    active_span = events[-1] - events[0]
+    period = len(schedule["batches"]) * width
+    cycle_gap = period - active_span
+    if not math.isfinite(cycle_gap) or cycle_gap < 0:
+        raise ValueError("periodic replay gap must be finite and non-negative")
+    # Replayer cycles the vector. Its first interval is the gap from the
+    # previous cycle's last arrival to this cycle's first arrival.
+    intervals = [cycle_gap]
+    intervals.extend(events[index] - events[index - 1] for index in range(1, len(events)))
+    if any(not math.isfinite(value) or value < 0 for value in intervals):
+        raise ValueError("periodic interarrival intervals must be finite and non-negative")
+    if not math.isclose(sum(intervals), period, rel_tol=1e-12, abs_tol=1e-9):
+        raise AssertionError("periodic interarrival vector must sum to the full source-signal period")
+    if len(intervals) != len(events):
+        raise AssertionError("one interarrival interval is required per offered job")
+    return intervals
+
+
 def validate_document(name: str, value: dict[str, Any]) -> None:
     try:
         from jsonschema import Draft202012Validator
