@@ -52,6 +52,8 @@ Such tools can be used as upstream parsers, downstream generators, simulators, o
 
 Model quality must not be judged by reconstruction fidelity alone. A model that stores every observed event may reproduce one trace exactly but offer little abstraction or compression. Conversely, a tiny model may discard burstiness, temporal dependence, or flow structure that matters to the intended simulation.
 
+The operational v1 definitions, equations, complexity accounting, Pareto dominance rule, and holdout-selection procedure are specified in [Model-extraction fidelity and complexity metric v1](MODEL_EXTRACTION_METRIC.md). The companion [evaluation protocol](model-extraction-evaluation-v1.md) defines the input contract, metric reporting, baselines, and machine-readable results.
+
 Let:
 - (X) be the measured PCAP-derived reference;
 - (M) be an extracted model;
