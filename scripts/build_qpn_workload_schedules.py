@@ -124,7 +124,7 @@ def build_schedule(
     summary = {
         "bin_count": len(values),
         "horizon": float(Decimal(len(values)) * bin_width),
-        "active_horizon": float(Decimal(last_nonempty_bin + 1) * bin_width),
+        "active_horizon": float(Decimal(max(last_nonempty_bin, 0)) * bin_width),
         "trailing_idle_bins": len(values) - last_nonempty_bin - 1,
         "total_bytes": float(cumulative_bytes),
         "total_jobs": previous_jobs,
@@ -284,6 +284,11 @@ def main() -> None:
         prepared.append((suffix, raw_signal, condition_name, schedule, summary, schedule_raw))
 
     measured_summary = prepared[0][4]
+    if measured_summary["active_horizon"] <= 0:
+        raise ValueError(
+            "measured trace must span a positive arrival horizon; "
+            "all jobs cannot arrive only at time zero"
+        )
     measured_arrival_rate = measured_summary["total_jobs"] / measured_summary["active_horizon"]
     if not math.isfinite(measured_arrival_rate) or measured_arrival_rate <= 0:
         raise ValueError("measured offered job rate must be finite and positive")
