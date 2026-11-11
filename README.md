@@ -108,6 +108,7 @@ traffic generation and performance-simulation validation.
 - [Dataset storage and CI policy](docs/data-management.md)
 - [Research dataset registry](docs/datasets/README.md)
 - [Westermo holdout fidelity and compactness results](docs/research-results/westermo-contiguous-holdout-v1.md)
+- [Generative fidelity v1 evaluation harness](experiments/generative-fidelity-v1/README.md)
 - [Generator and backend-neutral simulator adapter contract v1 (LINE first; QPME/SimQPN later)](docs/simulator-adapter-v1.md)
 - [LINE Solver QPN compatibility and headless proof of concept](docs/line-solver-validation.md)
 - [ADR 0002: LINE-first simulator backend strategy](docs/adr/0002-line-first-simulator.md)
