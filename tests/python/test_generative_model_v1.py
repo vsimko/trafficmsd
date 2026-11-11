@@ -139,9 +139,10 @@ class GenerativeModelSemanticValidationTests(unittest.TestCase):
         self.assertEqual(model["mark_model"]["fitted_scale_indices"], [1])
 
 
-    def test_active_scale_requires_positive_training_marks(self):
+    def test_zero_event_scale_cannot_be_marked_active(self):
         model = valid_model()
-        model["scale_processes"][1]["positive_training_mark_count"] = 0
+        model["scale_processes"][0]["mark_status"] = "active"
+        model["mark_model"]["fitted_scale_indices"] = [0, 1]
         self.assert_invalid(model, "active mark status requires at least one")
 
     def test_fitted_mark_count_matches_active_scale_counts(self):
