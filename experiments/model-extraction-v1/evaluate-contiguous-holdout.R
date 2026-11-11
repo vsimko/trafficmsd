@@ -155,7 +155,7 @@ evaluate_segment <- function(source, cutoff, segment_name) {
     stop("Sparse model v2 reconstruction differs from model v1.", call. = FALSE)
   }
 
-  lags <- c(1L, 2L, 4L, 8L, 16L, 32L)
+  lags <- c(1L, 2L, 4L, 8L, 16L, 32L, 64L, 128L, 256L)
   lags <- lags[lags < length(source) / 4]
   acf_differences <- lapply(lags, function(lag) {
     source_acf <- acf_at_lag(source, lag)
@@ -268,7 +268,12 @@ validation_rows <- lapply(cutoffs, function(cutoff) {
     burst_exceedance_fraction_difference =
       result$bursts$exceedance_fraction_difference,
     reconstruction_burst_run_count = result$bursts$reconstruction_run_count,
-    reconstruction_burst_max_run = result$bursts$reconstruction_max_run_length,
+    reconstruction_burst_max_run =
+      if (is.null(result$bursts$reconstruction_max_run_length)) {
+        NA_integer_
+      } else {
+        result$bursts$reconstruction_max_run_length
+      },
     component_count = result$compactness$v1_component_count,
     serialized_model_bytes = result$compactness$v1_serialized_model_bytes,
     model_size_ratio = result$compactness$v1_model_size_ratio
