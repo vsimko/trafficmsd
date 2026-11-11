@@ -122,12 +122,30 @@ def build_schedule(
     first_nonempty_bin = min(nonempty_bins) if nonempty_bins else -1
     last_nonempty_bin = max(nonempty_bins) if nonempty_bins else -1
     active_horizon_bins = max(last_nonempty_bin - first_nonempty_bin, 0)
+    event_epochs = [
+        float(row["time"])
+        for row in batches
+        for _ in range(int(row["job_count"]))
+    ]
+    event_intervals = [event_epochs[0]]
+    event_intervals.extend(
+        event_epochs[index] - event_epochs[index - 1]
+        for index in range(1, len(event_epochs))
+    )
+    # Native LDES Replayer cycles and floors non-positive intervals to 1e-9.
+    # Stop halfway through the first interval of the next cycle, after every
+    # event in this schedule has arrived but before the replay repeats.
+    effective_intervals = [max(value, 1e-9) for value in event_intervals]
+    simulation_horizon = (
+        sum(effective_intervals) + effective_intervals[0] * 0.5
+    )
     summary = {
         "bin_count": len(values),
         "horizon": float(Decimal(len(values)) * bin_width),
         "first_arrival_bin": first_nonempty_bin,
         "last_arrival_bin": last_nonempty_bin,
         "active_horizon": float(Decimal(active_horizon_bins) * bin_width),
+        "simulation_horizon": simulation_horizon,
         "trailing_idle_bins": len(values) - last_nonempty_bin - 1,
         "total_bytes": float(cumulative_bytes),
         "total_jobs": previous_jobs,
@@ -198,7 +216,7 @@ def build_experiment(
         "warmup": {"policy": config["simulation"]["warmup_policy"]},
         "termination": {
             "kind": config["simulation"]["termination_kind"],
-            "value": total_jobs,
+            "value": horizon,
         },
         "replications": {"count": len(seeds), "seeds": seeds},
         "required_metrics": metrics,
@@ -257,8 +275,8 @@ def main() -> None:
         raise ValueError("only bin_start arrival placement is supported")
     if config["simulation"]["warmup_policy"] != "none":
         raise ValueError("finite trace comparisons must retain the full trace (warmup=none)")
-    if config["simulation"]["termination_kind"] != "completions":
-        raise ValueError("finite trace comparisons require drain-all-completions termination")
+    if config["simulation"]["termination_kind"] != "simulated_time":
+        raise ValueError("finite trace comparisons require a fixed simulated-time horizon")
     measured_seeds = config["simulation"]["measured_replication_seeds"]
     replay_seeds = config["simulation"]["replay_replication_seeds"]
     if len(measured_seeds) < 2 or len(replay_seeds) < 2:
@@ -287,12 +305,9 @@ def main() -> None:
         prepared.append((suffix, raw_signal, condition_name, schedule, summary, schedule_raw))
 
     measured_summary = prepared[0][4]
-    if measured_summary["active_horizon"] <= 0:
-        raise ValueError(
-            "measured trace must span a positive arrival horizon; "
-            "all jobs cannot arrive only at time zero"
-        )
-    measured_arrival_rate = measured_summary["total_jobs"] / measured_summary["active_horizon"]
+    if measured_summary["simulation_horizon"] <= 0:
+        raise ValueError("measured trace must define a positive finite simulation horizon")
+    measured_arrival_rate = measured_summary["total_jobs"] / measured_summary["simulation_horizon"]
     if not math.isfinite(measured_arrival_rate) or measured_arrival_rate <= 0:
         raise ValueError("measured offered job rate must be finite and positive")
     service_rate = 2.0 * measured_arrival_rate
@@ -321,12 +336,9 @@ def main() -> None:
     }
 
     for suffix, raw_signal, condition_name, schedule, summary, schedule_raw in prepared:
-        if summary["active_horizon"] <= 0:
-            raise ValueError(
-                f"{condition_name} must contain arrivals at two distinct epochs "
-                "to define a positive first-to-last arrival span"
-            )
-        arrival_rate = summary["total_jobs"] / summary["active_horizon"]
+        if summary["simulation_horizon"] <= 0:
+            raise ValueError(f"{condition_name} must define a positive finite simulation horizon")
+        arrival_rate = summary["total_jobs"] / summary["simulation_horizon"]
         if not math.isfinite(service_rate) or service_rate <= arrival_rate:
             raise ValueError(
                 f"QPN must be stable for {condition_name}: "
@@ -342,7 +354,7 @@ def main() -> None:
             schedule=schedule,
             schedule_raw=schedule_raw,
             config=config,
-            horizon=summary["horizon"],
+            horizon=summary["simulation_horizon"],
             total_jobs=summary["total_jobs"],
             source_csv_sha256=sha256_bytes(raw_signal),
             source_manifest_sha256=sha256_bytes(source_manifest_raw),
@@ -371,7 +383,7 @@ def main() -> None:
         "measured_replication_seeds": config["simulation"]["measured_replication_seeds"],
         "replay_replication_seeds": config["simulation"]["replay_replication_seeds"],
         "same_warmup_policy": config["simulation"]["warmup_policy"],
-        "same_termination_policy": "drain_all_offered_jobs",
+        "same_termination_policy": "fixed_simulated_time_ending_before_next_replay_cycle",
         "primary_metrics": config["metrics"]["primary"],
         "secondary_metrics": config["metrics"]["secondary"],
         "confidence_level": config["simulation"]["confidence_level"],
