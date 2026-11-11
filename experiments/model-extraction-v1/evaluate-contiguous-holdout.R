@@ -77,6 +77,22 @@ optional_max <- function(x) {
   if (length(x) == 0L) NULL else as.integer(max(x))
 }
 
+optional_quantile <- function(x, probability) {
+  if (length(x) == 0L) NULL else
+    as.numeric(stats::quantile(x, probability, names = FALSE, type = 7))
+}
+
+wasserstein_1 <- function(x, y) {
+  mean(abs(sort(x) - sort(y)))
+}
+
+quantile_summary <- function(x) {
+  values <- stats::quantile(
+    x, probs = c(0.50, 0.90, 0.95, 0.99), names = FALSE, type = 7
+  )
+  as.list(stats::setNames(as.numeric(values), c("p50", "p90", "p95", "p99")))
+}
+
 evaluate_segment <- function(source, cutoff, segment_name) {
   padded <- trafficmsd::pad_power2(source)
   decomposition <- trafficmsd::decompose_traffic(
@@ -202,6 +218,19 @@ evaluate_segment <- function(source, cutoff, segment_name) {
       rmse_improvement_vs_identity =
         identity_metrics$rmse - model_metrics$rmse
     ),
+    distribution = list(
+      source_mean = mean(source),
+      reconstruction_mean = mean(reconstructed),
+      source_sd = stats::sd(source),
+      reconstruction_sd = stats::sd(reconstructed),
+      source_cv = if (mean(source) == 0) NULL else stats::sd(source) / mean(source),
+      reconstruction_cv = if (mean(reconstructed) == 0) NULL else {
+        stats::sd(reconstructed) / mean(reconstructed)
+      },
+      source_quantiles = quantile_summary(source),
+      reconstruction_quantiles = quantile_summary(reconstructed),
+      wasserstein_1 = wasserstein_1(source, reconstructed)
+    ),
     temporal = list(
       acf_differences = acf_differences,
       mean_absolute_acf_difference =
@@ -219,6 +248,30 @@ evaluate_segment <- function(source, cutoff, segment_name) {
       ),
       source_run_count = length(source_runs),
       reconstruction_run_count = length(reconstructed_runs),
+      source_median_run_length = optional_quantile(source_runs, 0.50),
+      reconstruction_median_run_length = optional_quantile(reconstructed_runs, 0.50),
+      source_p95_run_length = optional_quantile(source_runs, 0.95),
+      reconstruction_p95_run_length = optional_quantile(reconstructed_runs, 0.95),
+      median_run_length_difference = if (
+        length(source_runs) && length(reconstructed_runs)
+      ) {
+        abs(
+          optional_quantile(source_runs, 0.50) -
+            optional_quantile(reconstructed_runs, 0.50)
+        )
+      } else {
+        NULL
+      },
+      p95_run_length_difference = if (
+        length(source_runs) && length(reconstructed_runs)
+      ) {
+        abs(
+          optional_quantile(source_runs, 0.95) -
+            optional_quantile(reconstructed_runs, 0.95)
+        )
+      } else {
+        NULL
+      },
       source_max_run_length = optional_max(source_runs),
       reconstruction_max_run_length = optional_max(reconstructed_runs)
     ),
@@ -265,9 +318,24 @@ validation_rows <- lapply(cutoffs, function(cutoff) {
       } else {
         result$temporal$mean_absolute_acf_difference
       },
+    wasserstein_1 = result$distribution$wasserstein_1,
+    source_p95 = result$distribution$source_quantiles$p95,
+    reconstruction_p95 = result$distribution$reconstruction_quantiles$p95,
     burst_exceedance_fraction_difference =
       result$bursts$exceedance_fraction_difference,
     reconstruction_burst_run_count = result$bursts$reconstruction_run_count,
+    median_run_length_difference =
+      if (is.null(result$bursts$median_run_length_difference)) {
+        NA_real_
+      } else {
+        result$bursts$median_run_length_difference
+      },
+    p95_run_length_difference =
+      if (is.null(result$bursts$p95_run_length_difference)) {
+        NA_real_
+      } else {
+        result$bursts$p95_run_length_difference
+      },
     reconstruction_burst_max_run =
       if (is.null(result$bursts$reconstruction_max_run_length)) {
         NA_integer_
