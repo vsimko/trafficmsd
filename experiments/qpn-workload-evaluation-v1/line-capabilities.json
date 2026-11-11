@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "backend": {
+    "id": "line-solver",
+    "version": "3.0.8.0"
+  },
+  "supported_constructs": [
+    "open_class",
+    "fcfs_queueing_place",
+    "exponential_service",
+    "trace_driven_arrivals",
+    "immediate_completion_transition"
+  ],
+  "supported_metrics": [
+    "throughput",
+    "queue_length",
+    "utilization",
+    "residence_time"
+  ],
+  "limitations": [
+    "Capability declaration is scoped to the single-class, single-queue QPN model in this experiment.",
+    "Trace-driven arrival replay must be exercised by the dedicated LINE CI run before results are interpreted.",
+    "No packet-level network behavior is modeled."
+  ],
+  "supported_warmup_policies": ["none"],
+  "supported_termination_kinds": ["completions"]
+}

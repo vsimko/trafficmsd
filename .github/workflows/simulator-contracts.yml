@@ -9,9 +9,12 @@ on:
       - "experiments/simulator-contract-v1/**"
       - "experiments/line-qpn-v1/experiment.json"
       - "experiments/line-qpn-v1/arrival-schedule-neutral.json"
+      - "experiments/qpn-workload-evaluation-v1/**"
       - "scripts/line_qpn_smoke.py"
       - "scripts/validate_simulator_contracts.py"
+      - "scripts/build_qpn_workload_schedules.py"
       - "tests/test_simulator_contracts.py"
+      - "tests/python/test_qpn_workload_schedules.py"
       - "docs/simulator-contract-v1.md"
   workflow_dispatch:
 
@@ -37,3 +40,5 @@ jobs:
         run: python scripts/validate_simulator_contracts.py
       - name: Run contract regression tests
         run: python -m unittest discover -s tests -p "test_simulator_contracts.py" -v
+      - name: Run QPN schedule builder tests
+        run: python -m unittest discover -s tests/python -v

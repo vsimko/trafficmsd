@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "control_id": "qpn-mm1-poisson-analytical-control-v1",
+  "arrival_process": "exponential",
+  "samples_per_replication": 50000,
+  "warmup_policy": "mser5",
+  "replication_seeds": [
+    43000,
+    43001,
+    43002,
+    43003,
+    43004,
+    43005,
+    43006,
+    43007,
+    43008,
+    43009
+  ],
+  "confidence_level": 0.95,
+  "acceptance": "each analytical M/M/1 mean must lie inside the corresponding 95% Student-t interval across independent LDES replications"
+}
