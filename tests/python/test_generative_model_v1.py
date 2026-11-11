@@ -104,7 +104,17 @@ def valid_model():
                         "regime_id": 1,
                         "initial_event_probability": 0.0,
                         "event_p01": 0.0,
-                        "event_p11": 0.0,
+                        "event_p11": None,
+                        "occurrence_status": {
+                            "initial": "fitted",
+                            "p01": "fitted",
+                            "p11": "unfit",
+                        },
+                        "occurrence_support": {
+                            "initial_opportunity_count": 1,
+                            "p01_trial_count": 5,
+                            "p11_trial_count": 0,
+                        },
                     },
                 ],
             },
