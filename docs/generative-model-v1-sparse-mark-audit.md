@@ -97,3 +97,53 @@ The draft schema on this branch has now been revised to carry one shared Gamma m
 ## 7. Decision
 
 **Recommended research direction:** explicit inactive/unfit scale status plus a shared, scale-aware, regime-shrunk mark distribution. Retain the 30-event rule only for the independent-cell baseline; do not lower it. Do not yet claim a production solution, select A/B/C, or proceed to generator/QPN implementation.
+
+
+## 8. Gamma versus lognormal follow-up (11 November 2026)
+
+A separate reproducible comparison is recorded in
+[experiments/generative-model-v1-sparse-marks](../experiments/generative-model-v1-sparse-marks/README.md).
+It uses the checksum-verified trace artifact and reads only the frozen
+training prefix `[0,2048)`. The positive mark counts remain
+`0,193,287,224,128,64,32,16,8,4,2,1`; no artificial events or validation/test
+observations are used.
+
+Both families were evaluated on the same four expanding folds
+`[0,1024)->[1024,1280)`, `[0,1280)->[1280,1536)`,
+`[0,1536)->[1536,1792)`, and `[0,1792)->[1792,2048)`. They share the
+fold-specific exploratory diagonal-Gaussian HMM, one-step predictive regime
+weights, log-linear scale mean, and L2 penalty 1.0 on regime offsets. The
+lognormal location is `log(mean)-sigma^2/2`, so its scale/regime trend
+parameterizes the same arithmetic mean as the Gamma model.
+
+| Fold | Marks scored | Selected K | Shared Gamma | Shared lognormal |
+|---:|---:|---:|---:|---:|
+| 1 | 127 | 2 | -6.9644 | **-6.7790** |
+| 2 | 121 | 3 | -6.8537 | **-6.6605** |
+| 3 | 115 | 2 | -6.7257 | **-6.5340** |
+| 4 | 109 | 2 | **-8.1052** | -8.3938 |
+| Weighted mean | 472 | — | -7.1413 | **-7.0618** |
+
+Lognormal improves the pooled conditional mark score by 0.0795 nats/mark and
+wins three folds; Gamma wins fold 4. This is not stable enough to select a
+family. The independently reimplemented HMM selected K=2,3,2,2, differing
+from the earlier A/B/C exploratory run. The result is therefore a separate
+diagnostic, not a canonical HMM reproduction.
+
+Pooled predictive quantile coverage was:
+
+| Quantile | Gamma | Lognormal | Nominal |
+|---:|---:|---:|---:|
+| 90% | 93.43% | 91.74% | 90% |
+| 95% | 94.49% | 93.43% | 95% |
+| 99% | 97.03% | 95.97% | 99% |
+
+Fold 4 q99 coverage fell to 87.16% for Gamma and 82.57% for lognormal. The
+pooled coverage therefore hides temporal tail-calibration failure. These
+scores are conditional on positive events; they omit event-occurrence
+likelihood and do not establish joint generative fidelity.
+
+**Decision remains open:** do not select Gamma or lognormal, do not select an
+A/B/C regime, and do not lower the 30-event independent-cell Gamma threshold.
+Repeat with a canonical independently validated HMM and stronger upper-tail
+diagnostics before any production fitter decision.
