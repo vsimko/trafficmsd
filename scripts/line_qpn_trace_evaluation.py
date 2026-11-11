@@ -253,7 +253,7 @@ def run_experiment(
         replications.append({
             "index": index,
             "seed": int(seed),
-            "termination_reason": "simulated_time_horizon",
+            "termination_reason": "simulated_time",
             "raw_observations": raw_observations,
         })
 
