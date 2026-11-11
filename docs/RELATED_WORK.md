@@ -136,7 +136,7 @@ The tolerances (epsilon_j) must be declared before final holdout evaluation and 
 
 #### tcpreplay
 
-- **Reference:** [Official documentation](https://tcpreplay.appneta.com/) · [Timing and speed control](https://tcpreplay.appneta.com/guide/concepts/timing-and-speed.html)
+- **Reference:** [Official documentation](https://tcpreplay.appneta.com/) · [Timing and speed control](https://tcpreplay.appneta.com/guide/concepts/timing-and-speed/)
 - **Approach:** replays captured packets onto a network interface, preserving original packet timing or applying a selected rate; it also supports packet rewriting.
 - **Relation to TrafficMSD:** useful baseline for exact trace replay and a reference point for the value added by abstraction.
 - **Difference:** replay reproduces a recorded packet sequence; it does not infer a smaller parameterized model or generalize to new traffic sequences.
