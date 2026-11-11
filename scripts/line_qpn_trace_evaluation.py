@@ -106,7 +106,8 @@ def build_model(model_spec: dict[str, Any], trace_path: Path) -> Network:
     traffic = OpenClass(model, model_spec["job_class"], 0)
 
     # Native LDES Replayer is cyclic; schedule_interarrivals includes the
-    # full cycle-boundary gap so the replay period matches the source signal.\n    source.set_arrival(traffic, Replayer(str(trace_path)))
+    # full cycle-boundary gap so the replay period matches the source signal.
+    source.set_arrival(traffic, Replayer(str(trace_path)))
     queue.set_service(traffic, Exp(float(service["rate_per_s"])))
     queue.set_state(int(queue_spec["initial_marking"]))
 
