@@ -63,7 +63,7 @@ fidelity_metrics <- function(source, estimate) {
 acf_at_lag <- function(x, lag) {
   centered <- x - mean(x)
   denominator <- sum(centered^2)
-  if (denominator == 0) return(0)
+  if (denominator == 0) return(NA_real_)
   sum(centered[seq_len(length(x) - lag)] *
         centered[(lag + 1L):length(x)]) / denominator
 }
@@ -205,10 +205,18 @@ evaluate_segment <- function(source, cutoff, segment_name) {
     temporal = list(
       acf_differences = acf_differences,
       mean_absolute_acf_difference =
-        if (length(acf_values)) mean(acf_values) else NULL
+        if (length(acf_values) && any(is.finite(acf_values))) {
+          mean(acf_values, na.rm = TRUE)
+        } else {
+          NULL
+        }
     ),
     bursts = list(
       threshold_from_training_p95 = burst_threshold,
+      exceedance_fraction_difference = abs(
+        mean(reconstructed > burst_threshold) -
+          mean(source > burst_threshold)
+      ),
       source_run_count = length(source_runs),
       reconstruction_run_count = length(reconstructed_runs),
       source_max_run_length = optional_max(source_runs),
@@ -236,31 +244,84 @@ evaluate_segment <- function(source, cutoff, segment_name) {
 }
 
 validation_rows <- lapply(cutoffs, function(cutoff) {
-  result <- evaluate_segment(validation, cutoff, "validation")
+  result <- evaluate_segment(
+    validation, cutoff,
+    paste0("validation-cutoff-", format(cutoff, scientific = FALSE))
+  )
   data.frame(
     cutoff_fraction = cutoff,
     mae = result$trafficmsd$mae,
     rmse = result$trafficmsd$rmse,
+    relative_l1_error = if (is.null(result$trafficmsd$relative_l1_error)) {
+      NA_real_
+    } else {
+      result$trafficmsd$relative_l1_error
+    },
     training_mean_mae = result$training_mean_baseline$fidelity$mae,
     training_mean_rmse = result$training_mean_baseline$fidelity$rmse,
-    mean_absolute_acf_difference = result$temporal$mean_absolute_acf_difference,
+    mean_absolute_acf_difference =
+      if (is.null(result$temporal$mean_absolute_acf_difference)) {
+        NA_real_
+      } else {
+        result$temporal$mean_absolute_acf_difference
+      },
+    burst_exceedance_fraction_difference =
+      result$bursts$exceedance_fraction_difference,
     reconstruction_burst_run_count = result$bursts$reconstruction_run_count,
     reconstruction_burst_max_run = result$bursts$reconstruction_max_run_length,
+    component_count = result$compactness$v1_component_count,
+    serialized_model_bytes = result$compactness$v1_serialized_model_bytes,
     model_size_ratio = result$compactness$v1_model_size_ratio
   )
 })
 validation_table <- do.call(rbind, validation_rows)
 
-# Primary selection criterion is validation MAE only; cutoff is the tie-breaker.
-# The test segment is not evaluated until this choice is frozen.
-selected_index <- order(
-  validation_table$mae, validation_table$cutoff_fraction
-)[1L]
-selected_cutoff <- validation_table$cutoff_fraction[selected_index]
-selected_validation <- evaluate_segment(
-  validation, selected_cutoff, "validation-selected"
-)
-test_result <- evaluate_segment(test, selected_cutoff, "test")
+pareto_frontier <- function(table, objective_columns, tolerance = 1e-12) {
+  values <- as.matrix(table[, objective_columns, drop = FALSE])
+  if (any(!is.finite(values))) {
+    stop(
+      "Pareto objectives contain undefined values; choose a valid objective set.",
+      call. = FALSE
+    )
+  }
+  keep <- rep(TRUE, nrow(values))
+  for (candidate in seq_len(nrow(values))) {
+    for (challenger in seq_len(nrow(values))) {
+      if (candidate == challenger) next
+      no_worse <- all(values[challenger, ] <= values[candidate, ] + tolerance)
+      strictly_better <- any(values[challenger, ] < values[candidate, ] - tolerance)
+      if (no_worse && strictly_better) {
+        keep[candidate] <- FALSE
+        break
+      }
+    }
+  }
+  which(keep)
+}
+
+# Fidelity objectives are selected from metrics that are defined for this trace.
+# Component count and exact v1 JSON bytes are always minimized as separate costs.
+objective_columns <- c("component_count", "serialized_model_bytes")
+if (all(is.finite(validation_table$relative_l1_error))) {
+  objective_columns <- c("relative_l1_error", objective_columns)
+} else {
+  objective_columns <- c("mae", objective_columns)
+}
+if (all(is.finite(validation_table$mean_absolute_acf_difference))) {
+  objective_columns <- c("mean_absolute_acf_difference", objective_columns)
+}
+frontier_indices <- pareto_frontier(validation_table, objective_columns)
+validation_frontier <- validation_table[frontier_indices, , drop = FALSE]
+
+# No arbitrary scalar score or unique winner is imposed. Evaluate every
+# validation Pareto candidate on the untouched test segment.
+test_frontier_results <- lapply(frontier_indices, function(index) {
+  cutoff <- validation_table$cutoff_fraction[index]
+  evaluate_segment(
+    test, cutoff,
+    paste0("test-frontier-cutoff-", format(cutoff, scientific = FALSE))
+  )
+})
 
 result <- list(
   schema_version = "1.0",
@@ -290,22 +351,29 @@ result <- list(
   ),
   cutoff_selection = list(
     candidates = as.list(cutoffs),
-    primary_metric = "validation MAE",
-    tie_breaker = "smallest cutoff",
-    selected_cutoff_fraction = selected_cutoff,
+    objective_columns = as.list(objective_columns),
+    dominance_tolerance = 1e-12,
+    selection_rule = paste(
+      "retain all non-dominated validation candidates;",
+      "no unique candidate is selected without predeclared use-case tolerances"
+    ),
+    selected_cutoff_fraction = NULL,
     validation_sweep = lapply(seq_len(nrow(validation_table)), function(i) {
       as.list(validation_table[i, , drop = FALSE])
+    }),
+    validation_pareto_frontier = lapply(seq_len(nrow(validation_frontier)), function(i) {
+      as.list(validation_frontier[i, , drop = FALSE])
     })
   ),
-  validation = selected_validation,
-  test = test_result,
+  test_pareto_candidates = test_frontier_results,
   interpretation = paste(
     "The decomposition is a deterministic encoding of each evaluated segment,",
     "not a forecast trained on the training segment. The training segment is",
     "used only to estimate the constant-mean control and burst threshold.",
-    "The cutoff is selected on validation MAE and frozen before the final test",
-    "segment is evaluated. Test metrics assess whether this fixed extraction",
-    "setting transfers to a later contiguous segment of the same capture."
+    "All cutoffs are evaluated on validation and the non-dominated candidates",
+    "are evaluated on the untouched test segment. No unique winner is claimed",
+    "without predeclared use-case fidelity tolerances. Test metrics assess",
+    "whether the extraction trade-off transfers to a later segment."
   )
 )
 
@@ -320,7 +388,7 @@ utils::write.csv(
   row.names = FALSE
 )
 message(
-  "Contiguous holdout evaluation completed; selected cutoff=",
-  selected_cutoff, "; test MAE=", test_result$trafficmsd$mae,
-  "; training-mean MAE=", test_result$training_mean_baseline$fidelity$mae
+  "Contiguous holdout evaluation completed; Pareto candidates=",
+  length(frontier_indices), "; objectives=",
+  paste(objective_columns, collapse = ", ")
 )
