@@ -331,8 +331,8 @@ def run(path):
         },
         "limitations": [
             "The HMM is an independent exploratory reimplementation, not a canonical validated fitter.",
-            "The frozen-prefix decomposition is computed once; fold-specific HMM and mark parameters "
-            "use only events before each fold origin.",
+            "The frozen-prefix decomposition is computed once; folds are not end-to-end causal replays. "
+            "Fold-specific HMM and mark parameters use only events before each fold origin.",
             "Scores are conditional on positive events and omit event-occurrence likelihood.",
             "Fold 4 upper-tail coverage is poor for both families; sparse upper scales cannot support "
             "a reliable extreme-quantile claim.",
