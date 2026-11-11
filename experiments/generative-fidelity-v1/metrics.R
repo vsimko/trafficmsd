@@ -6,6 +6,8 @@ read_series <- function(path) {
   x <- utils::read.csv(path, stringsAsFactors = FALSE)
   if (!identical(names(x), c("sample_index", "value")) ||
       nrow(x) < 16L ||
+      any(!is.finite(x$sample_index)) ||
+      any(x$sample_index != as.integer(x$sample_index)) ||
       any(!is.finite(x$value)) || any(x$value < 0) ||
       !identical(as.integer(x$sample_index), seq.int(0L, nrow(x) - 1L))) {
     stop("Expected CSV columns sample_index,value with >=16 contiguous finite non-negative samples: ", path,
