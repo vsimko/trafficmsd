@@ -89,7 +89,7 @@ This construction explicitly samples both event occurrence and amplitude. Tempor
 3. Run the deterministic decomposition on training data only. Extract one event opportunity sequence per scale using the scale interval and emission phase above. Do not fit on a reconstruction of the entire trace and then claim a held-out evaluation.
 4. Fit the Gaussian-emission HMM to log1p(X_t) on the training interval only, evaluate K=1,2,3 by BIC, and canonicalize regime labels by increasing emission mean.
 5. Decode the training regime path using Viterbi. For each scale and regime, estimate p01 and p11 from the corresponding event transitions, with a declared Beta(1,1) smoothing prior. Estimate positive Gamma marks by maximum likelihood from event amplitudes assigned to that regime.
-6. For the independent-cell baseline, a scale/regime pair with fewer than 30 positive training events is not fitted. Do not lower this threshold. Evaluate the shared scale-and-regime mark model with shrinkage as a separate, predeclared candidate on training-only folds. A scale with no positive marks is unfit unless explicitly disabled by policy; fail rather than silently borrowing holdout samples or fabricating parameters.
+6. Fit the shared-shape, scale-trend Gamma mark model over positive training events, with declared shrinkage on regime offsets. The former independent-cell baseline still requires at least 30 events per (scale, regime); do not lower that threshold. A scale with no positive marks is unfit unless explicitly disabled by policy; fail rather than silently borrowing holdout samples or fabricating parameters. Record the shared mark fit's event count and supported scales.
 7. Record algorithm/library versions, fitting seed, convergence diagnostics, selected K, BIC values, training interval, source and derived-input checksums, decomposition parameters, and all units.
 
 The fitted process is a proposal, not a claim that the current deterministic coefficients are unbiased event observations. The exact center-left emission mapping is now audited against compute_emits() and synthetic conformance tests are included; see [the emission semantics audit](generative-model-v1-emission-audit.md). Regime alignment at those emission ticks remains an open modelling choice and must be compared using training data only before fitter implementation.
@@ -123,12 +123,16 @@ Only after the statistical gate passes, add a generated condition to issue #82. 
 
 ## 6. Schema contract
 
-The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural contract. A semantic validator must additionally enforce:
+The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural contract. It now represents one shared Gamma mark model (shape, log-mean scale trend, regime offsets and shrinkage penalty) plus per-scale active/inactive-by-policy/unfit status. A semantic validator must additionally enforce:
 
 - unique contiguous scale indices from zero and scale interval/phase consistency;
-- exactly one parameter set for every (scale_index, regime_id) pair;
+- exactly one occurrence parameter set for every (scale_index, regime_id) pair;
+- the shared mark-model regime-offset vector has exactly one entry per regime and uses regime 0 as the zero-offset reference;
+- fitted_scale_indices exactly match active scale processes with positive training marks;
+- inactive_by_policy scales have zero initial/event probabilities and no mark parameters; unfit scales block model acceptance;
 - all regime transition rows and initial probabilities sum to one within a documented tolerance;
-- probabilities are in [0,1], Gamma parameters are positive, and all numbers are finite;
+- probabilities are in [0,1], shared Gamma shape is positive, and all numbers are finite;
+- shared mark mean is exp(log_mean_intercept + log_mean_scale_slope * (scale_index - 3) + regime_log_mean_offsets[regime_id]); Gamma scale is that mean divided by the shared shape;
 - the training range is contiguous, non-empty, and within the declared source signal;
 - source model schema kind is deterministic reconstruction, never another generative model;
 - checksum and fitting provenance are present and consistent.
