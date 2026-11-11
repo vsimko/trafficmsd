@@ -195,7 +195,7 @@ def fit_marks(events, hmm):
         mean = np.exp(np.clip(matrix @ p[1:], -40, 40))
         logpdf = ((shape - 1) * np.log(marks) - marks * shape / mean
                   - gammaln(shape) - shape * np.log(mean / shape))
-        return -float(logpdf.sum()) + PENALTY * float(np.sum(p[2:]**2))
+        return -float(logpdf.sum()) + PENALTY * float(np.sum(p[3:]**2))
 
     def lognormal_nll(p):
         sigma = np.exp(p[-1])
