@@ -188,6 +188,12 @@ evaluate_segment <- function(source, cutoff, segment_name) {
   )
   source_runs <- run_lengths(source, burst_threshold)
   reconstructed_runs <- run_lengths(reconstructed, burst_threshold)
+  source_quantiles <- quantile_summary(source)
+  reconstruction_quantiles <- quantile_summary(reconstructed)
+  quantile_differences <- Map(
+    function(left, right) abs(left - right),
+    source_quantiles, reconstruction_quantiles
+  )
   baseline <- rep(training_mean, length(source))
   model_metrics <- fidelity_metrics(source, reconstructed)
   baseline_metrics <- fidelity_metrics(source, baseline)
@@ -227,8 +233,9 @@ evaluate_segment <- function(source, cutoff, segment_name) {
       reconstruction_cv = if (mean(reconstructed) == 0) NULL else {
         stats::sd(reconstructed) / mean(reconstructed)
       },
-      source_quantiles = quantile_summary(source),
-      reconstruction_quantiles = quantile_summary(reconstructed),
+      source_quantiles = source_quantiles,
+      reconstruction_quantiles = reconstruction_quantiles,
+      absolute_quantile_differences = quantile_differences,
       wasserstein_1 = wasserstein_1(source, reconstructed)
     ),
     temporal = list(
@@ -246,6 +253,8 @@ evaluate_segment <- function(source, cutoff, segment_name) {
         mean(reconstructed > burst_threshold) -
           mean(source > burst_threshold)
       ),
+      source_exceedance_fraction = mean(source > burst_threshold),
+      reconstruction_exceedance_fraction = mean(reconstructed > burst_threshold),
       source_run_count = length(source_runs),
       reconstruction_run_count = length(reconstructed_runs),
       source_median_run_length = optional_quantile(source_runs, 0.50),
@@ -269,6 +278,13 @@ evaluate_segment <- function(source, cutoff, segment_name) {
           optional_quantile(source_runs, 0.95) -
             optional_quantile(reconstructed_runs, 0.95)
         )
+      } else {
+        NULL
+      },
+      max_run_length_difference = if (
+        length(source_runs) && length(reconstructed_runs)
+      ) {
+        abs(max(source_runs) - max(reconstructed_runs))
       } else {
         NULL
       },
