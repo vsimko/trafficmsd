@@ -264,7 +264,7 @@ def main() -> None:
     if config["workload_mapping"]["arrival_placement"] != "bin_start":
         raise ValueError("only bin_start arrival placement is supported")
     if config["simulation"]["warmup_policy"] != "none":
-        raise ValueError("finite trace comparisons must retain the full trace (warmup=none)")
+        raise ValueError("periodic replay comparisons must use warmup=none")
     if config["simulation"]["termination_kind"] != "completions":
         raise ValueError("periodic replay comparisons require a service-completion event budget")
     measured_seeds = config["simulation"]["measured_replication_seeds"]
