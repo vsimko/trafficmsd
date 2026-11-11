@@ -7,6 +7,8 @@ observations, production fitter, or generator are used.
 """
 import argparse
 import csv
+import hashlib
+import io
 import json
 from pathlib import Path
 
@@ -14,26 +16,39 @@ import numpy as np
 from scipy.optimize import brentq, minimize
 from scipy.special import gammainc, gammaln, logsumexp, ndtr
 
-TRACE_SHA256 = "6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7"
+TRAINING_PREFIX_SHA256 = "017e38220cc7590653c630455732c90c2c4c80e148a105e1dabe02e133ebe032"
 FOLDS = ((1024, 1280), (1280, 1536), (1536, 1792), (1792, 2048))
 PENALTY = 1.0
 QUANTILES = (0.90, 0.95, 0.99)
 
 
 def read_prefix(path):
+    # Unbuffered, line-bounded input: only the header and 2,048 training rows
+    # are read or parsed. Validation/test rows are never consumed.
+    lines = []
+    with Path(path).open("rb", buffering=0) as stream:
+        lines.append(stream.readline())
+        for _ in range(2048):
+            row = stream.readline()
+            if not row:
+                raise ValueError("training prefix ended before 2,048 rows")
+            lines.append(row)
+    raw_prefix = b"".join(lines)
+    if hashlib.sha256(raw_prefix).hexdigest() != TRAINING_PREFIX_SHA256:
+        raise ValueError("training-prefix SHA-256 does not match the verified artifact")
+    reader = csv.DictReader(io.StringIO(raw_prefix.decode("utf-8")))
+    if reader.fieldnames != ["sample_index", "value"]:
+        raise ValueError("expected sample_index,value columns")
     values = []
-    with Path(path).open(newline="", encoding="utf-8") as stream:
-        reader = csv.DictReader(stream)
-        if reader.fieldnames != ["sample_index", "value"]:
-            raise ValueError("expected sample_index,value columns")
-        for expected in range(2048):
-            row = next(reader, None)
-            if row is None or int(row["sample_index"]) != expected:
-                raise ValueError("missing or misaligned training-prefix sample")
-            value = float(row["value"])
-            if not np.isfinite(value) or value < 0:
-                raise ValueError("training values must be finite and non-negative")
-            values.append(value)
+    for expected, row in enumerate(reader):
+        if int(row["sample_index"]) != expected:
+            raise ValueError("missing or misaligned training-prefix sample")
+        value = float(row["value"])
+        if not np.isfinite(value) or value < 0:
+            raise ValueError("training values must be finite and non-negative")
+        values.append(value)
+    if len(values) != 2048:
+        raise ValueError("expected exactly 2,048 training-prefix rows")
     return np.asarray(values, dtype=float)
 
 
@@ -312,7 +327,7 @@ def run(path):
     return {
         "experiment": "westermo-training-prefix-gamma-vs-lognormal-marks",
         "status": "exploratory_training_only_not_model_selection",
-        "trace_sha256_from_verified_artifact": TRACE_SHA256,
+        "training_prefix_sha256": TRAINING_PREFIX_SHA256,
         "training_prefix": [0, 2048],
         "validation_test_rows_read": False,
         "synthetic_or_artificial_events": False,
