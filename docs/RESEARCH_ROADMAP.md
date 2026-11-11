@@ -59,6 +59,7 @@ The current R package provides multiscale decomposition, reconstruction, and amp
 - Define which model components are deterministic and which require stochastic sampling.
 - Implement generation from the versioned model representation.
 - Compare generated sequences with source traces using appropriate statistical metrics.
+- Evaluate multiple independent realizations with the [Generative fidelity v1 protocol and evaluator](../experiments/generative-fidelity-v1/README.md); do not use pointwise reconstruction error as the primary score for stochastic samples.
 - Add suitable baseline models and repeatability tests.
 
 **Exit criteria:** generated sequences can be produced and evaluated independently of the extraction implementation.
