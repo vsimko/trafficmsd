@@ -81,6 +81,20 @@ Candidate evaluation dimensions include:
 
 No single metric is sufficient. Some metrics may be inappropriate for a particular traffic quantity; the final protocol should justify each selected metric. Report per-trace results as well as aggregated results.
 
+### 5.1 Fidelity–complexity trade-off
+
+Model selection must make the cost of additional fidelity visible. For a source trace `X`, a candidate model `M`, and a deterministic or stochastic realization `G(M)`, evaluate the vector of predeclared fidelity measures together with model complexity. At minimum, complexity includes component count, free parameter count where applicable, and serialized model bytes. Generation runtime and peak memory may be added when they matter to the target use case.
+
+Prefer a multi-objective Pareto analysis over an arbitrary weighted score:
+
+- minimize the selected fidelity errors;
+- minimize model complexity;
+- retain non-dominated candidates on the Pareto frontier.
+
+For a specific use case, a constrained rule may select the smallest model satisfying predeclared limits, e.g. minimize complexity subject to each required fidelity error being below its tolerance. Tolerances must be justified by the intended simulation and fixed before inspecting the final holdout set. If a weighted score is later used, publish its component metrics and justify the weights; do not conceal trade-offs in one aggregate number.
+
+Keep three validation layers distinct: (1) reconstruction fidelity to the measured signal, (2) statistical/generative fidelity of newly realized traffic, and (3) simulation-outcome fidelity for the target performance question. Passing one layer does not imply passing the next.
+
 ### Comparisons and controls
 
 - Compare against the original trace and, where relevant, a reconstruction from the full decomposition coefficients.
