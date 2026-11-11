@@ -71,10 +71,20 @@ def schedule_interarrivals(schedule: dict[str, Any]) -> list[float]:
         events.extend([expected_time] * count)
     if not events:
         raise ValueError("schedule contains no jobs")
-    intervals = [events[0]]
+    active_span = events[-1] - events[0]
+    period = len(schedule["batches"]) * width
+    cycle_gap = period - active_span
+    if not math.isfinite(cycle_gap) or cycle_gap < 0:
+        raise ValueError("periodic replay gap must be finite and non-negative")
+    # Replayer cycles the vector. The first interval is therefore the gap
+    # from the previous cycle's final arrival to this cycle's first arrival,
+    # not a one-off delay from simulation time zero.
+    intervals = [cycle_gap]
     intervals.extend(events[index] - events[index - 1] for index in range(1, len(events)))
     if any(not math.isfinite(value) or value < 0 for value in intervals):
-        raise ValueError("expanded interarrival intervals must be finite and non-negative")
+        raise ValueError("expanded periodic interarrival intervals must be finite and non-negative")
+    if not math.isclose(sum(intervals), period, rel_tol=1e-12, abs_tol=1e-9):
+        raise AssertionError("periodic interarrival vector must sum to the full source-signal period")
     if len(intervals) != len(events):
         raise AssertionError("one interarrival interval is required per offered job")
     return intervals
@@ -156,8 +166,8 @@ def run_experiment(
         raise ValueError("model, schedule, and experiment time units must match")
     if experiment["warmup"]["policy"] != "none":
         raise ValueError("finite trace runs must use warmup=none")
-    if experiment["termination"]["kind"] != "simulated_time":
-        raise ValueError("finite trace runs require a fixed simulated-time horizon")
+    if experiment["termination"]["kind"] != "completions":
+        raise ValueError("periodic replay runs require a service-completion event budget")
     if len(experiment["replications"]["seeds"]) != experiment["replications"]["count"]:
         raise ValueError("replication count must match the explicit seed list")
 
@@ -165,17 +175,11 @@ def run_experiment(
     offered_jobs = len(interarrivals)
     service_rate = float(model_spec["queueing_place"]["service_distribution"]["rate_per_s"])
     full_horizon = len(schedule["batches"]) * float(schedule["bin_width"])
-    effective_interarrivals = [max(value, 1e-9) for value in interarrivals]
-    last_arrival_epoch = sum(effective_interarrivals)
-    first_arrival_epoch = effective_interarrivals[0]
-    simulation_horizon = last_arrival_epoch + first_arrival_epoch * 0.5
-    configured_horizon = float(experiment["termination"]["value"])
-    if not math.isclose(
-        configured_horizon, simulation_horizon, rel_tol=1e-12, abs_tol=1e-12
-    ):
+    completion_budget = int(experiment["termination"]["value"])
+    expected_completion_budget = max(200000, offered_jobs * 100)
+    if completion_budget != expected_completion_budget:
         raise ValueError(
-            "experiment simulated-time termination does not match the finite "
-            "schedule horizon ending halfway through the next replay cycle"
+            "completion event budget must match the predeclared max(200000, offered_jobs * 100) policy"
         )
     arrival_bins = [
         int(batch["source_bin"])
@@ -184,11 +188,13 @@ def run_experiment(
     ]
     first_arrival_bin = min(arrival_bins)
     last_arrival_bin = max(arrival_bins)
-    first_schedule_arrival_epoch = first_arrival_bin * float(schedule["bin_width"])
-    last_schedule_arrival_epoch = last_arrival_bin * float(schedule["bin_width"])
-    horizon = simulation_horizon
+    first_arrival_epoch = first_arrival_bin * float(schedule["bin_width"])
+    last_arrival_epoch = last_arrival_bin * float(schedule["bin_width"])
+    active_horizon = last_arrival_epoch - first_arrival_epoch
+    periodic_replay_gap = full_horizon - active_horizon
+    horizon = full_horizon
     if not math.isfinite(horizon) or horizon <= 0:
-        raise ValueError("finite trace must define a positive simulated-time horizon")
+        raise ValueError("periodic replay must define a positive source-signal period")
     mean_offered_rate = offered_jobs / horizon
     trace_mean_interarrival_rate = offered_jobs / sum(interarrivals)
     if not math.isfinite(trace_mean_interarrival_rate) or trace_mean_interarrival_rate <= 0:
@@ -208,18 +214,11 @@ def run_experiment(
         solver = SolverLDES(
             model,
             seed=int(seed),
-            samples=max(200000, offered_jobs * 100),
-            timespan=[0.0, simulation_horizon],
+            samples=completion_budget,
             tranfilter="none",
             cimethod="none",
             verbose="silent",
         )
-        # Run the finite transient path without requesting the optional
-        # trajectory payload. Then consume the metrics block from that same
-        # result; avg_table() otherwise re-enters getTranAvg() and its sparse
-        # trajectory-only station table for Replayer-driven QPN models.
-        solver.runAnalyzer(trajectory=False)
-        solver.options.timespan = None
         table = solver.avg_table()
         elapsed_seconds += time.perf_counter() - started
         rows = table.reset_index().to_dict(orient="records")
@@ -232,11 +231,7 @@ def run_experiment(
             None,
         )
         if queue_row is None:
-            raise AssertionError(
-                f"LINE result has no queueing-place row: {rows!r}; "
-                f"stations={getattr(solver, '_station_names', None)!r}; "
-                f"stopping_reason={getattr(getattr(solver, '_result', None), 'stopping_reason', None)!r}"
-            )
+            raise AssertionError(f"LINE result has no queueing-place row: {rows!r}")
         observed_arrival_rate = float(queue_row["ArvR"])
         observed_throughput = float(queue_row["Tput"])
         if not math.isfinite(observed_arrival_rate) or not math.isfinite(observed_throughput):
@@ -263,7 +258,7 @@ def run_experiment(
         replications.append({
             "index": index,
             "seed": int(seed),
-            "termination_reason": "simulated_time",
+            "termination_reason": "completed",
             "raw_observations": raw_observations,
         })
 
@@ -302,13 +297,13 @@ def run_experiment(
             "full_schedule_horizon_s": full_horizon,
             "first_arrival_epoch_s": first_arrival_epoch,
             "last_arrival_epoch_s": last_arrival_epoch,
-            "last_schedule_arrival_epoch_s": last_schedule_arrival_epoch,
-            "first_schedule_arrival_epoch_s": first_schedule_arrival_epoch,
+            "active_arrival_span_s": active_horizon,
+            "periodic_replay_gap_s": periodic_replay_gap,
             "leading_idle_bins": first_arrival_bin,
             "trailing_idle_bins": len(schedule["batches"]) - last_arrival_bin - 1,
             "mean_offered_job_rate_per_s": mean_offered_rate,
             "trace_mean_interarrival_rate_per_s": trace_mean_interarrival_rate,
-            "termination_policy": "fixed_simulated_time_before_next_replay_cycle",
+            "termination_policy": "service_completion_event_budget_on_periodic_replay",
             "warmup_policy": "none",
             "service_rate_per_s": service_rate,
             "confidence_level": confidence_level,
