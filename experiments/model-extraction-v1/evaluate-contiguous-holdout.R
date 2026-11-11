@@ -63,7 +63,7 @@ fidelity_metrics <- function(source, estimate) {
 acf_at_lag <- function(x, lag) {
   centered <- x - mean(x)
   denominator <- sum(centered^2)
-  if (denominator == 0) return(0)
+  if (denominator == 0) return(NA_real_)
   sum(centered[seq_len(length(x) - lag)] *
         centered[(lag + 1L):length(x)]) / denominator
 }
@@ -75,6 +75,22 @@ run_lengths <- function(x, threshold) {
 
 optional_max <- function(x) {
   if (length(x) == 0L) NULL else as.integer(max(x))
+}
+
+optional_quantile <- function(x, probability) {
+  if (length(x) == 0L) NULL else
+    as.numeric(stats::quantile(x, probability, names = FALSE, type = 7))
+}
+
+wasserstein_1 <- function(x, y) {
+  mean(abs(sort(x) - sort(y)))
+}
+
+quantile_summary <- function(x) {
+  values <- stats::quantile(
+    x, probs = c(0.50, 0.90, 0.95, 0.99), names = FALSE, type = 7
+  )
+  as.list(stats::setNames(as.numeric(values), c("p50", "p90", "p95", "p99")))
 }
 
 evaluate_segment <- function(source, cutoff, segment_name) {
@@ -155,7 +171,7 @@ evaluate_segment <- function(source, cutoff, segment_name) {
     stop("Sparse model v2 reconstruction differs from model v1.", call. = FALSE)
   }
 
-  lags <- c(1L, 2L, 4L, 8L, 16L, 32L)
+  lags <- c(1L, 2L, 4L, 8L, 16L, 32L, 64L, 128L, 256L)
   lags <- lags[lags < length(source) / 4]
   acf_differences <- lapply(lags, function(lag) {
     source_acf <- acf_at_lag(source, lag)
@@ -172,6 +188,12 @@ evaluate_segment <- function(source, cutoff, segment_name) {
   )
   source_runs <- run_lengths(source, burst_threshold)
   reconstructed_runs <- run_lengths(reconstructed, burst_threshold)
+  source_quantiles <- quantile_summary(source)
+  reconstruction_quantiles <- quantile_summary(reconstructed)
+  quantile_differences <- Map(
+    function(left, right) abs(left - right),
+    source_quantiles, reconstruction_quantiles
+  )
   baseline <- rep(training_mean, length(source))
   model_metrics <- fidelity_metrics(source, reconstructed)
   baseline_metrics <- fidelity_metrics(source, baseline)
@@ -202,20 +224,75 @@ evaluate_segment <- function(source, cutoff, segment_name) {
       rmse_improvement_vs_identity =
         identity_metrics$rmse - model_metrics$rmse
     ),
+    distribution = list(
+      source_mean = mean(source),
+      reconstruction_mean = mean(reconstructed),
+      source_sd = stats::sd(source),
+      reconstruction_sd = stats::sd(reconstructed),
+      source_cv = if (mean(source) == 0) NULL else stats::sd(source) / mean(source),
+      reconstruction_cv = if (mean(reconstructed) == 0) NULL else {
+        stats::sd(reconstructed) / mean(reconstructed)
+      },
+      source_quantiles = source_quantiles,
+      reconstruction_quantiles = reconstruction_quantiles,
+      absolute_quantile_differences = quantile_differences,
+      wasserstein_1 = wasserstein_1(source, reconstructed)
+    ),
     temporal = list(
       acf_differences = acf_differences,
       mean_absolute_acf_difference =
-        if (length(acf_values)) mean(acf_values) else NULL
+        if (length(acf_values) && any(is.finite(acf_values))) {
+          mean(acf_values, na.rm = TRUE)
+        } else {
+          NULL
+        }
     ),
     bursts = list(
       threshold_from_training_p95 = burst_threshold,
+      exceedance_fraction_difference = abs(
+        mean(reconstructed > burst_threshold) -
+          mean(source > burst_threshold)
+      ),
+      source_exceedance_fraction = mean(source > burst_threshold),
+      reconstruction_exceedance_fraction = mean(reconstructed > burst_threshold),
       source_run_count = length(source_runs),
       reconstruction_run_count = length(reconstructed_runs),
+      source_median_run_length = optional_quantile(source_runs, 0.50),
+      reconstruction_median_run_length = optional_quantile(reconstructed_runs, 0.50),
+      source_p95_run_length = optional_quantile(source_runs, 0.95),
+      reconstruction_p95_run_length = optional_quantile(reconstructed_runs, 0.95),
+      median_run_length_difference = if (
+        length(source_runs) && length(reconstructed_runs)
+      ) {
+        abs(
+          optional_quantile(source_runs, 0.50) -
+            optional_quantile(reconstructed_runs, 0.50)
+        )
+      } else {
+        NULL
+      },
+      p95_run_length_difference = if (
+        length(source_runs) && length(reconstructed_runs)
+      ) {
+        abs(
+          optional_quantile(source_runs, 0.95) -
+            optional_quantile(reconstructed_runs, 0.95)
+        )
+      } else {
+        NULL
+      },
+      max_run_length_difference = if (
+        length(source_runs) && length(reconstructed_runs)
+      ) {
+        abs(max(source_runs) - max(reconstructed_runs))
+      } else {
+        NULL
+      },
       source_max_run_length = optional_max(source_runs),
       reconstruction_max_run_length = optional_max(reconstructed_runs)
     ),
     compactness = list(
-      component_count = length(model$components),
+      component_count = length(sparse_model$components),
       scale_zero_residual_count = sum(vapply(model$components, function(item) {
         identical(as.integer(item$scale_index), 0L)
       }, logical(1))),
@@ -235,32 +312,119 @@ evaluate_segment <- function(source, cutoff, segment_name) {
   )
 }
 
-validation_rows <- lapply(cutoffs, function(cutoff) {
-  result <- evaluate_segment(validation, cutoff, "validation")
+validation_candidate_results <- lapply(cutoffs, function(cutoff) {
+  evaluate_segment(
+    validation, cutoff,
+    paste0("validation-cutoff-", format(cutoff, scientific = FALSE))
+  )
+})
+validation_rows <- lapply(seq_along(cutoffs), function(index) {
+  result <- validation_candidate_results[[index]]
+  cutoff <- cutoffs[[index]]
   data.frame(
     cutoff_fraction = cutoff,
     mae = result$trafficmsd$mae,
     rmse = result$trafficmsd$rmse,
+    relative_l1_error = if (is.null(result$trafficmsd$relative_l1_error)) {
+      NA_real_
+    } else {
+      result$trafficmsd$relative_l1_error
+    },
     training_mean_mae = result$training_mean_baseline$fidelity$mae,
     training_mean_rmse = result$training_mean_baseline$fidelity$rmse,
-    mean_absolute_acf_difference = result$temporal$mean_absolute_acf_difference,
+    mean_absolute_acf_difference =
+      if (is.null(result$temporal$mean_absolute_acf_difference)) {
+        NA_real_
+      } else {
+        result$temporal$mean_absolute_acf_difference
+      },
+    wasserstein_1 = result$distribution$wasserstein_1,
+    source_p95 = result$distribution$source_quantiles$p95,
+    reconstruction_p95 = result$distribution$reconstruction_quantiles$p95,
+    burst_exceedance_fraction_difference =
+      result$bursts$exceedance_fraction_difference,
     reconstruction_burst_run_count = result$bursts$reconstruction_run_count,
-    reconstruction_burst_max_run = result$bursts$reconstruction_max_run_length,
-    model_size_ratio = result$compactness$v1_model_size_ratio
+    median_run_length_difference =
+      if (is.null(result$bursts$median_run_length_difference)) {
+        NA_real_
+      } else {
+        result$bursts$median_run_length_difference
+      },
+    p95_run_length_difference =
+      if (is.null(result$bursts$p95_run_length_difference)) {
+        NA_real_
+      } else {
+        result$bursts$p95_run_length_difference
+      },
+    reconstruction_burst_max_run =
+      if (is.null(result$bursts$reconstruction_max_run_length)) {
+        NA_integer_
+      } else {
+        result$bursts$reconstruction_max_run_length
+      },
+    component_count = result$compactness$v2_component_count,
+    serialized_model_bytes = result$compactness$v2_serialized_model_bytes,
+    model_size_ratio = result$compactness$v2_model_size_ratio
   )
 })
 validation_table <- do.call(rbind, validation_rows)
 
-# Primary selection criterion is validation MAE only; cutoff is the tie-breaker.
-# The test segment is not evaluated until this choice is frozen.
-selected_index <- order(
-  validation_table$mae, validation_table$cutoff_fraction
-)[1L]
-selected_cutoff <- validation_table$cutoff_fraction[selected_index]
-selected_validation <- evaluate_segment(
-  validation, selected_cutoff, "validation-selected"
-)
-test_result <- evaluate_segment(test, selected_cutoff, "test")
+pareto_frontier <- function(table, objective_columns, tolerance = 1e-12) {
+  values <- as.matrix(table[, objective_columns, drop = FALSE])
+  if (any(!is.finite(values))) {
+    stop(
+      "Pareto objectives contain undefined values; choose a valid objective set.",
+      call. = FALSE
+    )
+  }
+  keep <- rep(TRUE, nrow(values))
+  for (candidate in seq_len(nrow(values))) {
+    for (challenger in seq_len(nrow(values))) {
+      if (candidate == challenger) next
+      no_worse <- all(values[challenger, ] <= values[candidate, ] + tolerance)
+      strictly_better <- any(values[challenger, ] < values[candidate, ] - tolerance)
+      if (no_worse && strictly_better) {
+        keep[candidate] <- FALSE
+        break
+      }
+    }
+  }
+  which(keep)
+}
+
+# Small deterministic check for the dominance rule: candidates 1 and 2 trade
+# fidelity against complexity; candidate 3 is dominated by candidate 1.
+pareto_smoke <- data.frame(fidelity = c(0.1, 0.2, 0.1), complexity = c(2, 1, 3))
+if (!identical(
+  pareto_frontier(pareto_smoke, c("fidelity", "complexity")),
+  c(1L, 2L)
+)) {
+  stop("Pareto-frontier dominance smoke check failed.", call. = FALSE)
+}
+
+# Fidelity objectives are selected from metrics that are defined for this trace.
+# Sparse-v2 component count and exact serialized v2 JSON bytes are minimized as separate costs.
+objective_columns <- c("component_count", "serialized_model_bytes")
+if (all(is.finite(validation_table$relative_l1_error))) {
+  objective_columns <- c("relative_l1_error", objective_columns)
+} else {
+  objective_columns <- c("mae", objective_columns)
+}
+if (all(is.finite(validation_table$mean_absolute_acf_difference))) {
+  objective_columns <- c("mean_absolute_acf_difference", objective_columns)
+}
+frontier_indices <- pareto_frontier(validation_table, objective_columns)
+validation_frontier <- validation_table[frontier_indices, , drop = FALSE]
+
+# No arbitrary scalar score or unique winner is imposed. Evaluate every
+# validation Pareto candidate on the untouched test segment.
+test_frontier_results <- lapply(frontier_indices, function(index) {
+  cutoff <- validation_table$cutoff_fraction[index]
+  evaluate_segment(
+    test, cutoff,
+    paste0("test-frontier-cutoff-", format(cutoff, scientific = FALSE))
+  )
+})
 
 result <- list(
   schema_version = "1.0",
@@ -290,22 +454,30 @@ result <- list(
   ),
   cutoff_selection = list(
     candidates = as.list(cutoffs),
-    primary_metric = "validation MAE",
-    tie_breaker = "smallest cutoff",
-    selected_cutoff_fraction = selected_cutoff,
+    objective_columns = as.list(objective_columns),
+    dominance_tolerance = 1e-12,
+    selection_rule = paste(
+      "retain all non-dominated validation candidates;",
+      "no unique candidate is selected without predeclared use-case tolerances"
+    ),
+    selected_cutoff_fraction = NULL,
     validation_sweep = lapply(seq_len(nrow(validation_table)), function(i) {
       as.list(validation_table[i, , drop = FALSE])
+    }),
+    validation_candidates = validation_candidate_results,
+    validation_pareto_frontier = lapply(seq_len(nrow(validation_frontier)), function(i) {
+      as.list(validation_frontier[i, , drop = FALSE])
     })
   ),
-  validation = selected_validation,
-  test = test_result,
+  test_pareto_candidates = test_frontier_results,
   interpretation = paste(
     "The decomposition is a deterministic encoding of each evaluated segment,",
     "not a forecast trained on the training segment. The training segment is",
     "used only to estimate the constant-mean control and burst threshold.",
-    "The cutoff is selected on validation MAE and frozen before the final test",
-    "segment is evaluated. Test metrics assess whether this fixed extraction",
-    "setting transfers to a later contiguous segment of the same capture."
+    "All cutoffs are evaluated on validation and the non-dominated candidates",
+    "are evaluated on the untouched test segment. No unique winner is claimed",
+    "without predeclared use-case fidelity tolerances. Test metrics assess",
+    "whether the extraction trade-off transfers to a later segment."
   )
 )
 
@@ -320,7 +492,7 @@ utils::write.csv(
   row.names = FALSE
 )
 message(
-  "Contiguous holdout evaluation completed; selected cutoff=",
-  selected_cutoff, "; test MAE=", test_result$trafficmsd$mae,
-  "; training-mean MAE=", test_result$training_mean_baseline$fidelity$mae
+  "Contiguous holdout evaluation completed; Pareto candidates=",
+  length(frontier_indices), "; objectives=",
+  paste(objective_columns, collapse = ", ")
 )

@@ -2,9 +2,11 @@
 
 ## Strategic direction
 
-The primary direction for `trafficmsd` is **network traffic model extraction**. The immediate goal is to turn measured network traffic into a compact, interpretable, reusable model using the package's multiscale analysis capabilities.
+The primary direction for `trafficmsd` is **measurement-driven extraction of compact, simulation-ready network traffic models from PCAP-derived observations**. The central research question is: given a measured trace and a defined simulation use case, what is the smallest model that preserves the traffic properties that materially affect the simulation?
 
-Traffic generation and performance-simulation integration are downstream capabilities. They should be developed only after the extracted model has a clear representation and its quality can be assessed.
+The intended contribution is not a general-purpose packet analyser, traffic generator, network emulator, or network simulator. It is the method and evaluation workflow between packet capture and simulation: extract a parameterized model, quantify its fidelity and complexity, expose the trade-off, and realize the selected model as a reproducible simulator workload. See [Related work and research positioning](RELATED_WORK.md) for the comparison inventory and scope boundaries.
+
+Traffic generation and simulator integration remain downstream stages of the same model-extraction objective. A deterministic reconstruction is not automatically a stochastic generator, and a successful simulator run does not establish fidelity to the source capture.
 
 The current R package provides multiscale decomposition, reconstruction, and amplitude clustering. These capabilities are a foundation for model extraction; they do not, by themselves, establish that an extracted model is complete or statistically representative.
 
@@ -13,6 +15,7 @@ The current R package provides multiscale decomposition, reconstruction, and amp
 - Preserve the existing package as the reusable algorithmic core.
 - Make model extraction and model representation the first-class development concerns.
 - Separate analysis, model representation, generation, and simulator integration into explicit stages.
+- Evaluate fidelity and model complexity together; report the Pareto frontier or predeclared fidelity-constrained model selection rather than optimizing reconstruction error alone.
 - Validate each stage with documented data, assumptions, and measurable criteria.
 - Keep implementation reproducible through versioned configurations, data provenance, fixed seeds, and machine-readable results.
 - Treat scientific publications as a possible later outcome, not a current project deliverable.
@@ -42,10 +45,14 @@ The current R package provides multiscale decomposition, reconstruction, and amp
 - Map multiscale decomposition and clustering outputs to the model representation.
 - Define extraction algorithms and parameter-selection rules.
 - Evaluate information retained and lost during extraction.
+- Measure model complexity consistently (component/parameter count and serialized size at minimum).
+- Compute the validation Pareto frontier over predeclared fidelity metrics, component count, and exact serialized bytes; select the smallest feasible model only when use-case tolerances are justified and fixed in advance.
+- Report the full candidate grid and evaluate the frozen selection once on the contiguous test segment.
+- Follow [Model-extraction fidelity and complexity metric v1](MODEL_EXTRACTION_METRIC.md) and [evaluation protocol v1](model-extraction-evaluation-v1.md).
 - Test robustness across traces, trace lengths, sampling intervals, and traffic regimes.
 - Provide inspectable examples and diagnostics.
 
-**Exit criteria:** extraction produces documented models from representative traces, with measured quality and known limitations.
+**Exit criteria:** extraction produces documented models from representative traces, with measured quality and known limitations; candidate models are compared on a fidelity–complexity frontier, with selection rules fixed before final holdout evaluation.
 
 ### Phase 3 — Add traffic generation
 

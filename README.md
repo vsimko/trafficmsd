@@ -103,6 +103,7 @@ The research roadmap focuses on network traffic model extraction, followed by
 traffic generation and performance-simulation validation.
 
 - [Research and development roadmap](docs/RESEARCH_ROADMAP.md)
+- [Related work and research positioning](docs/RELATED_WORK.md)
 - [Research readiness specification](docs/RESEARCH_READINESS.md)
 - [Dataset storage and CI policy](docs/data-management.md)
 - [Research dataset registry](docs/datasets/README.md)

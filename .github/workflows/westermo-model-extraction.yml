@@ -87,25 +87,36 @@ jobs:
           from jsonschema import Draft202012Validator
           from pathlib import Path
 
+          artifact_dir = Path("artifacts/westermo-model-extraction-v1/model")
           pairs = [
               ("schemas/model/v1/model.schema.json",
-               "artifacts/westermo-model-extraction-v1/model/model-v1.json"),
-              ("schemas/model/v2/model.schema.json",
-               "artifacts/westermo-model-extraction-v1/model/model-v2-test.json"),
+               [artifact_dir / "model-v1.json"]),
               ("schemas/evaluation/v1/result.schema.json",
-               "artifacts/westermo-model-extraction-v1/model/evaluation-result-v1.json"),
+               [artifact_dir / "evaluation-result-v1.json"]),
           ]
-          for schema_path, document_path in pairs:
+
+          # Holdout now exports one sparse v2 model per validation candidate
+          # and one per validation-Pareto candidate on test. Validate every
+          # generated candidate rather than expecting the removed singleton
+          # model-v2-test.json artifact.
+          v2_candidates = sorted(artifact_dir.glob("model-v2-*.json"))
+          if not v2_candidates:
+              raise SystemExit("No sparse model v2 candidate artifacts were produced.")
+          pairs.append(("schemas/model/v2/model.schema.json", v2_candidates))
+
+          for schema_path, document_paths in pairs:
               schema = json.loads(Path(schema_path).read_text())
-              document = json.loads(Path(document_path).read_text())
-              errors = sorted(Draft202012Validator(schema).iter_errors(document),
-                              key=lambda error: list(error.path))
-              if errors:
-                  raise SystemExit("\\n".join(
-                      f"{document_path}: {list(error.path)}: {error.message}"
-                      for error in errors
-                  ))
-              print(f"Validated {document_path} against {schema_path}")
+              validator = Draft202012Validator(schema)
+              for document_path in document_paths:
+                  document = json.loads(document_path.read_text())
+                  errors = sorted(validator.iter_errors(document),
+                                  key=lambda error: list(error.path))
+                  if errors:
+                      raise SystemExit("\\n".join(
+                          f"{document_path}: {list(error.path)}: {error.message}"
+                          for error in errors
+                      ))
+                  print(f"Validated {document_path} against {schema_path}")
           PY
 
       - name: Upload reproducible extraction outputs

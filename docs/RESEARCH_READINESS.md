@@ -7,9 +7,9 @@ This document defines the technical decisions needed to extend `trafficmsd` from
 
 ## 1. Immediate objective
 
-Develop a method that extracts a compact, interpretable, reusable model from measured network traffic.
+Develop a method that extracts a compact, interpretable, reusable model from PCAP-derived network traffic, with a defined path to reproducible simulation workloads.
 
-The initial objective is model extraction, not synthetic traffic generation or simulator integration. Those are downstream capabilities that depend on a well-defined and evaluated model representation.
+The central research question is: given a measured trace and a defined simulation use case, what is the smallest model that preserves the traffic properties that materially affect that simulation? Model extraction is the primary contribution; generation and simulator integration are downstream realization and validation stages, not independent feature goals.
 
 The central distinction is:
 
@@ -81,6 +81,14 @@ Candidate evaluation dimensions include:
 
 No single metric is sufficient. Some metrics may be inappropriate for a particular traffic quantity; the final protocol should justify each selected metric. Report per-trace results as well as aggregated results.
 
+### 5.1 Fidelity–complexity trade-off
+
+Model selection must make the cost of additional fidelity visible. For a source trace `X`, a candidate model `M`, and a deterministic or stochastic realization `G(M)`, evaluate the vector of predeclared fidelity measures together with model complexity. At minimum, complexity includes component count, free parameter count where applicable, and serialized model bytes. Generation runtime and peak memory may be added when they matter to the target use case.
+
+Use the operational definitions in [Model-extraction fidelity and complexity metric v1](MODEL_EXTRACTION_METRIC.md): report the fidelity vector and the two initial complexity objectives (serialized component count and exact serialized bytes), derive the Pareto frontier, and avoid an unexplained weighted score. For a specific use case, select the smallest serialized model satisfying predeclared fidelity limits, using component count as a tie-breaker. Tolerances must be justified by the intended simulation and fixed before inspecting the final holdout set. If no defensible tolerances exist, report the frontier without naming a unique best model.
+
+Keep three validation layers distinct: (1) reconstruction fidelity to the measured signal, (2) statistical/generative fidelity of newly realized traffic, and (3) simulation-outcome fidelity for the target performance question. Passing one layer does not imply passing the next.
+
 ### Comparisons and controls
 
 - Compare against the original trace and, where relevant, a reconstruction from the full decomposition coefficients.
@@ -94,7 +102,7 @@ Baseline traffic generators such as Poisson, ON/OFF, and Markov-modulated models
 
 ## 6. Data and reproducibility requirements
 
-The extraction-stage metric definitions, deterministic controls, holdout rules, and result fields are specified in [Model-extraction evaluation protocol v1](model-extraction-evaluation-v1.md). The machine-readable result contract is [evaluation result schema v1](../schemas/evaluation/v1/result.schema.json). A synthetic smoke experiment can be reproduced with `R CMD INSTALL .` followed by `Rscript experiments/model-extraction-v1/run.R`; its outputs are synthetic diagnostics, not evidence of real-trace validity.
+The extraction-stage metric definitions and Pareto/selection rule are specified in [Model-extraction fidelity and complexity metric v1](MODEL_EXTRACTION_METRIC.md); deterministic controls, holdout rules, and result fields are specified in [Model-extraction evaluation protocol v1](model-extraction-evaluation-v1.md). The machine-readable result contract is [evaluation result schema v1](../schemas/evaluation/v1/result.schema.json). A synthetic smoke experiment can be reproduced with `R CMD INSTALL .` followed by `Rscript experiments/model-extraction-v1/run.R`; its outputs are synthetic diagnostics, not evidence of real-trace validity.
 
 For every trace, record at least:
 
@@ -133,6 +141,7 @@ The first implementation iteration should explicitly decide:
 5. The initial trace datasets and their licenses.
 6. The extraction-quality metrics and acceptance criteria.
 7. The minimal example that demonstrates the complete extraction path.
+8. The fidelity–complexity objectives, Pareto/constraint-based selection rule, and holdout protocol.
 
 These decisions should be captured before substantial implementation begins.
 
@@ -144,7 +153,7 @@ The model-extraction foundation is ready when:
 - the model representation is documented and versioned;
 - extraction from a trace to a model is reproducible;
 - model contents can be inspected and validated;
-- quality metrics and acceptance criteria are defined;
+- quality and compactness metrics, together with a predeclared fidelity–complexity selection rule, are defined;
 - a minimal example works with a redistributable dataset;
 - limitations and assumptions are documented.
 
