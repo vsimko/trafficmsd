@@ -100,12 +100,12 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 - The HMM's geometric regime durations may underfit long-tailed bursts.
 - Gamma marks may be inadequate for heavy-tailed amplitudes; a lognormal alternative should be evaluated only as a predeclared model comparison, not chosen after holdout inspection.
 - A minimum 30 events per scale/regime may make fine scales or rare regimes unfit. Failures must be reported; partial pooling is not silently applied.
-- The current decomposition's emission mapping must be verified against the actual reconstruction helper before a generator implementation is accepted.
+- Training intervals must preserve global scale-window alignment: for a power-of-two training length N, require the global training start index to be divisible by N. The emission mask itself is covered by the accompanying conformance tests.
 - A power-of-two training interval limits split flexibility; a future decomposition-window protocol may relax this without changing the v1 schema semantics.
 
 ## 8. Implementation sequence
 
-1. Review this proposal and settle the event extraction mapping.
+1. Review the code-confirmed emission mapping and settle the still-open regime alignment using training-only comparisons.
 2. Implement schema validation and semantic invariant tests only.
 3. Implement fitting with synthetic fixtures and deterministic reproducibility tests.
 4. Implement generation and output/manifest contract.
