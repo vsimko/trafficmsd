@@ -1,8 +1,8 @@
-import copy
-import json
+import sys
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 from validate_generative_model_v1 import DEFAULT_SCHEMA, validate_model
 
 
