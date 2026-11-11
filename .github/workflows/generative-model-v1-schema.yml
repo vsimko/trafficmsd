@@ -8,6 +8,7 @@ on:
       - "schemas/generative-model/v1/**"
       - "scripts/validate_generative_model_v1.py"
       - "tests/python/test_generative_model_v1.py"
+      - "experiments/generative-model-v1-sparse-marks/**"
   workflow_dispatch:
 
 permissions:
@@ -28,5 +29,7 @@ jobs:
           python-version: "3.12"
       - name: Install schema validator
         run: python -m pip install --disable-pip-version-check "jsonschema>=4.20,<5"
+      - name: Compile sparse mark comparison experiment
+        run: python -m py_compile experiments/generative-model-v1-sparse-marks/compare_gamma_lognormal.py
       - name: Run semantic validation tests
         run: python -m unittest discover -s tests/python -p "test_generative_model_v1.py" -v
