@@ -147,3 +147,14 @@ likelihood and do not establish joint generative fidelity.
 A/B/C regime, and do not lower the 30-event independent-cell Gamma threshold.
 Repeat with a canonical independently validated HMM and stronger upper-tail
 diagnostics before any production fitter decision.
+
+
+The v1 schema now records `positive_training_mark_count` for every scale.
+Semantic validation requires an active scale to have positive training-mark
+evidence and requires the shared model's `fitted_mark_count` to equal the sum
+of active-scale counts. An empty scale can remain `unfit` (unresolved) or be
+explicitly `inactive_by_policy`; those states are not interchangeable.
+The schema only represents a shared-shape Gamma regression with scale trend
+and regularized regime offsets. The minimum 30 positive events per
+(scale, regime) remains mandatory for any independent Gamma estimate; this
+pooled candidate does not waive the independent-cell threshold.
