@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one fixed-horizon, trace-driven QPN workload experiment with LINE Solver."""
+"""Run one periodic trace-driven QPN workload experiment with LINE Solver."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ METRICS = {
 
 
 def schedule_interarrivals(schedule: dict[str, Any]) -> list[float]:
-    """Expand bin-start batches into exact empirical interarrival intervals."""
+    """Expand bin-start batches into periodic interarrival intervals with the full cycle gap."""
     events: list[float] = []
     previous_bin = -1
     width = float(schedule["bin_width"])
@@ -167,7 +167,7 @@ def run_experiment(
     if experiment["time_unit"] != schedule["time_unit"] or experiment["time_unit"] != model_spec["time_unit"]:
         raise ValueError("model, schedule, and experiment time units must match")
     if experiment["warmup"]["policy"] != "none":
-        raise ValueError("finite trace runs must use warmup=none")
+        raise ValueError("periodic replay runs must use warmup=none")
     if experiment["termination"]["kind"] != "completions":
         raise ValueError("periodic replay runs require a service-completion event budget")
     if len(experiment["replications"]["seeds"]) != experiment["replications"]["count"]:
