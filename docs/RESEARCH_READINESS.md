@@ -85,13 +85,7 @@ No single metric is sufficient. Some metrics may be inappropriate for a particul
 
 Model selection must make the cost of additional fidelity visible. For a source trace `X`, a candidate model `M`, and a deterministic or stochastic realization `G(M)`, evaluate the vector of predeclared fidelity measures together with model complexity. At minimum, complexity includes component count, free parameter count where applicable, and serialized model bytes. Generation runtime and peak memory may be added when they matter to the target use case.
 
-Prefer a multi-objective Pareto analysis over an arbitrary weighted score:
-
-- minimize the selected fidelity errors;
-- minimize model complexity;
-- retain non-dominated candidates on the Pareto frontier.
-
-For a specific use case, a constrained rule may select the smallest model satisfying predeclared limits, e.g. minimize complexity subject to each required fidelity error being below its tolerance. Tolerances must be justified by the intended simulation and fixed before inspecting the final holdout set. If a weighted score is later used, publish its component metrics and justify the weights; do not conceal trade-offs in one aggregate number.
+Use the operational definitions in [Model-extraction fidelity and complexity metric v1](MODEL_EXTRACTION_METRIC.md): report the fidelity vector and the two initial complexity objectives (serialized component count and exact serialized bytes), derive the Pareto frontier, and avoid an unexplained weighted score. For a specific use case, select the smallest serialized model satisfying predeclared fidelity limits, using component count as a tie-breaker. Tolerances must be justified by the intended simulation and fixed before inspecting the final holdout set. If no defensible tolerances exist, report the frontier without naming a unique best model.
 
 Keep three validation layers distinct: (1) reconstruction fidelity to the measured signal, (2) statistical/generative fidelity of newly realized traffic, and (3) simulation-outcome fidelity for the target performance question. Passing one layer does not imply passing the next.
 
@@ -108,7 +102,7 @@ Baseline traffic generators such as Poisson, ON/OFF, and Markov-modulated models
 
 ## 6. Data and reproducibility requirements
 
-The extraction-stage metric definitions, deterministic controls, holdout rules, and result fields are specified in [Model-extraction evaluation protocol v1](model-extraction-evaluation-v1.md). The machine-readable result contract is [evaluation result schema v1](../schemas/evaluation/v1/result.schema.json). A synthetic smoke experiment can be reproduced with `R CMD INSTALL .` followed by `Rscript experiments/model-extraction-v1/run.R`; its outputs are synthetic diagnostics, not evidence of real-trace validity.
+The extraction-stage metric definitions and Pareto/selection rule are specified in [Model-extraction fidelity and complexity metric v1](MODEL_EXTRACTION_METRIC.md); deterministic controls, holdout rules, and result fields are specified in [Model-extraction evaluation protocol v1](model-extraction-evaluation-v1.md). The machine-readable result contract is [evaluation result schema v1](../schemas/evaluation/v1/result.schema.json). A synthetic smoke experiment can be reproduced with `R CMD INSTALL .` followed by `Rscript experiments/model-extraction-v1/run.R`; its outputs are synthetic diagnostics, not evidence of real-trace validity.
 
 For every trace, record at least:
 
