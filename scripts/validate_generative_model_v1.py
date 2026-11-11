@@ -141,22 +141,46 @@ def semantic_errors(model: dict[str, Any], tolerance: float = 1e-8) -> list[str]
                 errors.append(f"scale {scale_id}: active mark status requires at least one positive training mark")
             active_scales.append(scale_id)
             active_mark_count += positive_count
-        elif status == "inactive_by_policy":
-            for regime in parameters:
-                for field in (
-                    "initial_event_probability",
-                    "event_p01",
-                    "event_p11",
-                ):
-                    if regime[field] != 0:
-                        errors.append(
-                            f"scale {scale_id}: inactive_by_policy requires "
-                            f"{field}=0 for every regime"
-                        )
         elif status == "unfit":
-            # Keep unfit distinct from policy-inactive: do not fit marks for it,
-            # but do not reinterpret missing evidence as a policy decision.
+            # Missing mark evidence is distinct from a policy decision.
             pass
+
+        for regime_index, regime in enumerate(parameters):
+            occurrence_status = regime["occurrence_status"]
+            occurrence_support = regime["occurrence_support"]
+            occurrence_fields = (
+                ("initial", "initial_event_probability", "initial_opportunity_count"),
+                ("p01", "event_p01", "p01_trial_count"),
+                ("p11", "event_p11", "p11_trial_count"),
+            )
+            for status_key, value_key, support_key in occurrence_fields:
+                parameter_status = occurrence_status[status_key]
+                value = regime[value_key]
+                support = occurrence_support[support_key]
+                path = f"scale {scale_id} regime {regime_index} {status_key}"
+                if parameter_status == "fitted":
+                    if support < 1:
+                        errors.append(
+                            f"{path}: fitted occurrence parameter requires "
+                            "at least one observed support trial"
+                        )
+                    if value is None:
+                        errors.append(
+                            f"{path}: fitted occurrence parameter requires "
+                            "a numeric probability"
+                        )
+                elif parameter_status == "unfit":
+                    if value is not None:
+                        errors.append(
+                            f"{path}: unfit occurrence parameter must be null, "
+                            "not a prior-only or unsupported probability"
+                        )
+                elif parameter_status == "inactive_by_policy":
+                    if value != 0:
+                        errors.append(
+                            f"{path}: inactive_by_policy occurrence parameter "
+                            "requires probability 0"
+                        )
 
     fitted_scales = mark_model["fitted_scale_indices"]
     if fitted_scales != active_scales:

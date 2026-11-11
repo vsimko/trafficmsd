@@ -320,7 +320,9 @@
                 "regime_id",
                 "initial_event_probability",
                 "event_p01",
-                "event_p11"
+                "event_p11",
+                "occurrence_status",
+                "occurrence_support"
               ],
               "properties": {
                 "regime_id": {
@@ -328,19 +330,43 @@
                   "minimum": 0
                 },
                 "initial_event_probability": {
-                  "type": "number",
+                  "type": ["number", "null"],
                   "minimum": 0,
                   "maximum": 1
                 },
                 "event_p01": {
-                  "type": "number",
+                  "type": ["number", "null"],
                   "minimum": 0,
                   "maximum": 1
                 },
                 "event_p11": {
-                  "type": "number",
+                  "type": ["number", "null"],
                   "minimum": 0,
                   "maximum": 1
+                },
+                "occurrence_status": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["initial", "p01", "p11"],
+                  "properties": {
+                    "initial": {"enum": ["fitted", "unfit", "inactive_by_policy"]},
+                    "p01": {"enum": ["fitted", "unfit", "inactive_by_policy"]},
+                    "p11": {"enum": ["fitted", "unfit", "inactive_by_policy"]}
+                  }
+                },
+                "occurrence_support": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "initial_opportunity_count",
+                    "p01_trial_count",
+                    "p11_trial_count"
+                  ],
+                  "properties": {
+                    "initial_opportunity_count": {"type": "integer", "minimum": 0},
+                    "p01_trial_count": {"type": "integer", "minimum": 0},
+                    "p11_trial_count": {"type": "integer", "minimum": 0}
+                  }
                 }
               }
             }

@@ -90,6 +90,18 @@ Exploratory BIC-selected state counts by fit range were 2, 3, 2, and 2. These ar
 - Revisit whether the event representation should treat high-scale opportunities as always-present marks rather than Bernoulli events. This is a research question, not a selected redesign.
 - Preserve the independent Gamma minimum of 30 positive events per scale/regime. Do not add events, lower thresholds, read validation/test rows, select A/B/C, or select Gamma/lognormal from this diagnostic.
 
+## Artifact contract proposal implemented in the research schema
+
+Each (scale, regime) parameter row now records:
+
+- `occurrence_status.initial`, `occurrence_status.p01`, and `occurrence_status.p11`, each independently set to `fitted`, `unfit`, or `inactive_by_policy`;
+- `occurrence_support.initial_opportunity_count`, `p01_trial_count`, and `p11_trial_count`, preserving the observed denominators;
+- nullable probability values. A fitted value requires a positive observed support count; an unfit value must be `null`; an explicitly policy-inactive value must be zero.
+
+The p01 denominator is the previous-zero trial count (n00+n01); the p11 denominator is the previous-one trial count (n10+n11). A nonzero denominator does not automatically make a parameter fitted: a future fitter must apply a predeclared sufficiency rule. A zero denominator always leaves that transition unfit. Beta(1,1) smoothing may be used only after the support contract is satisfied; it cannot turn a zero-denominator prior into a fitted estimate.
+
+This status is independent of `mark_status`. Mark policy applies only to amplitude marks; occurrence policy must be stated separately. In particular, neither all-zero nor all-one occupancy in this finite training prefix automatically means `inactive_by_policy`. This schema change is a contract/validation change only: it does not fit p01/p11, choose pooling, add events, or relax the >=30 positive-event rule for independent Gamma estimates.
+
 ## Reproduction
 
 Download the checksum-verified `westermo-model-extraction-and-qpn-v1` artifact and extract `westermo-model-extraction-v1/trace.csv`, then run:

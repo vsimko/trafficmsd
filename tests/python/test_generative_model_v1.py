@@ -82,13 +82,23 @@ def valid_model():
                 "opportunity_interval_samples": 1,
                 "phase_offset_samples": 0,
                 "positive_training_mark_count": 0,
-                "mark_status": "inactive_by_policy",
+                "mark_status": "unfit",
                 "regime_parameters": [
                     {
                         "regime_id": 0,
                         "initial_event_probability": 0.0,
                         "event_p01": 0.0,
-                        "event_p11": 0.0,
+                        "event_p11": None,
+                        "occurrence_status": {
+                            "initial": "fitted",
+                            "p01": "fitted",
+                            "p11": "unfit",
+                        },
+                        "occurrence_support": {
+                            "initial_opportunity_count": 1,
+                            "p01_trial_count": 10,
+                            "p11_trial_count": 0,
+                        },
                     },
                     {
                         "regime_id": 1,
@@ -110,12 +120,32 @@ def valid_model():
                         "initial_event_probability": 0.2,
                         "event_p01": 0.1,
                         "event_p11": 0.8,
+                        "occurrence_status": {
+                            "initial": "fitted",
+                            "p01": "fitted",
+                            "p11": "fitted",
+                        },
+                        "occurrence_support": {
+                            "initial_opportunity_count": 1,
+                            "p01_trial_count": 8,
+                            "p11_trial_count": 3,
+                        },
                     },
                     {
                         "regime_id": 1,
                         "initial_event_probability": 0.3,
                         "event_p01": 0.2,
                         "event_p11": 0.7,
+                        "occurrence_status": {
+                            "initial": "fitted",
+                            "p01": "fitted",
+                            "p11": "fitted",
+                        },
+                        "occurrence_support": {
+                            "initial_opportunity_count": 1,
+                            "p01_trial_count": 7,
+                            "p11_trial_count": 2,
+                        },
                     },
                 ],
             },
@@ -128,16 +158,44 @@ class GenerativeModelSemanticValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, expected):
             validate_model(model, DEFAULT_SCHEMA)
 
-    def test_valid_model_with_explicit_policy_inactive_scale(self):
+    def test_valid_model_keeps_mark_and_occurrence_status_separate(self):
         validate_model(valid_model(), DEFAULT_SCHEMA)
 
-    def test_unfit_scale_remains_distinct_from_policy_inactive(self):
+    def test_mark_policy_does_not_force_occurrence_policy(self):
+        model = valid_model()
+        model["scale_processes"][0]["mark_status"] = "inactive_by_policy"
+        validate_model(model, DEFAULT_SCHEMA)
+
+    def test_unfit_mark_scale_remains_distinct_from_occurrence_status(self):
         model = valid_model()
         model["scale_processes"][0]["mark_status"] = "unfit"
-        model["scale_processes"][0]["regime_parameters"][0]["event_p11"] = 0.1
         validate_model(model, DEFAULT_SCHEMA)
         self.assertEqual(model["mark_model"]["fitted_scale_indices"], [1])
 
+    def test_unfit_occurrence_parameter_must_be_null(self):
+        model = valid_model()
+        model["scale_processes"][0]["regime_parameters"][0]["event_p11"] = 0.5
+        self.assert_invalid(model, "unfit occurrence parameter must be null")
+
+    def test_fitted_occurrence_parameter_requires_observed_trials(self):
+        model = valid_model()
+        regime = model["scale_processes"][0]["regime_parameters"][0]
+        regime["occurrence_status"]["p11"] = "fitted"
+        regime["event_p11"] = 0.5
+        self.assert_invalid(model, "fitted occurrence parameter requires at least one")
+
+    def test_policy_inactive_occurrence_requires_zero_probability(self):
+        model = valid_model()
+        regime = model["scale_processes"][0]["regime_parameters"][0]
+        regime["occurrence_status"]["p01"] = "inactive_by_policy"
+        regime["event_p01"] = 0.1
+        self.assert_invalid(model, "inactive_by_policy occurrence parameter requires probability 0")
+
+    def test_occurrence_can_remain_unfit_despite_nonzero_trial_support(self):
+        model = valid_model()
+        regime = model["scale_processes"][0]["regime_parameters"][0]
+        regime["occurrence_support"]["p11_trial_count"] = 4
+        validate_model(model, DEFAULT_SCHEMA)
 
     def test_zero_event_scale_cannot_be_marked_active(self):
         model = valid_model()
@@ -149,11 +207,6 @@ class GenerativeModelSemanticValidationTests(unittest.TestCase):
         model = valid_model()
         model["mark_model"]["fitted_mark_count"] = 41
         self.assert_invalid(model, "must equal the sum of positive_training_mark_count")
-
-    def test_inactive_scale_requires_zero_occurrence_probabilities(self):
-        model = valid_model()
-        model["scale_processes"][0]["regime_parameters"][1]["event_p11"] = 0.01
-        self.assert_invalid(model, "inactive_by_policy requires event_p11=0")
 
     def test_scale_indices_must_be_contiguous_from_zero(self):
         model = valid_model()

@@ -74,7 +74,11 @@ At opportunity k, the binary event indicator E_(s,k) is a first-order Markov cha
 
 The initial event probability is recorded separately for every scale. Regime conditioning shares traffic-state changes across scales; the per-scale Markov state adds local persistence and burst clustering.
 
-**Occurrence support is a separate unresolved issue.** The training-only [scale/regime occurrence-Markov audit](generative-model-v1-occurrence-markov-audit.md) finds scale 0 all-zero (0/2,048 opportunities) and scales 4–11 all-one at their aligned opportunities; only scales 1–3 contain both event states. In regime-conditioned cells, p01 is informed by previous-zero trials (n00+n01), while p11 is informed by previous-one trials (n10+n11). Several cells have very small denominators, and a Beta(1,1) prior does not create evidence when a denominator is zero. The current `mark_status` describes amplitude support, not occurrence identifiability: a scale can have positive marks but an unidentifiable occurrence chain. Before implementing any fitter, the artifact contract must represent occurrence support/status separately from mark status (and must not serialize prior-only transition values as fitted). Constant training-prefix occupancy is not a policy decision: keep it `unfit` unless explicitly changed by policy. This audit does not select a regime, occurrence model, or mark family.
+**Occurrence support is represented separately from mark support.** The training-only [scale/regime occurrence-Markov audit](generative-model-v1-occurrence-markov-audit.md) finds scale 0 all-zero (0/2,048 opportunities) and scales 4–11 all-one at their aligned opportunities; only scales 1–3 contain both event states. In regime-conditioned cells, p01 is informed by previous-zero trials (n00+n01), while p11 is informed by previous-one trials (n10+n11). Several cells have very small denominators, and a Beta(1,1) prior does not create evidence when a denominator is zero.
+
+The v1 artifact contract now gives each (scale, regime) row an `occurrence_status` object with independent `initial`, `p01`, and `p11` statuses, plus an `occurrence_support` object recording the initial opportunity count and the separate p01/p11 trial denominators. A fitted parameter must have a numeric probability and at least one observed support trial; an `unfit` parameter is serialized as `null`, never as a prior-only probability; `inactive_by_policy` is explicit and requires probability zero. A positive denominator may still remain `unfit` when a predeclared sufficiency rule is not met. This representation does not set that rule or fit any values.
+
+`mark_status` remains exclusively about amplitude support. It neither implies nor overrides `occurrence_status`: a scale may have fitted marks but unfit occurrence transitions, or the reverse. Constant training-prefix occupancy is not a policy decision. No occurrence probability, pooling strength, regime, or mark family is selected by this audit.
 
 ### 2.3 Amplitude marks and emission
 
@@ -128,11 +132,12 @@ Only after the statistical gate passes, add a generated condition to issue #82. 
 The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural contract. It now represents one shared Gamma mark model (shape, log-mean scale trend, regime offsets and shrinkage penalty) plus per-scale active/inactive-by-policy/unfit status. The Python validator in scripts/validate_generative_model_v1.py and its regression tests now enforce the cross-field invariants below (in addition to structural JSON Schema validation):
 
 - unique contiguous scale indices from zero and scale interval/phase consistency;
-- exactly one occurrence parameter set for every (scale_index, regime_id) pair;
+- exactly one occurrence parameter set for every (scale_index, regime_id) pair, with separate `occurrence_status` and observed support counts for the initial probability, p01, and p11;
 - the shared mark-model regime-offset vector has exactly one entry per regime and uses regime 0 as the zero-offset reference;
 - each scale records its positive_training_mark_count; active scales require positive evidence, and fitted_mark_count must equal the sum over active scales;
 - fitted_scale_indices exactly match scale processes whose mark_status is active; unfit scales remain explicit and are excluded rather than coerced to policy-inactive;
-- inactive_by_policy scales have zero initial/event probabilities; their explicit policy status is distinct from insufficient evidence (unfit);
+- occurrence parameters are independently `fitted`, `unfit`, or `inactive_by_policy`; fitted values require observed support, unfit values are null, and policy-inactive values are zero;
+- `mark_status` governs only amplitude support and never implies an occurrence-policy decision;
 - all regime transition rows and initial probabilities sum to one within a documented tolerance;
 - probabilities are in [0,1], shared Gamma shape is positive, and all numbers are finite;
 - shared mark mean is exp(log_mean_intercept + log_mean_scale_slope * (scale_index - 3) + regime_log_mean_offsets[regime_id]); Gamma scale is that mean divided by the shared shape;
@@ -151,7 +156,7 @@ The JSON Schema in schemas/generative-model/v1/model.schema.json is a structural
 ## 8. Implementation sequence
 
 1. Review the code-confirmed emission mapping and settle the still-open regime alignment using training-only comparisons.
-2. Implement schema validation and semantic invariant tests only. (The initial semantic validator and 17-case regression suite are present; the dedicated schema/semantic CI workflow passed on the current PR head.)
+2. Extend schema validation and semantic tests for separate occurrence support/status; keep unsupported p01/p11 values null and preserve mark/occurrence policy independence.
 3. Implement fitting with synthetic fixtures and deterministic reproducibility tests.
 4. Implement generation and output/manifest contract.
 5. Run training-only baseline fitting and untouched contiguous holdout evaluation.

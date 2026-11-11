@@ -78,5 +78,10 @@ python experiments/generative-model-v1-sparse-marks/audit_occurrence_markov.py \
 The audit reports `n00`, `n01`, `n10`, and `n11`, plus separate
 previous-zero and previous-one trial counts for `p01` and `p11`. It
 does not fit occurrence probabilities or choose a regime. The current
-`mark_status` field is not sufficient to express occurrence identifiability;
-a separate occurrence status/support contract is required before any fitter.
+the schema now carries an independent `occurrence_status` and `occurrence_support` for
+initial occurrence probability, p01 and p11. The p01 and p11 denominators are
+stored separately; a fitted value requires observed support, an unfit value is
+`null`, and `inactive_by_policy` is an explicit zero-probability policy. These
+statuses are independent of `mark_status`. A nonzero denominator can remain
+`unfit` under a future predeclared sufficiency rule; no threshold or pooling
+strength is selected here.
