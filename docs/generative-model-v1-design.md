@@ -54,7 +54,7 @@ This construction explicitly samples both event occurrence and amplitude. Tempor
 6. A scale/regime pair with fewer than 30 positive training events is not fitted: fail with a diagnostic rather than silently borrowing holdout samples or fabricating parameters. A later protocol revision may define principled partial pooling.
 7. Record algorithm/library versions, fitting seed, convergence diagnostics, selected K, BIC values, training interval, source and derived-input checksums, decomposition parameters, and all units.
 
-The fitted process is a proposal, not a claim that the current deterministic coefficients are unbiased event observations. Before implementation, test the extraction-to-opportunity mapping against the existing reconstruction/export semantics on synthetic fixtures, including odd/even scale boundaries and simultaneous emissions.
+The fitted process is a proposal, not a claim that the current deterministic coefficients are unbiased event observations. The exact center-left emission mapping is now audited against compute_emits() and synthetic conformance tests are included; see [the emission semantics audit](generative-model-v1-emission-audit.md). Regime alignment at those emission ticks remains an open modelling choice and must be compared using training data only before fitter implementation.
 
 ## 4. Generation and reproducibility
 
