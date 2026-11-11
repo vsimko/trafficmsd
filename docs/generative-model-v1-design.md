@@ -48,8 +48,19 @@ Here C_s,t is zero except at the audited emission opportunities. It must be extr
 
 The predictive-prior rule is important for all three candidates: regime inference at tick t must not condition on the same-tick observed event or mark whose conditional distribution is being evaluated. At generation time the regime is sampled from its Markov transition law, not inferred from a future or contemporaneous generated observation.
 
-**Current comparison result (11 November 2026): not empirically determined.** The completed PR CI validates the deterministic emission mask and package behavior, but its model-extraction smoke artifact contains only a 32-sample synthetic fixture. It is not a Westermo training trace and cannot support regime selection. The immutable Westermo source is published as a release archive, but no extracted training-signal artifact from the Westermo extraction workflow is currently attached to this PR's CI runs. Therefore no A/B/C scores, selected K, or regime winner are claimed. The comparison is blocked on producing and checksum-verifying the training-only Westermo signal and emitted scale channels. This is an explicit data-availability blocker, not evidence in favour of any candidate.
+**Current comparison result (11 November 2026): no candidate selected.** The immutable Westermo v1.0 right-observation-point extraction artifact was recovered from workflow run [42001977735](https://github.com/vsimko/trafficmsd/actions/runs/42001977735) and checksum-verified. The source archive SHA-256 is `8a1f49eb49747f3046eda8063b104834f41f0df30d4fc2357aea5609826a4445`; the derived 1-second captured-frame-byte trace SHA-256 is `6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7` (5,445 samples, right observation point). The declared split is train `[0,3267)`, validation `[3267,4356)`, test `[4356,5445)`.
 
+An exploratory comparison used only the first 2,048 rows of the training segment (`[0,2048)`), the largest power-of-two prefix beginning at global sample zero. The script reads only those rows; validation and test rows were not loaded. Four expanding rolling-origin folds were wholly inside this prefix. A local diagonal-Gaussian HMM diagnostic (K=1,2,3; deterministic initialization; 100 EM iterations) produced:
+
+| Candidate | Selected K, folds 1–4 | Occurrence mean log score | Positive marks scored |
+|---|---|---:|---:|
+| A — original signal | 3, 3, 3, 3 | -0.12485 | 42 / 472 (8.9%) |
+| B — emitted channels | 2, 3, 3, 3 | -0.25663 | 0 / 472 (0%) |
+| C — aggregate emissions | 3, 3, 3, 3 | -0.20665 | 0 / 472 (0%) |
+
+These are exploratory diagnostics, **not selection evidence**. The occurrence-only scores omit the positive-mark likelihood and are not a common joint score. Complete Gamma mark coverage is insufficient for all three candidates; the existing minimum of 30 positive training events per (scale, regime) remains unchanged. The local HMM implementation is not yet a canonical independently validated fitter, so no A/B/C winner or validated generative fidelity is claimed. Do not use validation/test data, lower the event threshold, or implement a production fitter/generator on this evidence.
+
+The extraction port was separately checked against the archived R-produced full-trace reconstruction (maximum absolute difference 0). This is a conformance check, not a claim that the emitted reconstruction equals the original observation: interval optimization can make the deterministic decomposition lossy, as documented in [model format v1](model-format-v1.md).
 ### 2.2 Scale-specific event process
 
 For scale s, define the event opportunity interval and emission phase using the deterministic decomposition convention:
