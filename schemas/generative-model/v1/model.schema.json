@@ -289,6 +289,7 @@
           "scale_index",
           "opportunity_interval_samples",
           "phase_offset_samples",
+          "positive_training_mark_count",
           "mark_status",
           "regime_parameters"
         ],
@@ -302,6 +303,10 @@
             "minimum": 1
           },
           "phase_offset_samples": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "positive_training_mark_count": {
             "type": "integer",
             "minimum": 0
           },
