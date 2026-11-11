@@ -33,5 +33,7 @@ jobs:
         run: python -m py_compile experiments/generative-model-v1-sparse-marks/compare_gamma_lognormal.py
       - name: Compile occurrence Markov support audit
         run: python -m py_compile experiments/generative-model-v1-sparse-marks/audit_occurrence_markov.py
+      - name: Compile cutoff sensitivity audit
+        run: python -m py_compile experiments/generative-model-v1-sparse-marks/audit_cutoff_sensitivity.py
       - name: Run semantic validation tests
         run: python -m unittest discover -s tests/python -p "test_generative_model_v1.py" -v
