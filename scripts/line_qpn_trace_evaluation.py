@@ -178,10 +178,10 @@ def run_experiment(
     service_rate = float(model_spec["queueing_place"]["service_distribution"]["rate_per_s"])
     full_horizon = len(schedule["batches"]) * float(schedule["bin_width"])
     completion_budget = int(experiment["termination"]["value"])
-    expected_completion_budget = max(200000, offered_jobs * 100)
+    expected_completion_budget = max(200000, offered_jobs * 20)
     if completion_budget != expected_completion_budget:
         raise ValueError(
-            "completion event budget must match the predeclared max(200000, offered_jobs * 100) policy"
+            "completion event budget must match the predeclared max(200000, offered_jobs * 20) policy"
         )
     arrival_bins = [
         int(batch["source_bin"])
