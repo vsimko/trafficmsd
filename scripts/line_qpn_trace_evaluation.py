@@ -163,8 +163,6 @@ def run_experiment(
 
     interarrivals = schedule_interarrivals(schedule)
     offered_jobs = len(interarrivals)
-    if int(experiment["termination"]["value"]) != offered_jobs:
-        raise ValueError("completion budget must equal the number of offered jobs")
     service_rate = float(model_spec["queueing_place"]["service_distribution"]["rate_per_s"])
     full_horizon = len(schedule["batches"]) * float(schedule["bin_width"])
     effective_interarrivals = [max(value, 1e-9) for value in interarrivals]
