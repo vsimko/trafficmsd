@@ -41,9 +41,29 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
             [(0, 0.0, 0), (1, 0.5, 0), (2, 1.0, 1)],
         )
         self.assertEqual(summary["bin_count"], 3)
-        self.assertEqual(summary["active_horizon"], 1.0)
+        self.assertEqual(summary["first_arrival_bin"], 2)
+        self.assertEqual(summary["last_arrival_bin"], 2)
+        self.assertEqual(summary["active_horizon"], 0.0)
         self.assertEqual(summary["trailing_idle_bins"], 0)
         validate_document("schedule", schedule)
+
+    def test_active_horizon_is_between_first_and_last_nonempty_bins(self):
+        schedule, summary = build_schedule(
+            [Decimal("0"), Decimal("10"), Decimal("0"), Decimal("10"), Decimal("0")],
+            schedule_id="test-leading-and-trailing-idle",
+            time_unit="s",
+            bin_width=Decimal("0.5"),
+            bytes_per_job=Decimal("10"),
+        )
+        self.assertEqual(summary["first_arrival_bin"], 1)
+        self.assertEqual(summary["last_arrival_bin"], 3)
+        self.assertEqual(summary["active_horizon"], 1.0)
+        self.assertEqual(summary["horizon"], 2.5)
+        self.assertEqual(summary["trailing_idle_bins"], 1)
+        self.assertEqual(
+            [row["job_count"] for row in schedule["batches"]],
+            [0, 1, 0, 1, 0],
+        )
 
     def test_signal_csv_requires_contiguous_indices_and_finite_nonnegative_values(self):
         with tempfile.TemporaryDirectory() as temp_dir:
