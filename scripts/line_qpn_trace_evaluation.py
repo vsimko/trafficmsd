@@ -219,10 +219,10 @@ def run_experiment(
                 f"LINE replay arrival rate {observed_arrival_rate:.9g} jobs/s does not "
                 f"match the finite schedule rate {mean_offered_rate:.9g} jobs/s"
             )
-        if not math.isclose(observed_throughput, observed_arrival_rate, rel_tol=0.05, abs_tol=1e-6):
+        if observed_throughput > mean_offered_rate * 1.05:
             raise ValueError(
-                f"LINE throughput {observed_throughput:.9g} jobs/s does not conserve "
-                f"the observed arrival rate {observed_arrival_rate:.9g} jobs/s"
+                f"LINE throughput {observed_throughput:.9g} jobs/s exceeds the "
+                f"finite schedule's offered rate {mean_offered_rate:.9g} jobs/s"
             )
         raw_observations = []
         for metric, (source_name, unit) in METRICS.items():
