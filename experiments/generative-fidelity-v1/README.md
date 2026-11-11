@@ -44,7 +44,7 @@ Rscript experiments/generative-fidelity-v1/evaluate.R \
   artifacts/generative-fidelity-v1/evaluation.json
 ```
 
-The evaluator and end-to-end CLI tests require `jsonlite`; the underlying metric functions use base R. It fails on malformed input, mismatched lengths, or fewer than two replicates.
+The evaluator and end-to-end CLI tests require `jsonlite`; the underlying metric functions use base R. The evaluator validates a unique non-negative seed for every replicate and embeds the complete experiment manifest and each replicate seed in the result JSON. It fails on malformed input, mismatched lengths, invalid provenance, or fewer than two replicates.
 
 ## Controls and interpretation
 
