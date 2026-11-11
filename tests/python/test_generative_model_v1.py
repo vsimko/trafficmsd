@@ -171,6 +171,12 @@ class GenerativeModelSemanticValidationTests(unittest.TestCase):
     def test_valid_model_keeps_mark_and_occurrence_status_separate(self):
         validate_model(valid_model(), DEFAULT_SCHEMA)
 
+    def test_fitted_p01_requires_previous_zero_trials(self):
+        model = valid_model()
+        regime = model["scale_processes"][0]["regime_parameters"][0]
+        regime["occurrence_support"]["p01_trial_count"] = 0
+        self.assert_invalid(model, "fitted occurrence parameter requires at least one")
+
     def test_mark_policy_does_not_force_occurrence_policy(self):
         model = valid_model()
         model["scale_processes"][0]["mark_status"] = "inactive_by_policy"
