@@ -212,7 +212,8 @@ def run_experiment(
         if observed_throughput > mean_offered_rate * 1.05:
             raise ValueError(
                 f"LINE throughput {observed_throughput:.9g} jobs/s exceeds the "
-                f"periodic schedule's offered rate {mean_offered_rate:.9g} jobs/s"
+                f"periodic schedule's offered rate {mean_offered_rate:.9g} jobs/s; "
+                f"queue_row={queue_row!r}; service_rate={service_rate:.9g} jobs/s"
             )
         raw_observations = []
         for metric, (source_name, unit) in METRICS.items():
@@ -264,6 +265,8 @@ def run_experiment(
             "last_schedule_arrival_epoch_s": last_arrival_epoch,
             "active_arrival_span_s": active_horizon,
             "periodic_replay_gap_s": periodic_replay_gap,
+            "interarrival_count": offered_jobs,
+            "zero_interarrival_count": sum(value == 0 for value in interarrivals),
             "leading_idle_bins": first_arrival_bin,
             "trailing_idle_bins": len(schedule["batches"]) - last_arrival_bin - 1,
             "mean_offered_job_rate_per_s": mean_offered_rate,
