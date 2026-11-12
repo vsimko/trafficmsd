@@ -330,13 +330,18 @@ def summarize_comparison(fold, train_end, test_end, results, event_values,
         for t in range(0 if s == 0 else 2**(s - 1) - 1, test_end, 1 if s == 0 else 2**s)
         if train_end <= t < test_end
     )
-    return {
+    summary = {
         "fold": fold, "fit_range": [0, train_end], "predictive_range": [train_end, test_end],
         "target_opportunities_all_scales": total,
-        "common_occurrence_targets_across_A_B_C": len(common_event),
-        "common_positive_mark_targets_with_30_event_support_across_A_B_C": len(common_mark),
-        "comparisons": comparisons, "selection": "none; A/B/C and K are not ranked or selected",
+        "representations_compared": list(representations),
+        "common_occurrence_targets_across_representations": len(common_event),
+        "common_positive_mark_targets_with_30_event_support_across_representations": len(common_mark),
+        "comparisons": comparisons, "selection": "none; no representation or K is ranked or selected",
     }
+    if tuple(representations) == ("A", "B", "C"):
+        summary["common_occurrence_targets_across_A_B_C"] = len(common_event)
+        summary["common_positive_mark_targets_with_30_event_support_across_A_B_C"] = len(common_mark)
+    return summary
 
 
 def run_experiment(trace_csv):

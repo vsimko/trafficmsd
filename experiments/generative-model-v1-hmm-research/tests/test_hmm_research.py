@@ -63,7 +63,7 @@ class PredictivePriorTests(unittest.TestCase):
             1, 1, 2, predictions, {},
             representations=("A", "C", "B_without_constant"),
         )
-        self.assertEqual(result["common_occurrence_targets_across_A_B_C"], 1)
+        self.assertEqual(result["common_occurrence_targets_across_representations"], 1)
         self.assertEqual(
             set(result["comparisons"]),
             {"A", "C", "B_without_constant"},
