@@ -266,3 +266,32 @@ covariance guard. This is intended to distinguish a numerically valid
 covariance matrix from a well-supported recurrent regime structure. No
 transition topology, occupancy threshold, or state count is selected by this
 diagnostic.
+
+
+### Restart-level state-structure result
+
+The final restart-diagnostics workflow run 43206780248 completed successfully.
+Its artifact archive digest is
+\`sha256:4dbdc535bce3ca97dac28c9eb357615d86f66d6f4312775c62dfc0712aa09f35\`;
+the report JSON SHA-256 is
+\`e49fe190dd4f091737c6d80bddbf561a5849147b6e2a06c4a22e36186db3b7c4\`.
+The script SHA-256 is
+\`44e9eb06026583279a2f97d93b44154fdd76fc3f770e2d3a7b75f3ef19f96189\`.
+
+For B-variant with \`nu=100\`, K=2 had identical canonical transition
+matrices across all three seeds within each fold. Posterior occupancy was
+approximately 65/35, both states had two nonzero outgoing transitions, and
+row entropies were approximately 0.59–0.66 nats. This is repeatable numerical
+structure, but its common-target occurrence scores remained materially worse
+than A and C.
+
+K=3 had all 12/12 covariance-valid restarts, but its transition structure was
+not stable across initialization. In each fold, the highest-training-
+likelihood restart had two near-deterministic transition rows (row entropy
+rounded to 0 nats), sending those states almost exclusively to the third
+state; the third row had entropy around 0.84–0.89 nats. Other seeds produced
+different, more diffuse transition matrices and different state occupancies.
+The selected highest-likelihood restart was seed 29 or 43 in every fold,
+whereas seed 17 (and in one fold seed 29) produced the alternative topology.
+Thus covariance validity alone is not sufficient evidence for three stable,
+interpretable regimes. No transition topology or K is selected.
