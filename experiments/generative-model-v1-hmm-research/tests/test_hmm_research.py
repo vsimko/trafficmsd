@@ -25,6 +25,23 @@ class PredictivePriorTests(unittest.TestCase):
         means = np.array([[2.0, 0.0], [1.0, 9.0], [1.0, 2.0]])
         np.testing.assert_array_equal(experiment.canonical_state_order(means), [2, 1, 0])
 
+    def test_observation_feature_diagnostics_are_training_only_and_explicit(self):
+        values = np.array([[0.0, 1.0], [0.0, 2.0], [1.0, 3.0]])
+        diagnostics = experiment.observation_feature_diagnostics(values)
+        self.assertEqual(diagnostics[0]["zero_fraction"], 2 / 3)
+        self.assertEqual(diagnostics[0]["distinct_value_count"], 2)
+        self.assertAlmostEqual(diagnostics[1]["variance"], 2 / 3)
+
+    def test_covariance_diagnostics_locate_collapsed_feature(self):
+        covars = np.array([
+            [[1e-4, 0.0], [0.0, 0.5]],
+            [[2e-4, 0.0], [0.0, 0.7]],
+        ])
+        diagnostics = experiment.covariance_diagnostics(covars)
+        self.assertEqual(diagnostics["minimum_variance_feature_indices"], [0])
+        self.assertEqual(diagnostics["features_below_covariance_floor"], [0])
+        self.assertEqual(diagnostics["feature_minimum_variance_state_indices"], [0, 0])
+
     def test_gamma_minimum_remains_thirty(self):
         self.assertFalse(experiment.mark_support_sufficient(29))
         self.assertTrue(experiment.mark_support_sufficient(30))

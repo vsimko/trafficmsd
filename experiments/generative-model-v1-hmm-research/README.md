@@ -93,3 +93,31 @@ The frozen-prefix positive mark counts remain
 minimum of 30 is unchanged. No Gamma/lognormal likelihood was fitted and no
 mark family was selected. The absence of a valid B HMM is a numerical
 fit failure, not an inactive-by-policy decision for any scale.
+
+
+## Covariance implementation detail and collapse diagnostics
+
+The pinned hmmlearn 0.3.3 source is inspected at
+https://github.com/hmmlearn/hmmlearn/blob/0.3.3/src/hmmlearn/hmm.py.
+In this version, \`min_covar\` is added during covariance initialization in
+\`GaussianHMM._init\`; it is not a hard lower bound applied in the Gaussian
+M-step. The M-step instead uses the inverse-gamma prior parameters
+\`covars_prior\` and \`covars_weight\`. The experiment therefore explicitly
+sets their 0.3.3 defaults (0.01 and 1.0) and separately rejects a converged
+fit if any post-EM diagonal variance is below 1e-3. This distinction is
+important: the guard is an experiment acceptance rule, not a guarantee
+provided by hmmlearn's \`min_covar\`.
+
+The report now records, for each training fold and each feature, the
+training-only mean, variance, standard deviation, zero fraction, distinct
+value count, and range. Every attempted HMM restart also records per-state,
+per-feature diagonal variances, the feature(s) attaining the minimum, the
+features below the guard, and posterior state occupancy. Valid selected
+restarts additionally record canonical-state variances and occupancies.
+These are diagnostics only: they do not remove channels, alter the guard,
+select a covariance prior, or change the A/B/C/K decision rule.
+
+The next regularization experiment, if justified by these diagnostics, must
+predeclare a fixed prior-sensitivity grid and report all settings without
+selecting one from validation/test performance. Any such setting remains a
+research hypothesis until independently supported.

@@ -24,6 +24,8 @@ FOLDS = ((1024, 1280), (1280, 1536), (1536, 1792), (1792, 2048))
 K_VALUES = (1, 2, 3)
 FIT_SEEDS = (17, 29, 43)
 MAX_ITER, TOL, MIN_COVAR = 200, 1e-4, 1e-3
+# Explicit hmmlearn 0.3.3 inverse-gamma covariance prior parameters.
+COVARS_PRIOR, COVARS_WEIGHT = 0.01, 1.0
 MARK_MINIMUM = 30
 REGIME_MASS_EPSILON = 1e-8
 
@@ -77,11 +79,48 @@ def diagonal_variances(covars):
     return np.maximum(raw_diagonal_variances(covars), MIN_COVAR)
 
 
+def covariance_diagnostics(covars):
+    values = raw_diagonal_variances(covars)
+    feature_minima = np.min(values, axis=0)
+    feature_minimum_states = np.argmin(values, axis=0)
+    minimum = float(np.min(values))
+    return {
+        "minimum_diagonal_variance": minimum,
+        "minimum_variance_feature_indices": [
+            int(i) for i in np.flatnonzero(np.isclose(values, minimum, rtol=0, atol=0).any(axis=0))
+        ],
+        "feature_minimum_diagonal_variances": feature_minima.tolist(),
+        "feature_minimum_variance_state_indices": feature_minimum_states.astype(int).tolist(),
+        "features_below_covariance_floor": [
+            int(i) for i in np.flatnonzero(feature_minima < MIN_COVAR)
+        ],
+        "diagonal_variances_by_state_feature": values.tolist(),
+    }
+
+
 def covariance_floor_status(covars):
     values = raw_diagonal_variances(covars)
     minimum = float(np.min(values))
     valid = bool(np.all(np.isfinite(values)) and minimum >= MIN_COVAR)
     return valid, minimum
+
+
+def observation_feature_diagnostics(observations):
+    observations = np.asarray(observations, dtype=float)
+    result = []
+    for feature in range(observations.shape[1]):
+        column = observations[:, feature]
+        result.append({
+            "feature_index": feature,
+            "mean": float(np.mean(column)),
+            "variance": float(np.var(column)),
+            "standard_deviation": float(np.std(column)),
+            "zero_fraction": float(np.mean(column == 0.0)),
+            "distinct_value_count": int(np.unique(column).size),
+            "minimum": float(np.min(column)),
+            "maximum": float(np.max(column)),
+        })
+    return result
 
 
 def gaussian_log_emissions(observations, means, variances):
@@ -122,7 +161,8 @@ def fit_candidate(observations, n_states):
     for seed in FIT_SEEDS:
         model = GaussianHMM(
             n_components=n_states, covariance_type="diag", n_iter=MAX_ITER,
-            tol=TOL, min_covar=MIN_COVAR, random_state=seed,
+            tol=TOL, min_covar=MIN_COVAR, covars_prior=COVARS_PRIOR,
+            covars_weight=COVARS_WEIGHT, random_state=seed,
             implementation="log", verbose=False,
         )
         try:
@@ -130,12 +170,16 @@ def fit_candidate(observations, n_states):
             likelihood = float(model.score(observations))
             ok = bool(model.monitor_.converged)
             covariance_ok, minimum_variance = covariance_floor_status(model.covars_)
+            covariance_detail = covariance_diagnostics(model.covars_)
+            posterior_occupancy = model.predict_proba(observations).sum(axis=0)
             attempts.append({
                 "seed": seed, "converged": ok,
                 "iterations": int(model.monitor_.iter),
                 "training_log_likelihood": likelihood,
                 "minimum_diagonal_variance": minimum_variance,
                 "covariance_floor_respected": covariance_ok,
+                "covariance_diagnostics": covariance_detail,
+                "posterior_state_occupancy": posterior_occupancy.tolist(),
             })
             if ok and covariance_ok and np.isfinite(likelihood):
                 converged.append((likelihood, seed, model))
@@ -170,6 +214,8 @@ def fit_candidate(observations, n_states):
         "bic_diagnostic_only": float(bic), "parameter_count": int(parameter_count),
         "canonical_state_order_raw_indices": order.tolist(),
         "canonical_state_means": model.means_[order].tolist(),
+        "canonical_state_diagonal_variances": raw_diagonal_variances(model.covars_)[order].tolist(),
+        "canonical_state_posterior_occupancy": model.predict_proba(observations).sum(axis=0)[order].tolist(),
         "canonical_transition_matrix": model.transmat_[np.ix_(order, order)].tolist(),
         "canonical_initial_probabilities": model.startprob_[order].tolist(),
     }
@@ -299,6 +345,7 @@ def run_experiment(trace_csv):
                 train_obs = observations[representation][:train_end]
                 test_obs = observations[representation][train_end:test_end]
                 fitted, fit_info = fit_candidate(train_obs, k)
+                fit_info["training_observation_features"] = observation_feature_diagnostics(train_obs)
                 entry = {"fit": fit_info, "status": "unscored"}
                 if fitted is not None:
                     scored = score_model_fold(
@@ -337,6 +384,7 @@ def run_experiment(trace_csv):
         "representations": ["A", "B", "C"], "k_values_all_reported_no_selection": list(K_VALUES),
         "fit_seeds": list(FIT_SEEDS), "covariance_type": "diag", "max_iter": MAX_ITER,
         "tolerance": TOL, "minimum_diagonal_covariance": MIN_COVAR,
+        "hmmlearn_covars_prior": COVARS_PRIOR, "hmmlearn_covars_weight": COVARS_WEIGHT,
         "minimum_independent_gamma_events_per_scale_regime": MARK_MINIMUM,
         "regime_mass_epsilon": REGIME_MASS_EPSILON,
     }
@@ -380,6 +428,8 @@ def run_experiment(trace_csv):
                 "No K or representation is selected; BIC is a within-representation diagnostic only.",
                 "Regime priors at tick t condition only on observations through t-1.",
                 "The decomposition is frozen over [0,2048), so folds are not strict causal decomposition replays.",
+                "hmmlearn min_covar is used for covariance initialization; the post-EM 1e-3 covariance check is an explicit experiment-level rejection guard.",
+                "Training-only per-feature dispersion, zero fractions, distinct values, per-state variances, and posterior occupancies are recorded to diagnose B collapse."
                 "No validation/test observations, artificial events, or padded observed training values are used.",
                 "Unfit support is not converted to inactive_by_policy.",
             ],
