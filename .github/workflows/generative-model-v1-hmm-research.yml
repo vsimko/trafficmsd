@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: generative-model-v1-hmm-research-\${{ github.workflow }}-\${{ github.ref }}
+  group: generative-model-v1-hmm-research-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -39,7 +39,7 @@ jobs:
           name: westermo-model-extraction-and-qpn-v1
           repository: vsimko/trafficmsd
           run-id: 43079950800
-          github-token: \${{ github.token }}
+          github-token: ${{ github.token }}
           path: artifacts
       - name: Run independent HMM A/B/C comparison twice
         run: |
