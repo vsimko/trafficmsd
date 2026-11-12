@@ -279,6 +279,7 @@ def run_experiment(trace_csv):
                     entry.update({"status": "scored", "scale_support": scored["scale_support"]})
                     scored_internal[(representation, k)] = scored
                 fold_models[representation][str(k)] = entry
+        comparisons_by_k = {}
         for k in K_VALUES:
             available = {name: scored_internal[(name, k)] for name in ("A", "B", "C")
                          if (name, k) in scored_internal}
@@ -288,14 +289,20 @@ def run_experiment(trace_csv):
                 summary = {"fold": fold_number, "fit_range": [0, train_end],
                            "predictive_range": [train_end, test_end], "status": "incomplete",
                            "reason": "At least one A/B/C HMM did not converge."}
+            comparisons_by_k[str(k)] = summary
             for name in ("A", "B", "C"):
                 entry = fold_models[name][str(k)]
                 if entry["status"] == "scored":
                     entry["common_target_comparison"] = (
                         summary["comparisons"][name] if "comparisons" in summary else None
                     )
-            folds.append({"fold": fold_number, "k": k, "models": fold_models,
-                          "common_target_comparison": summary})
+        folds.append({
+            "fold": fold_number,
+            "fit_range": [0, train_end],
+            "predictive_range": [train_end, test_end],
+            "models": fold_models,
+            "common_target_comparisons_by_k": comparisons_by_k,
+        })
     config = {
         "training_prefix": [0, 2048], "folds": [list(x) for x in FOLDS],
         "representations": ["A", "B", "C"], "k_values_all_reported_no_selection": list(K_VALUES),
