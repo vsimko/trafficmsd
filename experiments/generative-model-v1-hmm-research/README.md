@@ -157,3 +157,31 @@ where all three candidate fits are valid. K=2 and K=3 remain reported as fit
 diagnostics and are not scored if their covariance checks fail. This does not
 replace the original A/B/C comparison: original B still includes scale 0 and
 remains unfit under the original contract. No model or regime count is selected.
+
+
+## Predeclared covariance-prior sensitivity for multi-state models
+
+The structural-zero-only experiment restores valid K=1 fits for B, but K=2
+and K=3 still fail the post-EM covariance guard in every fold. K=1 produces
+one state only; its identical A/C/B-variant scores are a non-discriminating
+baseline, not evidence that the representations are equivalent.
+
+A separate, fixed sensitivity grid tests inverse-gamma variance shrinkage
+without selecting a setting:
+
+- \`nu = 1, 10, 100\` (fixed logarithmic pseudo-count grid);
+- per-feature prior mean = that feature's variance in the current fold's
+  training observations only;
+- \`covars_prior = nu * prior_mean\`;
+- \`covars_weight = 1 + nu\`;
+- same prior rule and same nu values for A, C, and B with only the exactly
+  constant training feature excluded;
+- fixed K=2 and K=3, all three initialization seeds, all four folds;
+- same 1e-3 post-fit covariance rejection guard and predictive target logic.
+
+This is a sensitivity analysis, not a tuning loop: all prior strengths and
+all convergence failures are reported. Comparisons are scored only on the
+common supported occurrence targets for A, C, and the reduced B variant under
+the same nu and K. No validation/test observations are used, no prior strength
+or regime count is selected, and no channels other than the exact constant
+training feature are excluded.

@@ -69,6 +69,13 @@ class PredictivePriorTests(unittest.TestCase):
             {"A", "C", "B_without_constant"},
         )
 
+    def test_scaled_variance_prior_uses_only_supplied_training_matrix(self):
+        values = np.array([[1.0, 0.0], [3.0, 2.0], [5.0, 4.0]])
+        prior, weight, variances = experiment.scaled_variance_prior(values, 2, 10.0)
+        np.testing.assert_allclose(variances, [8 / 3, 8 / 3])
+        np.testing.assert_allclose(prior, np.full((2, 2), 80 / 3))
+        self.assertEqual(weight, 11.0)
+
     def test_gamma_minimum_remains_thirty(self):
         self.assertFalse(experiment.mark_support_sufficient(29))
         self.assertTrue(experiment.mark_support_sufficient(30))

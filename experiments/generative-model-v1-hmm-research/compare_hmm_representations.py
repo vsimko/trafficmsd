@@ -28,6 +28,8 @@ MAX_ITER, TOL, MIN_COVAR = 200, 1e-4, 1e-3
 COVARS_PRIOR, COVARS_WEIGHT = 0.01, 1.0
 MARK_MINIMUM = 30
 REGIME_MASS_EPSILON = 1e-8
+COVARIANCE_PRIOR_STRENGTHS = (1.0, 10.0, 100.0)
+COVARIANCE_PRIOR_K_VALUES = (2, 3)
 
 
 def dependency_versions():
@@ -162,14 +164,27 @@ def predictive_priors(startprob, transmat, means, variances, observations):
     return priors
 
 
-def fit_candidate(observations, n_states):
+def scaled_variance_prior(observations, n_states, strength):
+    """Inverse-gamma shrinkage prior centered on training-only feature variances."""
+    observations = np.asarray(observations, dtype=float)
+    if not np.isfinite(strength) or strength <= 0:
+        raise ValueError("prior strength must be finite and positive")
+    feature_variances = np.var(observations, axis=0)
+    if np.any(~np.isfinite(feature_variances)) or np.any(feature_variances <= 0):
+        raise ValueError("scaled prior requires nonconstant training features")
+    prior = np.tile(float(strength) * feature_variances, (n_states, 1))
+    return prior, 1.0 + float(strength), feature_variances
+
+
+def fit_candidate(observations, n_states, covars_prior=COVARS_PRIOR,
+                  covars_weight=COVARS_WEIGHT, covariance_prior_metadata=None):
     """Fit fixed-K restarts; no K or regime count is selected."""
     attempts, converged = [], []
     for seed in FIT_SEEDS:
         model = GaussianHMM(
             n_components=n_states, covariance_type="diag", n_iter=MAX_ITER,
-            tol=TOL, min_covar=MIN_COVAR, covars_prior=COVARS_PRIOR,
-            covars_weight=COVARS_WEIGHT, random_state=seed,
+            tol=TOL, min_covar=MIN_COVAR, covars_prior=covars_prior,
+            covars_weight=covars_weight, random_state=seed,
             implementation="log", verbose=False,
         )
         try:
@@ -218,6 +233,10 @@ def fit_candidate(observations, n_states):
         "attempts": attempts, "training_log_likelihood": likelihood,
         "minimum_diagonal_variance": covariance_floor_status(model.covars_)[1],
         "covariance_floor": MIN_COVAR,
+        "covariance_prior": covariance_prior_metadata or {
+            "kind": "hmmlearn_0.3.3_default_inverse_gamma",
+            "covars_prior": COVARS_PRIOR, "covars_weight": COVARS_WEIGHT,
+        },
         "bic_diagnostic_only": float(bic), "parameter_count": int(parameter_count),
         "canonical_state_order_raw_indices": order.tolist(),
         "canonical_state_means": model.means_[order].tolist(),
@@ -410,6 +429,90 @@ def run_experiment(trace_csv):
         else:
             structural_zero_sensitivity["status"] = "no_nonconstant_training_features"
 
+        # Predeclared inverse-gamma prior sensitivity for multi-state fits.
+        # The prior mean is each feature's variance in the current fold's
+        # training prefix; nu is a fixed pseudo-count strength. Apply the same
+        # rule to A, C, and the explicit structural-zero-excluded B variant.
+        prior_observations = {
+            "A": observations["A"][:train_end],
+            "C": observations["C"][:train_end],
+            "B_without_constant": b_train[:, retained_b_features],
+        }
+        prior_sensitivity = {
+            "prior_rule": "covars_prior = nu * per_feature_training_variance; covars_weight = 1 + nu",
+            "strengths": list(COVARIANCE_PRIOR_STRENGTHS),
+            "k_values": list(COVARIANCE_PRIOR_K_VALUES),
+            "training_feature_variances": {
+                name: np.var(values, axis=0).tolist()
+                for name, values in prior_observations.items()
+            },
+            "fits": {},
+            "common_target_comparisons": {},
+        }
+        prior_scored = {}
+        for nu in COVARIANCE_PRIOR_STRENGTHS:
+            prior_sensitivity["fits"][str(nu)] = {}
+            for name, train_obs in prior_observations.items():
+                prior_sensitivity["fits"][str(nu)][name] = {}
+                prior, prior_weight, feature_variances = scaled_variance_prior(
+                    train_obs, 1, nu
+                )
+                for k in COVARIANCE_PRIOR_K_VALUES:
+                    # Rebuild the prior for this fixed K (same per-feature target).
+                    prior, prior_weight, feature_variances = scaled_variance_prior(
+                        train_obs, k, nu
+                    )
+                    metadata = {
+                        "kind": "training_variance_scaled_inverse_gamma_sensitivity",
+                        "strength_nu": nu,
+                        "covars_weight": prior_weight,
+                        "prior_mean_by_feature": feature_variances.tolist(),
+                    }
+                    fitted_prior, fit_prior_info = fit_candidate(
+                        train_obs, k, covars_prior=prior,
+                        covars_weight=prior_weight,
+                        covariance_prior_metadata=metadata,
+                    )
+                    if fitted_prior is None:
+                        prior_sensitivity["fits"][str(nu)][name][str(k)] = {
+                            "status": "no_valid_fit", "fit": fit_prior_info,
+                        }
+                    else:
+                        if name == "B_without_constant":
+                            test_obs = observations["B"][train_end:test_end][:, retained_b_features]
+                        else:
+                            test_obs = observations[name][train_end:test_end]
+                        prior_score = score_model_fold(
+                            fitted_prior, train_obs, test_obs, train_end, test_end,
+                            scale_count, event_values,
+                        )
+                        prior_scored[(nu, name, k)] = prior_score
+                        prior_sensitivity["fits"][str(nu)][name][str(k)] = {
+                            "status": "scored", "fit": fit_prior_info,
+                            "scale_support": prior_score["scale_support"],
+                        }
+            for k in COVARIANCE_PRIOR_K_VALUES:
+                names = ("A", "C", "B_without_constant")
+                available = {
+                    name: prior_scored[(nu, name, k)]
+                    for name in names if (nu, name, k) in prior_scored
+                }
+                if len(available) == len(names):
+                    prior_summary = summarize_comparison(
+                        fold_number, train_end, test_end, available, event_values,
+                        representations=names,
+                    )
+                    prior_summary["status"] = "scored_on_common_training_targets"
+                else:
+                    prior_summary = {
+                        "status": "incomplete",
+                        "fit_status_by_representation": {
+                            name: prior_sensitivity["fits"][str(nu)][name][str(k)]["status"]
+                            for name in names
+                        },
+                    }
+                prior_sensitivity["common_target_comparisons"][str(nu) + ":" + str(k)] = prior_summary
+
         comparisons_by_k = {}
         for k in K_VALUES:
             available = {name: scored_internal[(name, k)] for name in ("A", "B", "C")
@@ -457,6 +560,7 @@ def run_experiment(trace_csv):
             "predictive_range": [train_end, test_end],
             "models": fold_models,
             "structural_zero_feature_sensitivity": structural_zero_sensitivity,
+            "covariance_prior_sensitivity": prior_sensitivity,
             "common_target_comparisons_by_k": comparisons_by_k,
         })
     config = {
@@ -467,6 +571,8 @@ def run_experiment(trace_csv):
         "fit_seeds": list(FIT_SEEDS), "covariance_type": "diag", "max_iter": MAX_ITER,
         "tolerance": TOL, "minimum_diagonal_covariance": MIN_COVAR,
         "hmmlearn_covars_prior": COVARS_PRIOR, "hmmlearn_covars_weight": COVARS_WEIGHT,
+        "covariance_prior_sensitivity_strengths": list(COVARIANCE_PRIOR_STRENGTHS),
+        "covariance_prior_sensitivity_k_values": list(COVARIANCE_PRIOR_K_VALUES),
         "minimum_independent_gamma_events_per_scale_regime": MARK_MINIMUM,
         "regime_mass_epsilon": REGIME_MASS_EPSILON,
     }
@@ -512,7 +618,8 @@ def run_experiment(trace_csv):
                 "The decomposition is frozen over [0,2048), so folds are not strict causal decomposition replays.",
                 "hmmlearn min_covar is used for covariance initialization; the post-EM 1e-3 covariance check is an explicit experiment-level rejection guard.",
                 "Training-only per-feature dispersion, zero fractions, distinct values, per-state variances, and posterior occupancies are recorded to diagnose B collapse.",
-                "A separate B sensitivity variant excludes exactly constant training observation features; all nonconstant features and all original prediction targets are retained. Its fixed-K=1 score is reported only when A/C/B-variant all have valid fits on identical training-prefix targets; no representation or K is selected."
+                "A separate B sensitivity variant excludes exactly constant training observation features; all nonconstant features and all original prediction targets are retained. Its fixed-K=1 score is a non-discriminating one-state baseline.",
+                "A predeclared inverse-gamma covariance-prior strength grid (nu=1,10,100) is applied identically to A, C, and structural-zero-excluded B for K=2,3; every setting is reported and none is selected."
                 "No validation/test observations, artificial events, or padded observed training values are used.",
                 "Unfit support is not converted to inactive_by_policy.",
             ],
