@@ -42,6 +42,17 @@ class PredictivePriorTests(unittest.TestCase):
         self.assertEqual(diagnostics["features_below_covariance_floor"], [0])
         self.assertEqual(diagnostics["feature_minimum_variance_state_indices"], [0, 0])
 
+    def test_nonconstant_feature_filter_excludes_only_exact_constants(self):
+        values = np.array([
+            [0.0, 0.0, 1.0],
+            [0.0, 2.0, 1.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 3.0, 1.0],
+        ])
+        np.testing.assert_array_equal(
+            experiment.nonconstant_feature_indices(values), [1]
+        )
+
     def test_gamma_minimum_remains_thirty(self):
         self.assertFalse(experiment.mark_support_sufficient(29))
         self.assertTrue(experiment.mark_support_sufficient(30))

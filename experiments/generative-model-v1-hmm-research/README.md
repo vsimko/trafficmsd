@@ -121,3 +121,28 @@ The next regularization experiment, if justified by these diagnostics, must
 predeclare a fixed prior-sensitivity grid and report all settings without
 selecting one from validation/test performance. Any such setting remains a
 research hypothesis until independently supported.
+
+
+## Structural-zero feature sensitivity (2026-11-12)
+
+The detailed per-feature report identifies B feature 0 (scale 0) as exactly
+constant zero in all four training folds: variance 0, zero fraction 1, and one
+distinct value. This follows the audited event decomposition, whose scale-0
+positive-mark count is zero. Other B features are nonconstant but sparse; for
+example the highest-scale channels have zero fractions around 0.997–0.999.
+
+A diagnostic-only sensitivity variant is therefore added alongside (not in
+place of) the original A/B/C experiment. For each fold it removes **only**
+features with exactly zero variance in that fold's training observations.
+Every nonconstant B channel is retained regardless of sparsity. It uses the
+same fixed K values, seeds, convergence settings, covariance prior, and
+post-fit covariance rejection guard. It reports fit/convergence/covariance
+diagnostics only; it does not compute a predictive score or alter the original
+A/B/C target intersection.
+
+The scale-0 event target and its zero positive-mark support remain in the
+reported target/support accounting. A zero training count does not by itself
+convert a scale to \`inactive_by_policy\`; unresolved mark support remains
+\`unfit\`. No events are synthesized, and no A/B/C or reduced-B representation
+is selected. This sensitivity is solely to test whether the structurally
+constant observation coordinate explains the HMM numerical failure.

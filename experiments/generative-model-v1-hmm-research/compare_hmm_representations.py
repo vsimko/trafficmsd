@@ -105,6 +105,13 @@ def covariance_floor_status(covars):
     return valid, minimum
 
 
+def nonconstant_feature_indices(observations):
+    """Training-only structural check; retain every nonconstant feature, however sparse."""
+    observations = np.asarray(observations, dtype=float)
+    variances = np.var(observations, axis=0)
+    return np.flatnonzero(variances > 0.0)
+
+
 def observation_feature_diagnostics(observations):
     observations = np.asarray(observations, dtype=float)
     result = []
@@ -355,6 +362,33 @@ def run_experiment(trace_csv):
                     entry.update({"status": "scored", "scale_support": scored["scale_support"]})
                     scored_internal[(representation, k)] = scored
                 fold_models[representation][str(k)] = entry
+        # Explicit diagnostic variant: remove only features that are exactly
+        # constant in this fold's training observations. Keep all nonconstant
+        # channels, even if their zero fraction is extremely high. Original B
+        # and all scale-specific prediction targets remain unchanged.
+        b_train = observations["B"][:train_end]
+        retained_b_features = nonconstant_feature_indices(b_train)
+        structural_zero_sensitivity = {
+            "variant": "B_excluding_training_constant_features_only",
+            "retained_feature_indices": retained_b_features.astype(int).tolist(),
+            "excluded_constant_feature_indices": [
+                int(i) for i in range(b_train.shape[1]) if i not in set(retained_b_features.tolist())
+            ],
+            "prediction_targets_unchanged": True,
+            "predictive_scores_computed": False,
+            "fits_by_k": {},
+        }
+        if len(retained_b_features):
+            for k in K_VALUES:
+                reduced_fit, reduced_info = fit_candidate(b_train[:, retained_b_features], k)
+                reduced_info["training_observation_features"] = observation_feature_diagnostics(
+                    b_train[:, retained_b_features]
+                )
+                reduced_info["retained_original_feature_indices"] = retained_b_features.astype(int).tolist()
+                structural_zero_sensitivity["fits_by_k"][str(k)] = reduced_info
+        else:
+            structural_zero_sensitivity["status"] = "no_nonconstant_training_features"
+
         comparisons_by_k = {}
         for k in K_VALUES:
             available = {name: scored_internal[(name, k)] for name in ("A", "B", "C")
@@ -377,11 +411,14 @@ def run_experiment(trace_csv):
             "fit_range": [0, train_end],
             "predictive_range": [train_end, test_end],
             "models": fold_models,
+            "structural_zero_feature_sensitivity": structural_zero_sensitivity,
             "common_target_comparisons_by_k": comparisons_by_k,
         })
     config = {
         "training_prefix": [0, 2048], "folds": [list(x) for x in FOLDS],
-        "representations": ["A", "B", "C"], "k_values_all_reported_no_selection": list(K_VALUES),
+        "representations": ["A", "B", "C"],
+        "additional_diagnostic_only_variant": "B excluding exactly constant training features; no prediction targets removed",
+        "k_values_all_reported_no_selection": list(K_VALUES),
         "fit_seeds": list(FIT_SEEDS), "covariance_type": "diag", "max_iter": MAX_ITER,
         "tolerance": TOL, "minimum_diagonal_covariance": MIN_COVAR,
         "hmmlearn_covars_prior": COVARS_PRIOR, "hmmlearn_covars_weight": COVARS_WEIGHT,
@@ -429,7 +466,8 @@ def run_experiment(trace_csv):
                 "Regime priors at tick t condition only on observations through t-1.",
                 "The decomposition is frozen over [0,2048), so folds are not strict causal decomposition replays.",
                 "hmmlearn min_covar is used for covariance initialization; the post-EM 1e-3 covariance check is an explicit experiment-level rejection guard.",
-                "Training-only per-feature dispersion, zero fractions, distinct values, per-state variances, and posterior occupancies are recorded to diagnose B collapse."
+                "Training-only per-feature dispersion, zero fractions, distinct values, per-state variances, and posterior occupancies are recorded to diagnose B collapse.",
+                "A separate diagnostic-only B variant excludes exactly constant training observation features; all nonconstant features and all original prediction targets are retained, and no predictive score or representation selection is performed."
                 "No validation/test observations, artificial events, or padded observed training values are used.",
                 "Unfit support is not converted to inactive_by_policy.",
             ],
