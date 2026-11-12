@@ -185,3 +185,72 @@ common supported occurrence targets for A, C, and the reduced B variant under
 the same nu and K. No validation/test observations are used, no prior strength
 or regime count is selected, and no channels other than the exact constant
 training feature are excluded.
+
+
+## Observed covariance-prior sensitivity result (2026-11-12)
+
+Workflow run 43206213536 completed successfully. Its artifact archive digest
+is \`sha256:e7edd43ab89dcee04768c50916a77c6e6fab7bc7af4a16da2caa289680cd8026\`.
+The report JSON SHA-256 is
+\`17e1ebbc4ffc53c1e853dbf88f70e42d8d24f098f6c083a2cbe41298fb752ecc\`.
+The experiment script SHA-256 is
+\`2e83ec701ff9e207e5a6ff9d56cc4191e4871f1b5752770996778e82bcfc5a64\`;
+configuration SHA-256 is
+\`5b53fd2b28fcfa84adc4c40216d37156f75ff9a9427fbeed2e5ed77a4558f8cc\`.
+
+The structural-zero-excluded B variant (all 11 nonconstant channels retained)
+had the following valid initialization counts for K=2 and K=3:
+
+| Prior strength \`nu\` | K=2 across four folds | K=3 across four folds |
+|---:|---:|---:|
+| 1 | 0/12 | 0/12 |
+| 10 | 3/12 | 3/12 |
+| 100 | 12/12 | 12/12 |
+
+Here each fold contributes three fixed initialization seeds. Only \`nu=100\`
+produced valid B-variant fits in all four folds for both multi-state candidates.
+This is a numerical sensitivity finding, **not a selected covariance prior**.
+
+For \`nu=100\`, all three representations (A, C, and structural-zero-excluded B)
+had valid K=2/K=3 fits in all folds. The common supported occurrence targets
+and mean log scores were:
+
+| K | Fold | Common targets | A mean log score | C mean log score | B variant mean log score |
+|---:|---:|---:|---:|---:|---:|
+| 2 | 1 | 391 | -0.05549 | -0.05581 | -0.16235 |
+| 2 | 2 | 416 | -0.04337 | -0.04885 | -0.20239 |
+| 2 | 3 | 407 | -0.07468 | -0.08054 | -0.19772 |
+| 2 | 4 | 416 | -0.11235 | -0.12236 | -0.20932 |
+| 3 | 1 | 307 | -0.01952 | -0.02304 | -0.01931 |
+| 3 | 2 | 311 | -0.01828 | -0.02251 | -0.01907 |
+| 3 | 3 | 281 | -0.00482 | -0.00601 | -0.02013 |
+| 3 | 4 | 297 | -0.02241 | -0.02034 | -0.01748 |
+
+The K=2 B-variant occurrence score is consistently worse on these
+training-prefix folds. K=3 is mixed by fold and does not show a consistent
+B-variant advantage. The aggregate weighted mean log scores over the
+corresponding common targets are:
+
+| K | A | C | B variant |
+|---:|---:|---:|---:|
+| 2 | -0.07170 | -0.07719 | -0.19339 |
+| 3 | -0.01646 | -0.01823 | -0.01899 |
+
+For every reported \`nu=100\`, K, and fold, the number of common positive-mark
+targets for which all required regimes had at least 30 positive training marks
+was **zero**. Thus no independent Gamma estimate is supported by this
+comparison. No Gamma/lognormal likelihood is fitted and no mark family is
+selected.
+
+Interpretation is deliberately limited: the strong prior makes the
+structural-zero-excluded B HMM numerically estimable, but the K=2 occurrence
+scores are materially worse, and K=3 does not establish a stable advantage.
+The sensitivity grid does not justify choosing \`nu=100\`, K=2/3, a regime
+representation, a mark family, or a pooling strategy. The original full B
+representation including the scale-0 constant feature remains unfit under its
+original specification. The K=1 identical scores remain a one-state,
+non-discriminating baseline.
+
+All results are conditional rolling-origin diagnostics within the frozen
+training prefix [0,2048). No validation/test observations, synthetic events,
+or artificial padding are involved.
