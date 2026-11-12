@@ -49,3 +49,45 @@ The report includes prefix/source checksums, script/configuration checksums, lib
 No A/B/C or K winner is selected. A representation can only be considered further if common-target occurrence scores are consistently better across folds, mark-support coverage is adequate without relaxing the 30-event rule, and convergence/state stability are acceptable. This diagnostic alone cannot select a mark family or pooling strategy. Fold-sensitive or unsupported results remain unresolved.
 
 No validation/test data, synthetic events, or artificial padding are used. Unfit remains distinct from inactive_by_policy. No production fitter, stochastic generator, generated QPN condition, or QPN result is added.
+
+
+## Observed pinned-HMM result (2026-11-12)
+
+Workflow run 43201631841 completed successfully. Its report artifact has SHA-256
+2455d898080098cd14c2ed498f60fc8c9ed1e3b439fa75adff8e5eb678fcf384. The report
+records Python 3.12.16, hmmlearn 0.3.3, NumPy 1.26.4, SciPy 1.13.1,
+scikit-learn 1.5.2, joblib 1.4.2, and threadpoolctl 3.5.0.
+
+The explicit 1e-3 diagonal covariance validity guard exposed substantial
+degeneracy:
+
+| Representation | K | Valid converged restarts | Total restarts |
+|---|---:|---:|---:|
+| A | 1 | 12 | 12 |
+| A | 2 | 12 | 12 |
+| A | 3 | 6 | 12 |
+| B | 1 | 0 | 12 |
+| B | 2 | 0 | 12 |
+| B | 3 | 0 | 12 |
+| C | 1 | 12 | 12 |
+| C | 2 | 8 | 12 |
+| C | 3 | 0 | 12 |
+
+All B fits violated the covariance floor; their minimum diagonal variances
+ranged from 5.58e-6 to 1.50e-5. C/K=3 also had no valid fit in any fold.
+Some A/K=3 and C/K=2 restarts collapsed, although other restarts passed the
+guard. A/K=1,2 and C/K=1 were numerically valid in all folds.
+
+Because B had no valid fit, the common supported A/B/C target intersection was
+empty for every K and fold. Therefore **no comparative predictive score and no
+A/B/C winner is reported**. This is a meaningful negative result: the
+12-dimensional diagonal-Gaussian B representation is not estimable under the
+predeclared covariance guard on this sparse training prefix. Do not repair it
+by silently dropping channels, adding noise, or introducing pooling; those
+would be separate hypotheses requiring a predeclared experiment.
+
+The frozen-prefix positive mark counts remain
+0,193,287,224,128,64,32,16,8,4,2,1 for scales 0–11. The independent Gamma
+minimum of 30 is unchanged. No Gamma/lognormal likelihood was fitted and no
+mark family was selected. The absence of a valid B HMM is a numerical
+fit failure, not an inactive-by-policy decision for any scale.

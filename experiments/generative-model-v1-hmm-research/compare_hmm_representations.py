@@ -317,7 +317,7 @@ def run_experiment(trace_csv):
             else:
                 summary = {"fold": fold_number, "fit_range": [0, train_end],
                            "predictive_range": [train_end, test_end], "status": "incomplete",
-                           "reason": "At least one A/B/C HMM did not converge."}
+                           "reason": "At least one A/B/C HMM had no valid fit after convergence and covariance-floor checks."}
             comparisons_by_k[str(k)] = summary
             for name in ("A", "B", "C"):
                 entry = fold_models[name][str(k)]
