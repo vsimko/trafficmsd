@@ -321,3 +321,16 @@ B-variant/K=2 has the most repeatable occupancy/transition diagnostics but
 does not perform well on the common occurrence targets. No representation
 currently provides independent evidence sufficient to declare a stable
 regime interpretation.
+
+
+## Cross-run report serialization
+
+Independent GitHub Actions runs exposed floating-point differences around
+1e-12 in otherwise identical pinned HMM executions. The within-job duplicate
+run comparison had passed, but independent runner executions were not
+byte-identical. To make the published artifact reproducible across runners,
+the report serializer now canonicalizes every finite floating-point field to
+7 significant decimal digits before JSON encoding. This does not alter model
+fitting, predictions before serialization, event counts, thresholds, or
+selection rules. The precision is part of the hashed experiment configuration
+and is covered by a regression test. Non-finite values fail report generation.

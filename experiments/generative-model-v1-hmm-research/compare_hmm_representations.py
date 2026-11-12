@@ -30,6 +30,23 @@ MARK_MINIMUM = 30
 REGIME_MASS_EPSILON = 1e-8
 COVARIANCE_PRIOR_STRENGTHS = (1.0, 10.0, 100.0)
 COVARIANCE_PRIOR_K_VALUES = (2, 3)
+REPORT_FLOAT_SIGNIFICANT_DIGITS = 7
+
+
+def normalize_report_precision(value):
+    """Canonicalize insignificant runner-level floating-point noise."""
+    if isinstance(value, dict):
+        return {key: normalize_report_precision(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [normalize_report_precision(item) for item in value]
+    if isinstance(value, (float, np.floating)):
+        numeric = float(value)
+        if not np.isfinite(numeric):
+            raise ValueError("report contains a non-finite floating-point value")
+        return float(format(numeric, f".{REPORT_FLOAT_SIGNIFICANT_DIGITS}g"))
+    if isinstance(value, np.integer):
+        return int(value)
+    return value
 
 
 def dependency_versions():
@@ -591,6 +608,7 @@ def run_experiment(trace_csv):
         "hmmlearn_covars_prior": COVARS_PRIOR, "hmmlearn_covars_weight": COVARS_WEIGHT,
         "covariance_prior_sensitivity_strengths": list(COVARIANCE_PRIOR_STRENGTHS),
         "covariance_prior_sensitivity_k_values": list(COVARIANCE_PRIOR_K_VALUES),
+        "report_float_significant_digits": REPORT_FLOAT_SIGNIFICANT_DIGITS,
         "minimum_independent_gamma_events_per_scale_regime": MARK_MINIMUM,
         "regime_mass_epsilon": REGIME_MASS_EPSILON,
     }
@@ -609,7 +627,8 @@ def run_experiment(trace_csv):
         "provenance": {
             "python": platform.python_version(), "dependencies": versions,
             "experiment_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-            "configuration_sha256": config_sha, "input_csv_path_label": Path(trace_csv).name,
+            "configuration_sha256": config_sha,
+            "report_float_significant_digits": REPORT_FLOAT_SIGNIFICANT_DIGITS, "input_csv_path_label": Path(trace_csv).name,
         },
         "configuration": config,
         "decomposition": {
@@ -651,7 +670,7 @@ def main():
     parser.add_argument("trace_csv", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    report = run_experiment(args.trace_csv)
+    report = normalize_report_precision(run_experiment(args.trace_csv))
     rendered = json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(rendered, encoding="utf-8")

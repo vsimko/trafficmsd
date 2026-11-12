@@ -83,6 +83,26 @@ class PredictivePriorTests(unittest.TestCase):
         self.assertEqual(result["nonzero_transitions_per_row"], [2, 1])
         self.assertAlmostEqual(result["row_entropy_nats"][1], 0.0)
 
+    def test_report_precision_normalizes_runner_level_float_noise(self):
+        first = {
+            "score": 1.234567891234,
+            "small": 1.23456789e-120,
+            "count": 7,
+        }
+        second = {
+            "score": 1.234567891235,
+            "small": 1.2345678901e-120,
+            "count": 7,
+        }
+        self.assertEqual(
+            experiment.normalize_report_precision(first),
+            experiment.normalize_report_precision(second),
+        )
+        self.assertEqual(
+            experiment.normalize_report_precision({"x": 1.234567891234})["x"],
+            1.234568,
+        )
+
     def test_gamma_minimum_remains_thirty(self):
         self.assertFalse(experiment.mark_support_sufficient(29))
         self.assertTrue(experiment.mark_support_sufficient(30))
