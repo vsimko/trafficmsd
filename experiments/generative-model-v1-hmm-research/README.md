@@ -254,3 +254,15 @@ non-discriminating baseline.
 All results are conditional rolling-origin diagnostics within the frozen
 training prefix [0,2048). No validation/test observations, synthetic events,
 or artificial padding are involved.
+
+
+## Restart-level state-structure diagnostics
+
+The prior-sensitivity report now records canonicalized state means,
+transition matrices, initial probabilities, transition-row sums, transition
+entropy, nonzero outgoing transitions, and posterior state occupancy for
+**every** initialization seed, including converged fits rejected by the
+covariance guard. This is intended to distinguish a numerically valid
+covariance matrix from a well-supported recurrent regime structure. No
+transition topology, occupancy threshold, or state count is selected by this
+diagnostic.

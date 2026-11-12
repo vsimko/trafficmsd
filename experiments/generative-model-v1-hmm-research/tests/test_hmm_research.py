@@ -76,6 +76,13 @@ class PredictivePriorTests(unittest.TestCase):
         np.testing.assert_allclose(prior, np.full((2, 2), 80 / 3))
         self.assertEqual(weight, 11.0)
 
+    def test_transition_diagnostics_report_stochastic_rows(self):
+        matrix = np.array([[0.5, 0.5], [0.0, 1.0]])
+        result = experiment.transition_diagnostics(matrix)
+        np.testing.assert_allclose(result["row_sums"], [1.0, 1.0])
+        self.assertEqual(result["nonzero_transitions_per_row"], [2, 1])
+        self.assertAlmostEqual(result["row_entropy_nats"][1], 0.0)
+
     def test_gamma_minimum_remains_thirty(self):
         self.assertFalse(experiment.mark_support_sufficient(29))
         self.assertTrue(experiment.mark_support_sufficient(30))

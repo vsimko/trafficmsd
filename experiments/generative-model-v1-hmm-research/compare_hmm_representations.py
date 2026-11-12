@@ -132,6 +132,17 @@ def observation_feature_diagnostics(observations):
     return result
 
 
+def transition_diagnostics(transmat):
+    transmat = np.asarray(transmat, dtype=float)
+    safe = np.where(transmat > 0.0, transmat, 1.0)
+    entropy = -np.sum(np.where(transmat > 0.0, transmat * np.log(safe), 0.0), axis=1)
+    return {
+        "row_sums": transmat.sum(axis=1).tolist(),
+        "row_entropy_nats": entropy.tolist(),
+        "nonzero_transitions_per_row": np.count_nonzero(transmat, axis=1).astype(int).tolist(),
+    }
+
+
 def gaussian_log_emissions(observations, means, variances):
     observations = np.asarray(observations, dtype=float)
     means = np.asarray(means, dtype=float)
@@ -193,7 +204,9 @@ def fit_candidate(observations, n_states, covars_prior=COVARS_PRIOR,
             ok = bool(model.monitor_.converged)
             covariance_ok, minimum_variance = covariance_floor_status(model.covars_)
             covariance_detail = covariance_diagnostics(model.covars_)
-            posterior_occupancy = model.predict_proba(observations).sum(axis=0)
+            state_order = canonical_state_order(model.means_)
+            canonical_transition = model.transmat_[np.ix_(state_order, state_order)]
+            posterior_occupancy = model.predict_proba(observations).sum(axis=0)[state_order]
             attempts.append({
                 "seed": seed, "converged": ok,
                 "iterations": int(model.monitor_.iter),
@@ -201,7 +214,12 @@ def fit_candidate(observations, n_states, covars_prior=COVARS_PRIOR,
                 "minimum_diagonal_variance": minimum_variance,
                 "covariance_floor_respected": covariance_ok,
                 "covariance_diagnostics": covariance_detail,
+                "canonical_state_means": model.means_[state_order].tolist(),
+                "canonical_transition_matrix": canonical_transition.tolist(),
+                "canonical_initial_probabilities": model.startprob_[state_order].tolist(),
+                "transition_diagnostics": transition_diagnostics(canonical_transition),
                 "posterior_state_occupancy": posterior_occupancy.tolist(),
+                "posterior_state_occupancy_fraction": (posterior_occupancy / len(observations)).tolist(),
             })
             if ok and covariance_ok and np.isfinite(likelihood):
                 converged.append((likelihood, seed, model))
@@ -619,7 +637,8 @@ def run_experiment(trace_csv):
                 "hmmlearn min_covar is used for covariance initialization; the post-EM 1e-3 covariance check is an explicit experiment-level rejection guard.",
                 "Training-only per-feature dispersion, zero fractions, distinct values, per-state variances, and posterior occupancies are recorded to diagnose B collapse.",
                 "A separate B sensitivity variant excludes exactly constant training observation features; all nonconstant features and all original prediction targets are retained. Its fixed-K=1 score is a non-discriminating one-state baseline.",
-                "A predeclared inverse-gamma covariance-prior strength grid (nu=1,10,100) is applied identically to A, C, and structural-zero-excluded B for K=2,3; every setting is reported and none is selected."
+                "A predeclared inverse-gamma covariance-prior strength grid (nu=1,10,100) is applied identically to A, C, and structural-zero-excluded B for K=2,3; every setting is reported and none is selected.",
+                "Every HMM restart records canonical transition matrices, row entropy, nonzero transitions, and posterior state occupancy to expose transient or weakly occupied states."
                 "No validation/test observations, artificial events, or padded observed training values are used.",
                 "Unfit support is not converted to inactive_by_policy.",
             ],
