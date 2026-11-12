@@ -65,12 +65,23 @@ def canonical_state_order(means):
     return np.lexsort(tuple(means[:, j] for j in reversed(range(means.shape[1]))))
 
 
-def diagonal_variances(covars):
+def raw_diagonal_variances(covars):
     covars = np.asarray(covars, dtype=float)
     result = np.diagonal(covars, axis1=1, axis2=2) if covars.ndim == 3 else covars
     if result.ndim != 2:
         raise ValueError("unexpected GaussianHMM covariance shape")
-    return np.maximum(np.asarray(result, dtype=float), MIN_COVAR)
+    return np.asarray(result, dtype=float)
+
+
+def diagonal_variances(covars):
+    return np.maximum(raw_diagonal_variances(covars), MIN_COVAR)
+
+
+def covariance_floor_status(covars):
+    values = raw_diagonal_variances(covars)
+    minimum = float(np.min(values))
+    valid = bool(np.all(np.isfinite(values)) and minimum >= MIN_COVAR)
+    return valid, minimum
 
 
 def gaussian_log_emissions(observations, means, variances):
@@ -118,16 +129,32 @@ def fit_candidate(observations, n_states):
             model.fit(observations)
             likelihood = float(model.score(observations))
             ok = bool(model.monitor_.converged)
-            attempts.append({"seed": seed, "converged": ok,
-                             "iterations": int(model.monitor_.iter),
-                             "training_log_likelihood": likelihood})
-            if ok and np.isfinite(likelihood):
+            covariance_ok, minimum_variance = covariance_floor_status(model.covars_)
+            attempts.append({
+                "seed": seed, "converged": ok,
+                "iterations": int(model.monitor_.iter),
+                "training_log_likelihood": likelihood,
+                "minimum_diagonal_variance": minimum_variance,
+                "covariance_floor_respected": covariance_ok,
+            })
+            if ok and covariance_ok and np.isfinite(likelihood):
                 converged.append((likelihood, seed, model))
         except (ValueError, FloatingPointError, np.linalg.LinAlgError) as exc:
             attempts.append({"seed": seed, "converged": False,
                              "error": f"{type(exc).__name__}: {exc}"})
     if not converged:
-        return None, {"status": "no_converged_fit", "attempts": attempts}
+        floor_rejected = any(
+            item.get("converged") and not item.get("covariance_floor_respected", False)
+            for item in attempts
+        )
+        return None, {
+            "status": "no_valid_fit",
+            "failure_reason": (
+                "all converged restarts violated the 1e-3 diagonal covariance floor"
+                if floor_rejected else "no converged restart"
+            ),
+            "attempts": attempts,
+        }
     likelihood, selected_seed, model = max(converged, key=lambda x: (x[0], -x[1]))
     dimension = observations.shape[1]
     parameter_count = (n_states - 1) + n_states * (n_states - 1) + 2 * n_states * dimension
@@ -138,6 +165,8 @@ def fit_candidate(observations, n_states):
     info = {
         "status": "converged", "selected_restart_seed": selected_seed,
         "attempts": attempts, "training_log_likelihood": likelihood,
+        "minimum_diagonal_variance": covariance_floor_status(model.covars_)[1],
+        "covariance_floor": MIN_COVAR,
         "bic_diagnostic_only": float(bic), "parameter_count": int(parameter_count),
         "canonical_state_order_raw_indices": order.tolist(),
         "canonical_state_means": model.means_[order].tolist(),
@@ -307,7 +336,8 @@ def run_experiment(trace_csv):
         "training_prefix": [0, 2048], "folds": [list(x) for x in FOLDS],
         "representations": ["A", "B", "C"], "k_values_all_reported_no_selection": list(K_VALUES),
         "fit_seeds": list(FIT_SEEDS), "covariance_type": "diag", "max_iter": MAX_ITER,
-        "tolerance": TOL, "minimum_independent_gamma_events_per_scale_regime": MARK_MINIMUM,
+        "tolerance": TOL, "minimum_diagonal_covariance": MIN_COVAR,
+        "minimum_independent_gamma_events_per_scale_regime": MARK_MINIMUM,
         "regime_mass_epsilon": REGIME_MASS_EPSILON,
     }
     config_sha = hashlib.sha256(json.dumps(config, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
