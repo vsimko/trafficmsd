@@ -334,3 +334,14 @@ the report serializer now canonicalizes every finite floating-point field to
 fitting, predictions before serialization, event counts, thresholds, or
 selection rules. The precision is part of the hashed experiment configuration
 and is covered by a regression test. Non-finite values fail report generation.
+
+
+The first report using canonical 7-significant-digit serialization was produced
+by workflow run 43208633252. Its JSON SHA-256 is
+\`18d96bb8aca51da57c8d0732db0e345bf73ddedf4ced5280cc2cc97595b8fee4\`,
+script SHA-256 is
+\`1d056cf3e99d8a137abc4a892d737a91c70c46d21c8369fe958209ab2f5a0b0e\`,
+and configuration SHA-256 is
+\`57edc4c782e41f6a47427c0ea4cbde1d759aaabe7c01a35c97ccbc88f3a24665\`.
+A separate workflow run on the same code is used to verify cross-run report
+identity; the report checksum will be recorded after that independent run.
