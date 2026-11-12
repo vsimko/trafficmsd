@@ -146,3 +146,14 @@ convert a scale to \`inactive_by_policy\`; unresolved mark support remains
 \`unfit\`. No events are synthesized, and no A/B/C or reduced-B representation
 is selected. This sensitivity is solely to test whether the structurally
 constant observation coordinate explains the HMM numerical failure.
+
+
+### Structural-zero-excluded B predictive diagnostic
+
+The diagnostic-only B variant retains the 11 nonconstant training features and
+keeps the complete original scale/tick event target set. For fixed K=1, it is
+scored on the exact common supported occurrence targets shared with A and C,
+where all three candidate fits are valid. K=2 and K=3 remain reported as fit
+diagnostics and are not scored if their covariance checks fail. This does not
+replace the original A/B/C comparison: original B still includes scale 0 and
+remains unfit under the original contract. No model or regime count is selected.

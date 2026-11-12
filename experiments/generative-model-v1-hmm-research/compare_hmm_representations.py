@@ -299,9 +299,10 @@ def score_model_fold(model_bundle, train_observations, test_observations,
     return {"predictions": predictions, "scale_support": scale_support}
 
 
-def summarize_comparison(fold, train_end, test_end, results, event_values):
+def summarize_comparison(fold, train_end, test_end, results, event_values,
+                         representations=("A", "B", "C")):
     common_event, common_mark = None, None
-    for name in ("A", "B", "C"):
+    for name in representations:
         pred = results[name]["predictions"]
         event_keys = {key for key, val in pred.items() if val["probability"] is not None}
         mark_keys = {key for key, val in pred.items()
@@ -310,7 +311,7 @@ def summarize_comparison(fold, train_end, test_end, results, event_values):
         common_mark = mark_keys if common_mark is None else common_mark & mark_keys
     common_event, common_mark = sorted(common_event or set()), sorted(common_mark or set())
     comparisons = {}
-    for name in ("A", "B", "C"):
+    for name in representations:
         scores = []
         for key in common_event:
             p = float(np.clip(results[name]["predictions"][key]["probability"], 1e-12, 1 - 1e-12))
@@ -325,7 +326,7 @@ def summarize_comparison(fold, train_end, test_end, results, event_values):
             "positive_mark_note": "No mark distribution was fitted or selected; support counts only.",
         }
     total = sum(
-        1 for s in range(len(results["A"]["scale_support"]))
+        1 for s in range(len(results[representations[0]]["scale_support"]))
         for t in range(0 if s == 0 else 2**(s - 1) - 1, test_end, 1 if s == 0 else 2**s)
         if train_end <= t < test_end
     )
@@ -375,17 +376,32 @@ def run_experiment(trace_csv):
                 int(i) for i in range(b_train.shape[1]) if i not in set(retained_b_features.tolist())
             ],
             "prediction_targets_unchanged": True,
-            "predictive_scores_computed": False,
             "fits_by_k": {},
         }
+        reduced_scored_by_k = {}
         if len(retained_b_features):
             for k in K_VALUES:
-                reduced_fit, reduced_info = fit_candidate(b_train[:, retained_b_features], k)
+                reduced_train = b_train[:, retained_b_features]
+                reduced_fit, reduced_info = fit_candidate(reduced_train, k)
                 reduced_info["training_observation_features"] = observation_feature_diagnostics(
-                    b_train[:, retained_b_features]
+                    reduced_train
                 )
                 reduced_info["retained_original_feature_indices"] = retained_b_features.astype(int).tolist()
-                structural_zero_sensitivity["fits_by_k"][str(k)] = reduced_info
+                if reduced_fit is not None:
+                    reduced_test = observations["B"][train_end:test_end][:, retained_b_features]
+                    reduced_scored = score_model_fold(
+                        reduced_fit, reduced_train, reduced_test, train_end, test_end,
+                        scale_count, event_values,
+                    )
+                    reduced_scored_by_k[k] = reduced_scored
+                    structural_zero_sensitivity["fits_by_k"][str(k)] = {
+                        "status": "scored", "fit": reduced_info,
+                        "scale_support": reduced_scored["scale_support"],
+                    }
+                else:
+                    structural_zero_sensitivity["fits_by_k"][str(k)] = {
+                        "status": "no_valid_fit", "fit": reduced_info,
+                    }
         else:
             structural_zero_sensitivity["status"] = "no_nonconstant_training_features"
 
@@ -406,6 +422,30 @@ def run_experiment(trace_csv):
                     entry["common_target_comparison"] = (
                         summary["comparisons"][name] if "comparisons" in summary else None
                     )
+
+        # Compare the fixed K=1 candidate only when A, C, and the explicitly
+        # reduced B diagnostic all have valid fits. This is still training-only,
+        # uses identical scale/tick targets, and never ranks/selects a model.
+        if (1 in reduced_scored_by_k
+                and ("A", 1) in scored_internal
+                and ("C", 1) in scored_internal):
+            variant_results = {
+                "A": scored_internal[("A", 1)],
+                "C": scored_internal[("C", 1)],
+                "B_without_constant": reduced_scored_by_k[1],
+            }
+            variant_comparison = summarize_comparison(
+                fold_number, train_end, test_end, variant_results, event_values,
+                representations=("A", "C", "B_without_constant"),
+            )
+            variant_comparison["status"] = "scored_on_common_training_targets"
+        else:
+            variant_comparison = {
+                "status": "incomplete",
+                "reason": "A, C, and structural-zero-excluded B do not all have a valid K=1 fit.",
+            }
+        structural_zero_sensitivity["common_target_comparison_k1"] = variant_comparison
+
         folds.append({
             "fold": fold_number,
             "fit_range": [0, train_end],
@@ -467,7 +507,7 @@ def run_experiment(trace_csv):
                 "The decomposition is frozen over [0,2048), so folds are not strict causal decomposition replays.",
                 "hmmlearn min_covar is used for covariance initialization; the post-EM 1e-3 covariance check is an explicit experiment-level rejection guard.",
                 "Training-only per-feature dispersion, zero fractions, distinct values, per-state variances, and posterior occupancies are recorded to diagnose B collapse.",
-                "A separate diagnostic-only B variant excludes exactly constant training observation features; all nonconstant features and all original prediction targets are retained, and no predictive score or representation selection is performed."
+                "A separate B sensitivity variant excludes exactly constant training observation features; all nonconstant features and all original prediction targets are retained. Its fixed-K=1 score is reported only when A/C/B-variant all have valid fits on identical training-prefix targets; no representation or K is selected."
                 "No validation/test observations, artificial events, or padded observed training values are used.",
                 "Unfit support is not converted to inactive_by_policy.",
             ],

@@ -53,6 +53,22 @@ class PredictivePriorTests(unittest.TestCase):
             experiment.nonconstant_feature_indices(values), [1]
         )
 
+    def test_comparison_accepts_explicit_representation_set(self):
+        predictions = {
+            "A": {"predictions": {(0, 1): {"probability": 0.25, "mark_eligible": False, "observed_event": 0}}, "scale_support": [{}]},
+            "C": {"predictions": {(0, 1): {"probability": 0.25, "mark_eligible": False, "observed_event": 0}}, "scale_support": [{}]},
+            "B_without_constant": {"predictions": {(0, 1): {"probability": 0.25, "mark_eligible": False, "observed_event": 0}}, "scale_support": [{}]},
+        }
+        result = experiment.summarize_comparison(
+            1, 1, 2, predictions, {},
+            representations=("A", "C", "B_without_constant"),
+        )
+        self.assertEqual(result["common_occurrence_targets_across_A_B_C"], 1)
+        self.assertEqual(
+            set(result["comparisons"]),
+            {"A", "C", "B_without_constant"},
+        )
+
     def test_gamma_minimum_remains_thirty(self):
         self.assertFalse(experiment.mark_support_sufficient(29))
         self.assertTrue(experiment.mark_support_sufficient(30))
