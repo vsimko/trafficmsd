@@ -295,3 +295,29 @@ The selected highest-likelihood restart was seed 29 or 43 in every fold,
 whereas seed 17 (and in one fold seed 29) produced the alternative topology.
 Thus covariance validity alone is not sufficient evidence for three stable,
 interpretable regimes. No transition topology or K is selected.
+
+
+### Cross-representation restart occupancy audit at nu=100
+
+For completeness, the same restart-level occupancy/transition diagnostics were
+summarized for A and C under the identical training-variance-scaled prior.
+Across all four folds and three seeds, the minimum state occupancy fraction
+and maximum state occupancy fraction observed in any run were:
+
+| Representation | K | Minimum state fraction | Maximum state fraction | Transition-row entropy range (nats) |
+|---|---:|---:|---:|---:|
+| A | 2 | 1.9% | 98.1% | 0.008–0.681 |
+| A | 3 | 1.1% | 92.5% | 0.079–1.007 |
+| C | 2 | 3.9% | 96.1% | 0.000–0.672 |
+| C | 3 | 8.6% | 78.4% | 0.000–0.793 |
+| B without constant feature | 2 | 33.4% | 66.6% | 0.587–0.661 |
+| B without constant feature | 3 | 11.4% | 76.1% | 0.000–0.941 |
+
+These are descriptive ranges, not preselected acceptance thresholds. They
+show that covariance-valid fits can still have strongly imbalanced states
+(A and C), nearly deterministic transition rows (A/C/B-variant), or
+seed-dependent transition topology (especially C/K=2 and B-variant/K=3).
+B-variant/K=2 has the most repeatable occupancy/transition diagnostics but
+does not perform well on the common occurrence targets. No representation
+currently provides independent evidence sufficient to declare a stable
+regime interpretation.
