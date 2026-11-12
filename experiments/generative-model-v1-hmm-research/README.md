@@ -53,8 +53,8 @@ No validation/test data, synthetic events, or artificial padding are used. Unfit
 
 ## Observed pinned-HMM result (2026-11-12)
 
-Workflow run 43201894410 completed successfully. Its report artifact has SHA-256
-6066bc1b5a9c92e8ba2efd8d77b73b74478376baf968682f6f11e14da1172d65. The report's
+Workflow run 43202029718 completed successfully. The report JSON SHA-256 is
+db2cd3702d54520894a55c7bd6988f2697a7ff4fe57d66502e20ffedb93ba3de. The report's
 experiment script SHA-256 is b4da6f47529463f1831ced69ec1b6f440703bfdadb41a74e774b45f5df2e2990
 and its configuration SHA-256 is 026b9b4d194250d5ba797c41f4737a7b89b781782bef8fe6c3a83121fe172578. The report
 records Python 3.12.16, hmmlearn 0.3.3, NumPy 1.26.4, SciPy 1.13.1,
