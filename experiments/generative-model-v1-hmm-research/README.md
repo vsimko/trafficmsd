@@ -370,3 +370,21 @@ and configuration SHA-256
 The configuration uses seven significant digits for report floats and six
 significant digits for restart-likelihood tie-breaking. A second independent
 workflow run will verify the checksum.
+
+
+### Independent cross-run checksum verification (2026-11-12)
+
+The candidate report from workflow run 43209291718 and the report from the
+subsequent independent run 43209761161 were downloaded from their respective
+GitHub Actions artifacts and compared byte-for-byte. Both JSON files have
+SHA-256
+\`b2be0d28497a29ac6b50e418e6b27064b7b53a9b5adb5be545bf5959b4b2336e\`
+and \`cmp\` reports identical contents. The artifact ZIP digests differ because
+the archives were independently produced; the uncompressed report JSON is
+identical. Both runs completed successfully on the same experiment script and
+configuration hashes recorded above.
+
+The later verification run is associated with the final PR branch head
+\`bbcf4122a4d73d0b17c3a0dabb7665fb546d2c04\`; all 13 required commit checks
+on that head completed successfully. This closes the previously pending
+cross-run determinism verification.
