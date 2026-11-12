@@ -69,6 +69,45 @@ class PredictivePriorTests(unittest.TestCase):
             {"A", "C", "B_without_constant"},
         )
 
+    def test_comparison_scores_only_identical_supported_targets(self):
+        predictions = {
+            "A": {"predictions": {
+                (0, 1): {"probability": 0.25, "mark_eligible": False, "observed_event": 1},
+                (0, 2): {"probability": 0.99, "mark_eligible": False, "observed_event": 0},
+            }, "scale_support": [{}]},
+            "C": {"predictions": {
+                (0, 1): {"probability": 0.75, "mark_eligible": False, "observed_event": 1},
+                (0, 3): {"probability": 0.01, "mark_eligible": False, "observed_event": 1},
+            }, "scale_support": [{}]},
+            "B_without_constant": {"predictions": {
+                (0, 1): {"probability": 0.50, "mark_eligible": False, "observed_event": 1},
+                (0, 2): {"probability": 0.01, "mark_eligible": False, "observed_event": 0},
+            }, "scale_support": [{}]},
+        }
+        result = experiment.summarize_comparison(
+            1, 0, 4, predictions, {(0, 1): 1, (0, 2): 0, (0, 3): 1},
+            representations=("A", "C", "B_without_constant"),
+        )
+        self.assertEqual(result["common_occurrence_targets_across_representations"], 1)
+        self.assertEqual(result["target_opportunities_all_scales"], 4)
+        self.assertEqual(
+            {name: item["common_occurrence_target_count"]
+             for name, item in result["comparisons"].items()},
+            {"A": 1, "C": 1, "B_without_constant": 1},
+        )
+        self.assertAlmostEqual(
+            result["comparisons"]["A"]["common_occurrence_mean_log_score"],
+            np.log(0.25),
+        )
+        self.assertAlmostEqual(
+            result["comparisons"]["C"]["common_occurrence_mean_log_score"],
+            np.log(0.75),
+        )
+        self.assertAlmostEqual(
+            result["comparisons"]["B_without_constant"]["common_occurrence_mean_log_score"],
+            np.log(0.50),
+        )
+
     def test_scaled_variance_prior_uses_only_supplied_training_matrix(self):
         values = np.array([[1.0, 0.0], [3.0, 2.0], [5.0, 4.0]])
         prior, weight, variances = experiment.scaled_variance_prior(values, 2, 10.0)
