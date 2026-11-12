@@ -358,3 +358,15 @@ rule affects only the deterministic choice among initializations for the same
 fixed representation/K/prior/fold; it does not choose K, representation,
 covariance prior, mark family, or pooling. The tie-break precision is included
 in the configuration hash and has a regression test.
+
+
+After the deterministic restart tie-break was added, workflow run 43209291718
+produced the first candidate report with JSON SHA-256
+\`b2be0d28497a29ac6b50e418e6b27064b7b53a9b5adb5be545bf5959b4b2336e\`,
+script SHA-256
+\`fb55f28552e7c387a58cf78fbe52df7384b357248f7cd74646fe90f7dc04cab2\`,
+and configuration SHA-256
+\`bb4bee49676381633c5494c60f437c2f347e93ac4d58ae76f035f54c823396e2\`.
+The configuration uses seven significant digits for report floats and six
+significant digits for restart-likelihood tie-breaking. A second independent
+workflow run will verify the checksum.
