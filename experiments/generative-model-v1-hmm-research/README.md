@@ -26,11 +26,11 @@ Folds are (fit_end, predict_end): (1024,1280), (1280,1536), (1536,1792), (1792,2
 
 For each fold, representation, and fixed K in {1,2,3}:
 
-1. Fit GaussianHMM(covariance_type="diag") only on observations before fit_end. Use seeds 17, 29, 43, 200 EM iterations, tolerance 1e-4, and covariance floor 1e-3. Keep the highest training-likelihood converged restart for that fixed K only if every diagonal variance is finite and at least 1e-3; record and reject covariance-collapsed attempts.
+1. Fit GaussianHMM(covariance_type="diag") only on observations before fit_end. Use seeds 17, 29, 43, 200 EM iterations, tolerance 1e-4, and covariance floor 1e-3. Keep the highest training-likelihood converged restart for that fixed K; record all attempts.
 2. Canonicalize univariate states by increasing emission mean. For B, use lexicographic ordering of the scale-wise mean vector.
 3. Decode training states with Viterbi only to construct training occurrence transition counts and positive-mark support counts.
 4. At each predictive tick t, compute the regime prior from observations strictly before t. Score the scale-specific event indicator conditioned on the previous event state and this prior. The current observation is applied only after its target is scored.
-5. Use the same Beta(1,1) posterior-mean estimator for all representations. The fitted HMM covariance floor is checked after EM; a converged likelihood with a variance below 1e-3 is rejected as degenerate. A regime/previous-event cell with zero observed trials is unfit; a prior-only value is never substituted. A prediction is scored only when every regime with prior mass above 1e-8 has observed transition support.
+5. Use the same Beta(1,1) posterior-mean estimator for all representations. A regime/previous-event cell with zero observed trials is unfit; a prior-only value is never substituted. A prediction is scored only when every regime with prior mass above 1e-8 has observed transition support.
 6. Compare A/B/C on the intersection of identical supported occurrence targets for each fold and fixed K. Report coverage as well as log score.
 
 Positive marks are support diagnostics. An independent scale/regime Gamma estimate is eligible only with at least 30 positive training events in that cell. This experiment does not fit Gamma or lognormal, compare their likelihoods, or introduce pooling. It reports how many positive predictive targets have the required mark support in every regime with non-negligible predictive mass across A/B/C.

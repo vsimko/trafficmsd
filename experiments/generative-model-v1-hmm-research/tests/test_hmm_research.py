@@ -30,6 +30,12 @@ class PredictivePriorTests(unittest.TestCase):
         self.assertTrue(experiment.mark_support_sufficient(30))
         self.assertEqual(experiment.MARK_MINIMUM, 30)
 
+    def test_covariance_collapse_is_rejected(self):
+        collapsed = np.array([[[1e-4, 0.0], [0.0, 1.0]]])
+        valid = np.array([[[1e-3, 0.0], [0.0, 1.0]]])
+        self.assertEqual(experiment.covariance_floor_status(collapsed), (False, 1e-4))
+        self.assertEqual(experiment.covariance_floor_status(valid), (True, 1e-3))
+
     def test_unsupported_occurrence_cell_is_unfit_not_prior_only(self):
         prior = np.array([0.5, 0.5])
         trials = np.array([[10, 0], [0, 0]])
