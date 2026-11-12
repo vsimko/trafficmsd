@@ -345,3 +345,16 @@ and configuration SHA-256 is
 \`57edc4c782e41f6a47427c0ea4cbde1d759aaabe7c01a35c97ccbc88f3a24665\`.
 A separate workflow run on the same code is used to verify cross-run report
 identity; the report checksum will be recorded after that independent run.
+
+
+### Stable selection among numerically tied restarts
+
+Cross-run comparison after float normalization showed that tiny likelihood
+differences could change the selected initialization seed when several
+restarts were effectively tied. Restart ranking now compares training
+log-likelihood rounded to six significant digits; ties are resolved by the
+lowest predeclared seed. All restart diagnostics remain in the report. This
+rule affects only the deterministic choice among initializations for the same
+fixed representation/K/prior/fold; it does not choose K, representation,
+covariance prior, mark family, or pooling. The tie-break precision is included
+in the configuration hash and has a regression test.

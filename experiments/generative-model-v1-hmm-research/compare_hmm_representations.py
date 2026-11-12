@@ -31,6 +31,7 @@ REGIME_MASS_EPSILON = 1e-8
 COVARIANCE_PRIOR_STRENGTHS = (1.0, 10.0, 100.0)
 COVARIANCE_PRIOR_K_VALUES = (2, 3)
 REPORT_FLOAT_SIGNIFICANT_DIGITS = 7
+RESTART_SELECTION_SIGNIFICANT_DIGITS = 6
 
 
 def normalize_report_precision(value):
@@ -204,6 +205,21 @@ def scaled_variance_prior(observations, n_states, strength):
     return prior, 1.0 + float(strength), feature_variances
 
 
+def restart_selection_key(likelihood, seed):
+    """Stable ordering for restarts whose training likelihoods are numerically tied."""
+    stable_likelihood = float(format(
+        float(likelihood), f".{RESTART_SELECTION_SIGNIFICANT_DIGITS}g"
+    ))
+    return stable_likelihood, -int(seed)
+
+
+def select_best_restart(converged_restarts):
+    """Choose highest rounded training likelihood, then the lowest seed."""
+    if not converged_restarts:
+        raise ValueError("at least one converged restart is required")
+    return max(converged_restarts, key=lambda item: restart_selection_key(item[0], item[1]))
+
+
 def fit_candidate(observations, n_states, covars_prior=COVARS_PRIOR,
                   covars_weight=COVARS_WEIGHT, covariance_prior_metadata=None):
     """Fit fixed-K restarts; no K or regime count is selected."""
@@ -256,7 +272,7 @@ def fit_candidate(observations, n_states, covars_prior=COVARS_PRIOR,
             ),
             "attempts": attempts,
         }
-    likelihood, selected_seed, model = max(converged, key=lambda x: (x[0], -x[1]))
+    likelihood, selected_seed, model = select_best_restart(converged)
     dimension = observations.shape[1]
     parameter_count = (n_states - 1) + n_states * (n_states - 1) + 2 * n_states * dimension
     bic = -2.0 * likelihood + parameter_count * np.log(len(observations))
@@ -603,7 +619,9 @@ def run_experiment(trace_csv):
         "representations": ["A", "B", "C"],
         "additional_diagnostic_only_variant": "B excluding exactly constant training features; no prediction targets removed",
         "k_values_all_reported_no_selection": list(K_VALUES),
-        "fit_seeds": list(FIT_SEEDS), "covariance_type": "diag", "max_iter": MAX_ITER,
+        "fit_seeds": list(FIT_SEEDS),
+        "restart_likelihood_tie_break_significant_digits": RESTART_SELECTION_SIGNIFICANT_DIGITS,
+        "covariance_type": "diag", "max_iter": MAX_ITER,
         "tolerance": TOL, "minimum_diagonal_covariance": MIN_COVAR,
         "hmmlearn_covars_prior": COVARS_PRIOR, "hmmlearn_covars_weight": COVARS_WEIGHT,
         "covariance_prior_sensitivity_strengths": list(COVARIANCE_PRIOR_STRENGTHS),
@@ -628,7 +646,8 @@ def run_experiment(trace_csv):
             "python": platform.python_version(), "dependencies": versions,
             "experiment_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             "configuration_sha256": config_sha,
-            "report_float_significant_digits": REPORT_FLOAT_SIGNIFICANT_DIGITS, "input_csv_path_label": Path(trace_csv).name,
+            "report_float_significant_digits": REPORT_FLOAT_SIGNIFICANT_DIGITS,
+            "restart_likelihood_tie_break_significant_digits": RESTART_SELECTION_SIGNIFICANT_DIGITS, "input_csv_path_label": Path(trace_csv).name,
         },
         "configuration": config,
         "decomposition": {

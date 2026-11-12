@@ -103,6 +103,16 @@ class PredictivePriorTests(unittest.TestCase):
             1.234568,
         )
 
+    def test_restart_selection_uses_stable_likelihood_tie_break(self):
+        restarts = [
+            (1.2345678912, 43, "seed-43"),
+            (1.2345678913, 17, "seed-17"),
+            (1.2345678911, 29, "seed-29"),
+        ]
+        selected = experiment.select_best_restart(restarts)
+        self.assertEqual(selected[1], 17)
+        self.assertEqual(selected[2], "seed-17")
+
     def test_gamma_minimum_remains_thirty(self):
         self.assertFalse(experiment.mark_support_sufficient(29))
         self.assertTrue(experiment.mark_support_sufficient(30))
