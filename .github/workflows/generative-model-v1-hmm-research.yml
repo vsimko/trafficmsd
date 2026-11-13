@@ -1,0 +1,56 @@
+name: Generative model v1 independent HMM research
+
+on:
+  pull_request:
+    branches: [master, main]
+    paths:
+      - ".github/workflows/generative-model-v1-hmm-research.yml"
+      - "experiments/generative-model-v1-hmm-research/**"
+      - "experiments/generative-model-v1-sparse-marks/compare_gamma_lognormal.py"
+      - "docs/generative-model-v1-design.md"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: generative-model-v1-hmm-research-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  research:
+    name: Pinned HMM A/B/C training-only comparison
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install exact HMM experiment dependencies
+        run: python -m pip install --disable-pip-version-check -r experiments/generative-model-v1-hmm-research/requirements.txt
+      - name: Download immutable Westermo extraction artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: westermo-model-extraction-and-qpn-v1
+          repository: vsimko/trafficmsd
+          run-id: 43079950800
+          github-token: ${{ github.token }}
+          path: artifacts
+      - name: Run independent HMM A/B/C comparison twice
+        run: |
+          python experiments/generative-model-v1-hmm-research/compare_hmm_representations.py artifacts/westermo-model-extraction-v1/trace.csv --output /tmp/hmm-report-1.json
+          python experiments/generative-model-v1-hmm-research/compare_hmm_representations.py artifacts/westermo-model-extraction-v1/trace.csv --output /tmp/hmm-report-2.json
+          cmp /tmp/hmm-report-1.json /tmp/hmm-report-2.json
+      - name: Run predictive-boundary and support regression tests
+        run: python -m unittest discover -s experiments/generative-model-v1-hmm-research/tests -v
+      - name: Upload research report
+        uses: actions/upload-artifact@v4
+        with:
+          name: generative-model-v1-hmm-research
+          path: /tmp/hmm-report-1.json
+          if-no-files-found: error
