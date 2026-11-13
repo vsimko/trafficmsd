@@ -1,0 +1,58 @@
+name: Generative model v1 decomposition prefix sensitivity
+
+on:
+  pull_request:
+    branches: [master, main]
+    paths:
+      - ".github/workflows/generative-model-v1-decomposition-sensitivity.yml"
+      - "experiments/generative-model-v1-decomposition-sensitivity/**"
+      - "docs/generative-model-v1-decomposition-prefix-sensitivity.md"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: generative-model-v1-decomposition-sensitivity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Training-prefix decomposition replay sensitivity
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install NumPy
+        run: python -m pip install --disable-pip-version-check "numpy==1.26.4"
+      - name: Download immutable Westermo extraction artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: westermo-model-extraction-and-qpn-v1
+          repository: vsimko/trafficmsd
+          run-id: 43079950800
+          github-token: ${{ github.token }}
+          path: artifacts
+      - name: Run complete-window conformance tests
+        run: python -m unittest discover -s experiments/generative-model-v1-decomposition-sensitivity/tests -v
+      - name: Run audit independently twice
+        run: |
+          python experiments/generative-model-v1-decomposition-sensitivity/audit_decomposition_prefix_sensitivity.py artifacts/westermo-model-extraction-v1/trace.csv --output /tmp/decomposition-sensitivity-1.json
+          python experiments/generative-model-v1-decomposition-sensitivity/audit_decomposition_prefix_sensitivity.py artifacts/westermo-model-extraction-v1/trace.csv --output /tmp/decomposition-sensitivity-2.json
+          cmp /tmp/decomposition-sensitivity-1.json /tmp/decomposition-sensitivity-2.json
+          cmp /tmp/decomposition-sensitivity-1.json.sha256 /tmp/decomposition-sensitivity-2.json.sha256
+      - name: Upload deterministic research report
+        uses: actions/upload-artifact@v4
+        with:
+          name: generative-model-v1-decomposition-prefix-sensitivity
+          path: |
+            /tmp/decomposition-sensitivity-1.json
+            /tmp/decomposition-sensitivity-1.json.sha256
+          if-no-files-found: error
