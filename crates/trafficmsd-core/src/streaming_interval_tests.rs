@@ -196,8 +196,7 @@ fn fixed_power_of_two_horizons_keep_their_own_cutoff() {
         let mut values = vec![0.0; horizon];
         values[100..103].fill(5.0);
         let streamed = run_stream(&values, 0.004);
-        let streamed_values: Vec<_> =
-            streamed.into_iter().map(|(_, value)| value).collect();
+        let streamed_values: Vec<_> = streamed.into_iter().map(|(_, value)| value).collect();
         let batch = optimize_intervals(&values, 0.004);
         assert_same_bits(&streamed_values, &batch);
 
