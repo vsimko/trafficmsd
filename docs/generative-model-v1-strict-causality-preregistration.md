@@ -13,7 +13,7 @@ This question is separate from whether a stochastic occurrence or mark model is 
 
 The current implementation has two distinct sources of look-ahead:
 
-1. For scale s>0, a coefficient is associated with a globally aligned window of length 2^s, but the legacy emission filter places it at the center-left index, offset 2^(s-1)-1. That index occurs before the window is complete. The value cannot be known at its nominal emission tick if it depends on the complete window.
+1. For scale s>0, a coefficient is associated with a globally aligned window of length 2^s, but the legacy emission filter places it at the center-left index, offset 2^$s-1$-1. That index occurs before the window is complete. The value cannot be known at its nominal emission tick if it depends on the complete window.
 2. Candidate values are passed through `optimize_intervals()`. The current prefix-sensitivity experiment reruns interval optimization over the entire prefix available at each origin. It therefore uses later observations within that prefix; it is not an online update rule. Recomputing it at every tick would not by itself make the algorithm causal.
 
 The offline event timestamp, the time at which the algorithm can know the event value, and the time at which a downstream generator can emit it must therefore be represented separately.
@@ -230,46 +230,46 @@ Contract C is the first implementation experiment to attempt because it may pres
 
 The candidate schedule in section 11 can be made more precise by separating raw candidate generation from same-scale optimization and residual updates.
 
-Let (W_{s,i}) be the globally aligned window for scale (s) and candidate index (i). Let (R_s) denote the residual after all updates from scales greater than (s), but before any updates at scale (s).
+Let $W_{s,i}$ be the globally aligned window for scale $s$ and candidate index $i$. Let $R_s$ denote the residual after all updates from scales greater than $s$, but before any updates at scale $s$.
 
 ### Dependency edges
 
-1. **Raw candidate:** (C_{s,i}) is a deterministic function only of (R_s) restricted to (W_{s,i}). Windows at one scale are disjoint. Therefore, same-scale residual updates do not affect raw candidates at other indices.
-2. **Optimized candidate:** (O_{s,i}) depends on:
-   - the complete positive run containing (C_{s,i}), if run filtering is active;
-   - the complete positive run containing (C_{s,i+1}), if interpolation at (i) uses that right neighbor;
-   - the already finalized, possibly interpolated (O_{s,i-1});
-   - the unchanged legacy boundary rules at indices 0 and (n_s-1).
+1. **Raw candidate:** $C_{s,i}$ is a deterministic function only of $R_s$ restricted to $W_{s,i}$. Windows at one scale are disjoint. Therefore, same-scale residual updates do not affect raw candidates at other indices.
+2. **Optimized candidate:** $O_{s,i}$ depends on:
+   - the complete positive run containing $C_{s,i}$, if run filtering is active;
+   - the complete positive run containing $C_{s,i+1}$, if interpolation at $i$ uses that right neighbor;
+   - the already finalized, possibly interpolated $O_{s,i-1}$;
+   - the unchanged legacy boundary rules at indices 0 and $n_s-1$.
    Run filtering is final once a zero after the run or the declared end-of-horizon is observed. The interpolation pass is then reproduced in increasing index order, using the already-updated left value and the right value after run filtering but before interpolation.
-3. **Residual update:** (U_{s,i}) depends only on (O_{s,i}), the residual values in (W_{s,i}), and the legacy source-removal and center-left subtraction rules.
-4. **Next lower scale:** raw candidates at scale (s-1) inside (W_{s,i}) become eligible only after (U_{s,i}) is committed.
+3. **Residual update:** $U_{s,i}$ depends only on $O_{s,i}$, the residual values in $W_{s,i}$, and the legacy source-removal and center-left subtraction rules.
+4. **Next lower scale:** raw candidates at scale $s-1$ inside $W_{s,i}$ become eligible only after $U_{s,i}$ is committed.
 
 ### Acyclicity argument
 
-Within a fixed scale, every raw candidate (C_{s,i}) is independent of same-scale updates because all raw candidates are defined against (R_s), and the windows are disjoint. The optimizer may make (O_{s,i}) wait for raw candidates at later indices, but it never depends on a same-scale residual update (U_{s,j}). The optimizer's left-to-right interpolation dependency is only from (O_{s,i-1}) to (O_{s,i}).
+Within a fixed scale, every raw candidate $C_{s,i}$ is independent of same-scale updates because all raw candidates are defined against $R_s$, and the windows are disjoint. The optimizer may make $O_{s,i}$ wait for raw candidates at later indices, but it never depends on a same-scale residual update $U_{s,j}$. The optimizer's left-to-right interpolation dependency is only from $O_{s,i-1}$ to $O_{s,i}$.
 
-Every cross-scale dependency points from a committed update at scale (s) to raw candidate generation at scale (s-1). Since scales strictly decrease along these edges and the number of scales is finite, cross-scale edges cannot form a cycle. The within-scale dependencies also form a finite forward dependency graph: raw candidate values are generated independently in index order as their parent residual windows become ready; run closure supplies the finite future context; interpolation then commits outputs in increasing index order.
+Every cross-scale dependency points from a committed update at scale $s$ to raw candidate generation at scale $s-1$. Since scales strictly decrease along these edges and the number of scales is finite, cross-scale edges cannot form a cycle. The within-scale dependencies also form a finite forward dependency graph: raw candidate values are generated independently in index order as their parent residual windows become ready; run closure supplies the finite future context; interpolation then commits outputs in increasing index order.
 
-This establishes an acyclic *dependency graph* for a fixed finite horizon, subject to the stated definition of (R_s) and exact preservation of disjoint-window update semantics. It is not yet an implementation proof: code must demonstrate that candidate generation can be interleaved with optimizer commitment without accidentally reading residual values after same-scale updates, and that R/Rust floating-point and tie behavior remain identical.
+This establishes an acyclic *dependency graph* for a fixed finite horizon, subject to the stated definition of $R_s$ and exact preservation of disjoint-window update semantics. It is not yet an implementation proof: code must demonstrate that candidate generation can be interleaved with optimizer commitment without accidentally reading residual values after same-scale updates, and that R/Rust floating-point and tie behavior remain identical.
 
 ### Readiness and resource bounds
 
 - A raw candidate is ready when its complete window has arrived and all containing higher-scale residual updates are committed.
 - A filtered candidate is ready when its positive run has closed (or its value is zero, or the horizon ends).
-- An interpolated candidate at index (i) is ready when the filtered values at (i-1,i,i+1) are ready and (O_{s,i-1}) has been committed. Boundary indices follow the batch implementation exactly.
+- An interpolated candidate at index $i$ is ready when the filtered values at $i-1,i,i+1$ are ready and $O_{s,i-1}$ has been committed. Boundary indices follow the batch implementation exactly.
 - A residual update is ready when its optimized candidate is ready.
 - End-of-horizon flush closes the final positive run at each scale and resolves the final interpolation dependencies; it must not append a synthetic zero candidate.
 
-The total number of raw candidate slots across scales (s=1,ldots,S) is (N/2+N/4+cdots+1=N-1). Thus, retaining every not-yet-committed raw candidate requires at most (O(N)) candidate storage, in addition to the (O(N)) residual state. This is a coarse upper bound; it is not a latency bound. A single positive run can defer commitment until end-of-horizon, so worst-case output latency remains (O(N)) ticks.
+The total number of raw candidate slots across scales $s=1,\ldots,S$ is $N/2+N/4+\cdots+1=N-1$. Thus, retaining every not-yet-committed raw candidate requires at most $O$N$$ candidate storage, in addition to the $O$N$$ residual state. This is a coarse upper bound; it is not a latency bound. A single positive run can defer commitment until end-of-horizon, so worst-case output latency remains $O$N$$ ticks.
 
 ### Implementation go/no-go
 
 The dependency graph is sufficient to justify a narrowly scoped prototype under contract C. It does not justify changing the production decomposition or stochastic model yet. The prototype must:
 - expose incremental `push(tick, value)` and explicit `finish()` operations;
-- reject input beyond the declared horizon and reject `finish()` before exactly (N) observations;
+- reject input beyond the declared horizon and reject `finish()` before exactly $N$ observations;
 - publish only immutable final records with both `event_time` and `available_at`;
 - maintain an audit trace of which parent updates made each child window ready;
-- pass prefix-finality tests under a fixed (N);
+- pass prefix-finality tests under a fixed $N$;
 - match the batch R and Rust coefficient matrices and reconstructions byte-for-byte (or define and justify a canonical numeric serialization if platform floating-point representations differ);
 - report peak pending candidates and per-scale latency, including the worst-case end-of-horizon run.
 
