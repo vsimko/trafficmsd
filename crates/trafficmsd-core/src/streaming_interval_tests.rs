@@ -228,8 +228,7 @@ fn finish_requires_the_declared_horizon_and_push_rejects_overrun() {
 fn positive_run_is_closed_by_zero_or_by_eof_without_synthetic_sample() {
     for values in [vec![0.0, 2.0, 2.0, 2.0, 0.0], vec![0.0, 2.0, 2.0, 2.0]] {
         let streamed = run_stream(&values, 0.2);
-        let streamed_values: Vec<_> =
-            streamed.into_iter().map(|(_, value)| value).collect();
+        let streamed_values: Vec<_> = streamed.into_iter().map(|(_, value)| value).collect();
         assert_same_bits(&streamed_values, &optimize_intervals(&values, 0.2));
     }
 }
