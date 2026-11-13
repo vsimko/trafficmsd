@@ -374,6 +374,12 @@ def summarize_comparison(fold, train_end, test_end, results, event_values,
     common_event, common_mark = None, None
     for name in representations:
         pred = results[name]["predictions"]
+        for key, prediction in pred.items():
+            expected_event = int(event_values.get(key, 0.0) > 0)
+            if int(prediction["observed_event"]) != expected_event:
+                raise ValueError(
+                    f"{name} has an inconsistent observed event label at target {key}"
+                )
         event_keys = {key for key, val in pred.items() if val["probability"] is not None}
         mark_keys = {key for key, val in pred.items()
                      if val["mark_eligible"] and event_values.get(key, 0.0) > 0}
@@ -676,7 +682,7 @@ def run_experiment(trace_csv):
                 "Training-only per-feature dispersion, zero fractions, distinct values, per-state variances, and posterior occupancies are recorded to diagnose B collapse.",
                 "A separate B sensitivity variant excludes exactly constant training observation features; all nonconstant features and all original prediction targets are retained. Its fixed-K=1 score is a non-discriminating one-state baseline.",
                 "A predeclared inverse-gamma covariance-prior strength grid (nu=1,10,100) is applied identically to A, C, and structural-zero-excluded B for K=2,3; every setting is reported and none is selected.",
-                "Every HMM restart records canonical transition matrices, row entropy, nonzero transitions, and posterior state occupancy to expose transient or weakly occupied states."
+                "Every HMM restart records canonical transition matrices, row entropy, nonzero transitions, and posterior state occupancy to expose transient or weakly occupied states.",
                 "No validation/test observations, artificial events, or padded observed training values are used.",
                 "Unfit support is not converted to inactive_by_policy.",
             ],
