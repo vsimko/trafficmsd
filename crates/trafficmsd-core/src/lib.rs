@@ -8,6 +8,10 @@ pub mod decomposition;
 pub mod model;
 pub mod model_v2;
 
+#[cfg(test)]
+#[path = "streaming_interval_tests.rs"]
+mod streaming_interval_tests;
+
 /// Returns the version of the core crate.
 pub const fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
