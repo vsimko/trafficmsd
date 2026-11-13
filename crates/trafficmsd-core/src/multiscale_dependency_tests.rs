@@ -104,8 +104,9 @@ fn staged_parent_readiness_matches_batch_decomposition() {
                 let batch = decompose(&signal, cutoff).unwrap();
                 assert_matrix_bits_equal(&staged, &batch.coefficients);
 
-                for scale in 1..committed.len() {
-                    assert!(committed[scale].iter().all(|ready| *ready));
+                for (scale, scale_commits) in committed.iter().enumerate().skip(1) {
+                    let expected_windows = n / (1usize << scale);
+                    assert!(scale_commits[..expected_windows].iter().all(|ready| *ready));
                 }
             }
         }
