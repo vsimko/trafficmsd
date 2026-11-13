@@ -1,6 +1,6 @@
 # Decomposition prefix-sensitivity results
 
-<badge color="success">Reproduced twice byte-identically</badge>
+**Status:** Reproduced twice byte-identically
 
 **Workflow run:** [43384596620](https://github.com/vsimko/trafficmsd/actions/runs/43384596620)  
 **Artifact:** `generative-model-v1-decomposition-prefix-sensitivity` (ID `14018330713`)  
