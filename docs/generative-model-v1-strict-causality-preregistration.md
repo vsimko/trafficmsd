@@ -195,7 +195,7 @@ The static counterexample distinguishes a changing-horizon stream from a finite 
 ### Contract
 
 - Declare the complete recording length $N$ before consuming observations. Require the existing power-of-two input length and the existing global origin.
-- At scale $s$, the candidate-vector length is $n_s=N/2^s$, and the legacy cutoff remains exactly (c_s=n_s\,f), where $f$ is the unchanged v1 cutoff fraction.
+- At scale $s$, the candidate-vector length is $n_s=N/2^s$, and the legacy cutoff remains exactly $c_s=n_s f$, where $f$ is the unchanged v1 cutoff fraction.
 - The declared $N$, $f$, tie-breaking, window alignment, center-left subtraction, and operation order are immutable for the run. A stream whose declared horizon changes is a different run and cannot inherit previously finalized outputs.
 - Consume observations incrementally. Do not read or precompute from future sample values. The horizon is metadata, not permission to inspect future observations.
 - Keep legacy `event_time`; report the actual `available_at` separately. Never report a center-left timestamp as if the coefficient were known at that tick.
