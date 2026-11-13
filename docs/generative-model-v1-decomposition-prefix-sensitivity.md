@@ -96,4 +96,34 @@ If the decomposition differs materially across origins, the result is evidence t
 
 ## 7. Preregistration status
 
-No extraction, comparison, fitting, model selection, or scoring has been run under this protocol. The next implementation step is limited to the deterministic audit and its conformance tests. The protocol must be reviewed and committed before the result report is generated.
+The protocol was committed before the audit implementation and result generation. The
+implementation is confined to
+`experiments/generative-model-v1-decomposition-sensitivity/`. Its seven
+complete-window and input-boundary regression tests pass. The dedicated
+workflow ran the audit twice against the immutable artifact and verified
+byte-identical JSON reports and SHA sidecars.
+
+## 8. Execution record
+
+- Workflow run: [43384596620](https://github.com/vsimko/trafficmsd/actions/runs/43384596620).
+- Environment: Python 3.12.16, NumPy 1.26.4.
+- Reference event-map SHA-256:
+  `29a500dbcb42163c37260fafa3f67f421995ad72d3eeee5346d1afeab06d0ea6`.
+- Report SHA-256:
+  `181963574f889932194ed7ec6e9a37bd48b98a0337160894fc51026e5c0d82a2`.
+- Script SHA-256:
+  `c8d8754dd0ccc034aab1bd575c9d740f9c02eafd671d22268039892b74f85f20`.
+- Pinned reference counts were reproduced exactly:
+  `0,193,287,224,128,64,32,16,8,4,2,1`.
+- Results and interpretation are recorded in
+  [the experiment results summary](../experiments/generative-model-v1-decomposition-sensitivity/results.md);
+  the full JSON report and checksum sidecar are retained in workflow artifact
+  `14018330713`.
+
+The observed prefix sensitivity is concentrated at scales 0–2, with scale 3
+high but imperfect key overlap and identical event keys at scales 4–10 for
+these origins. This confirms that the previous rolling-origin scores are
+conditional on the frozen offline decomposition. It does not justify choosing
+a different decomposition or fitting any model. No validation/test rows were
+read, and no production fitter, stochastic generator, or QPN condition was
+added.
