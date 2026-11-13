@@ -56,7 +56,7 @@ This complete-window rule is required for a well-defined prefix comparison. The 
 4. emission ticks retain the globally aligned center-left offset;
 5. scale-zero values remain present and no samples are padded.
 
-The reference [0,2048) decomposition must be produced by the same explicitly specified complete-window implementation. Before comparing it with the already committed reference results, prove on [0,2048) that the implementation reproduces the pinned event counts and event-map checksum from the audited decomposition. If it does not, stop: report the discrepancy and do not reinterpret or replace the existing experiment.
+For the [0,2048) reference, the complete-window implementation must reproduce the already pinned per-scale positive-mark counts `0,193,287,224,128,64,32,16,8,4,2,1` for scales 0–11. If it does not, stop: report the discrepancy and do not reinterpret or replace the existing experiment. On the first successful implementation run, compute and record the canonical reference event-map SHA-256; independently rerun it before any fold comparison and require byte-identical canonical event maps.
 
 ## 4. Comparison protocol
 
@@ -90,7 +90,7 @@ If the decomposition differs materially across origins, the result is evidence t
 - Record source trace, training-prefix, script, configuration, event-map, and report SHA-256 values.
 - Run the audit twice independently; canonical event-map and report bytes must match exactly.
 - Preserve the original A/B/C HMM report and its checksum unchanged.
-- Stop if the training-prefix checksum, reference event-map checksum, complete-window conformance, or independent-run determinism check fails.
+- Stop if the training-prefix checksum, pinned event counts, complete-window conformance, or independent-run determinism check fails.
 - Do not inspect validation/test data to resolve any discrepancy.
 - Keep this work under `experiments/` and `docs/`; do not add a production fitter, stochastic generator, schema parameters, generated QPN condition, or QPN result.
 
