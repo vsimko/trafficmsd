@@ -384,7 +384,32 @@ the archives were independently produced; the uncompressed report JSON is
 identical. Both runs completed successfully on the same experiment script and
 configuration hashes recorded above.
 
-The later verification run is associated with the final PR branch head
-\`bbcf4122a4d73d0b17c3a0dabb7665fb546d2c04\`; all 13 required commit checks
-on that head completed successfully. This closes the previously pending
-cross-run determinism verification.
+The later verification run was associated with the then-current PR branch
+head \`bbcf4122a4d73d0b17c3a0dabb7665fb546d2c04\`. This historical head was
+subsequently extended with a scoring-integrity guard and its regression test.
+
+### Scoring-integrity follow-up (2026-11-13)
+
+The comparison now verifies, for every predicted \`(scale, tick)\` key in each
+representation, that its observed event label equals the canonical event
+extracted from the shared training-prefix decomposition. A mismatch raises
+\`ValueError\` rather than allowing different outcomes to be scored at the
+same target. A regression test covers this rejection path. A missing comma in
+the report decision notes was also corrected.
+
+On PR head \`a596a8f49bd84a19a8d79ce9db3eac3424277d97\`, workflow
+[43339718427](https://github.com/vsimko/trafficmsd/actions/runs/43339718427)
+completed successfully: two experiment executions were byte-identical and
+all 16 HMM research tests passed. The resulting report JSON SHA-256 is
+\`095f4362d99b4e3308441278bd057d687b919d58581271be2110623b36758370\`;
+the experiment script SHA-256 is
+\`96e44f3dfc7c99d9a9b7e927f9e3893bceff8887a1faae34f517c18b30c80a29\`.
+The configuration SHA-256 remains
+\`bb4bee49676381633c5494c60f437c2f347e93ac4d58ae76f035f54c823396e2\`.
+After normalizing the changed script provenance and correcting the two
+previously concatenated notes, the report is otherwise identical to the prior
+report: no numerical output, fitting input, or selection rule changed.
+
+This follow-up does not use validation/test rows, alter the covariance-prior
+grid, select a representation/K/prior, fit a mark distribution, or change
+production behavior. PR #96 remains Draft and unmerged.
