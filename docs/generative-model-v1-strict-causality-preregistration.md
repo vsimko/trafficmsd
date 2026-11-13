@@ -1,6 +1,6 @@
 # Strictly causal decomposition — preregistration
 
-**Status:** protocol proposal only; no implementation, result, or model selection  
+**Status:** protocol proposal and code-level analysis only; no implementation, empirical result, or model selection  
 **Related:** issue [#92](https://github.com/vsimko/trafficmsd/issues/92), [emission semantics audit](generative-model-v1-emission-audit.md), [prefix-sensitivity audit](generative-model-v1-decomposition-prefix-sensitivity.md), [generative model v1 design](generative-model-v1-design.md)
 
 ## 1. Research question
