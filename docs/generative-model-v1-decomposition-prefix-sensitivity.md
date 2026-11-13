@@ -105,7 +105,7 @@ byte-identical JSON reports and SHA sidecars.
 
 ## 8. Execution record
 
-- Workflow run: [43384748360](https://github.com/vsimko/trafficmsd/actions/runs/43384596620).
+- Workflow run: [43384748360](https://github.com/vsimko/trafficmsd/actions/runs/43384748360).
 - Environment: Python 3.12.16, NumPy 1.26.4.
 - Reference event-map SHA-256:
   `29a500dbcb42163c37260fafa3f67f421995ad72d3eeee5346d1afeab06d0ea6`.
