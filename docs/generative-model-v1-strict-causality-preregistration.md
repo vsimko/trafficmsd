@@ -143,3 +143,40 @@ This work does not:
 The next implementation proposal must first demonstrate, with code-level analysis and adversarial fixtures, whether the current `optimize_intervals()` semantics admit a finite-memory online equivalent without retroactive revisions. If not, the proposal must describe a new explicitly versioned causal decomposition contract and its compatibility implications. Only after this decision should an implementation experiment be preregistered.
 
 No empirical result is claimed by this document.
+
+
+## 10. Code-level analysis of the legacy interval optimizer
+
+**Audited implementations:** `R/decomposition.R::optimize_intervals()` and `crates/trafficmsd-core/src/decomposition.rs::optimize_intervals()` on the repository's `master` revision inspected for this analysis.
+
+The implementation has three distinct dependencies:
+
+1. **Prefix-length-dependent cutoff (non-causal under prefix extension).** Both implementations calculate `cutoff = n * cutoff_fraction`, where `n` is the complete candidate-vector length. When `cutoff > 1`, a positive run is retained only when its length is strictly greater than that cutoff. Therefore, extending a prefix can change the classification of an earlier run even when no value inside that run changes.
+2. **Run termination (bounded but delayed).** The run-length pass needs the end of a positive run to know its full length. A streaming implementation could keep the run provisional until a zero terminates it, but cannot finalize it at its first positive sample.
+3. **One-sample right context (bounded but delayed).** The interpolation pass reads the next element and updates the current element in place. A streaming implementation needs at least one subsequent candidate before it can finalize the preceding interpolated value. This local delay does not repair dependency 1.
+
+### Exact prefix-extension counterexample
+
+Use `cutoff_fraction = 0.004` and a vector of zeros with three consecutive values equal to 5 at indices 100–102 (zero-based).
+
+- At length 749, `cutoff = 2.996`; the three-sample positive run has length 3, so it survives the run filter.
+- At length 750, `cutoff = 3.000`; the same run has length 3 and is removed because the implementation retains only run lengths strictly greater than the cutoff.
+- The added observation is after the run and does not alter any of its three source values. The interpolation pass preserves the run in the first case and cannot restore it after the run filter zeros it in the second.
+
+Thus, the value/existence of earlier optimized coefficients is not invariant under prefix extension. The example applies directly to scale zero, whose optimizer input has one element per observed tick; the same length-dependent rule applies to higher-scale candidate vectors, with one element per complete aligned window.
+
+This is a constructive failure of prefix-extension invariance for the legacy semantics, not merely a theoretical concern about a future global optimum. It rules out an exact, prefix-extension-invariant online implementation that simultaneously reproduces the current `n * cutoff_fraction` rule for every prefix. A causal redesign would need an explicitly fixed cutoff/reference horizon, a different online run policy, or a versioned representation. Each changes or constrains the legacy semantics and must be evaluated as a separate contract; none is selected here.
+
+### Operation classification
+
+| Operation | Classification | Reason |
+|---|---|---|
+| Aligned window candidate selection | finite-window causal after window completion | Reads only the current complete window; center-left legacy event time still precedes availability |
+| Run-length removal | non-causal under arbitrary prefix extension | Threshold depends on total vector length; run finality also waits for termination |
+| Gap interpolation | finite look-ahead, delayed-finalizable | Reads the next candidate and mutates in place |
+| Source residual removal | finite-window causal after candidate is final | Uses the selected candidate and current window |
+| Center-left residual subtraction | finite-window causal after candidate is final | Deterministic update at the legacy emission index |
+| Scale-zero optimization | non-causal under arbitrary prefix extension | Operates on the full residual and uses its length-dependent cutoff |
+| Additive reconstruction | deterministic once coefficients are final | Does not itself remove upstream look-ahead |
+
+**Decision-gate conclusion:** do not implement a streaming wrapper around the existing optimizer and call it causal. First choose, in a separately reviewed and versioned proposal, whether to freeze the cutoff horizon, replace the run policy, or define a new causal representation. Preserve the current offline v1 behavior and artifacts unchanged.
