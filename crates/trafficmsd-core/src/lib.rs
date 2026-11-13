@@ -12,6 +12,10 @@ pub mod model_v2;
 #[path = "streaming_interval_tests.rs"]
 mod streaming_interval_tests;
 
+#[cfg(test)]
+#[path = "multiscale_dependency_tests.rs"]
+mod multiscale_dependency_tests;
+
 /// Returns the version of the core crate.
 pub const fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
