@@ -108,6 +108,20 @@ class PredictivePriorTests(unittest.TestCase):
             np.log(0.50),
         )
 
+    def test_comparison_rejects_inconsistent_observed_target_labels(self):
+        predictions = {
+            "A": {"predictions": {
+                (0, 1): {"probability": 0.25, "mark_eligible": False, "observed_event": 1},
+            }, "scale_support": [{}]},
+            "C": {"predictions": {
+                (0, 1): {"probability": 0.75, "mark_eligible": False, "observed_event": 0},
+            }, "scale_support": [{}]},
+        }
+        with self.assertRaisesRegex(ValueError, "inconsistent observed event label"):
+            experiment.summarize_comparison(
+                1, 0, 2, predictions, {(0, 1): 1}, representations=("A", "C")
+            )
+
     def test_scaled_variance_prior_uses_only_supplied_training_matrix(self):
         values = np.array([[1.0, 0.0], [3.0, 2.0], [5.0, 4.0]])
         prior, weight, variances = experiment.scaled_variance_prior(values, 2, 10.0)
