@@ -319,7 +319,7 @@ if __name__ == "__main__":
     args.output.write_text(rendered, encoding="utf-8")
     report_sha = sha256_bytes(rendered.encode("utf-8"))
     args.output.with_suffix(args.output.suffix + ".sha256").write_text(
-        report_sha + "  " + args.output.name + "\n", encoding="utf-8"
+        report_sha + "\n", encoding="utf-8"
     )
     print(json.dumps({"report_sha256": report_sha,
                       "reference_event_map_sha256": report["reference_event_map_sha256"],
