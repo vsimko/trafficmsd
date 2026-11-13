@@ -56,7 +56,7 @@ This complete-window rule is required for a well-defined prefix comparison. The 
 4. emission ticks retain the globally aligned center-left offset;
 5. scale-zero values remain present and no samples are padded.
 
-For the [0,2048) reference, the complete-window implementation must reproduce the already pinned per-scale positive-mark counts `0,193,287,224,128,64,32,16,8,4,2,1` for scales 0–11. If it does not, stop: report the discrepancy and do not reinterpret or replace the existing experiment. On the first successful implementation run, compute and record the canonical reference event-map SHA-256; independently rerun it before any fold comparison and require byte-identical canonical event maps.
+For the [0,2048) reference, the complete-window implementation must reproduce the already pinned per-scale positive-mark counts `0,193,287,224,128,64,32,16,8,4,2,1` for scales 0–11. If it does not, stop: report the discrepancy and do not reinterpret or replace the existing experiment. The first successful complete-window implementation reproduced these counts and established the canonical reference event-map SHA-256 as `29a500dbcb42163c37260fafa3f67f421995ad72d3eeee5346d1afeab06d0ea6`. This hash is now pinned in the audit script. The script independently recomputes the reference event map twice and requires byte identity and the pinned hash before any fold comparison.
 
 ## 4. Comparison protocol
 
@@ -87,7 +87,7 @@ If the decomposition differs materially across origins, the result is evidence t
 ## 6. Reproducibility and stop conditions
 
 - Pin Python and numerical dependencies exactly as in the existing experiment environment.
-- Record source trace, training-prefix, script, configuration, event-map, and report SHA-256 values.
+- Record the pinned training-prefix, script, configuration, reference/fold event-map, and report SHA-256 values, together with Python and NumPy versions.
 - Run the audit twice independently; canonical event-map and report bytes must match exactly.
 - Preserve the original A/B/C HMM report and its checksum unchanged.
 - Stop if the training-prefix checksum, pinned event counts, complete-window conformance, or independent-run determinism check fails.
