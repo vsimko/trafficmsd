@@ -163,9 +163,15 @@ Use `cutoff_fraction = 0.004` and a vector of zeros with three consecutive value
 - At length 750, `cutoff = 3.000`; the same run has length 3 and is removed because the implementation retains only run lengths strictly greater than the cutoff.
 - The added observation is after the run and does not alter any of its three source values. The interpolation pass preserves the run in the first case and cannot restore it after the run filter zeros it in the second.
 
-Thus, the value/existence of earlier optimized coefficients is not invariant under prefix extension. The example applies directly to scale zero, whose optimizer input has one element per observed tick; the same length-dependent rule applies to higher-scale candidate vectors, with one element per complete aligned window.
+Thus, the value/existence of earlier optimized coefficients is not invariant when the declared candidate-vector horizon itself changes. The 749/750 example is a direct counterexample for the optimizer helper, but those two lengths are not valid complete-input lengths for `decompose_traffic()`, which requires powers of two.
 
-This is a constructive failure of prefix-extension invariance for the legacy semantics, not merely a theoretical concern about a future global optimum. It rules out an exact, prefix-extension-invariant online implementation that simultaneously reproduces the current `n * cutoff_fraction` rule for every prefix. A causal redesign would need an explicitly fixed cutoff/reference horizon, a different online run policy, or a versioned representation. Each changes or constrains the legacy semantics and must be evaluated as a separate contract; none is selected here.
+A counterexample using valid power-of-two horizons is also available. With the same three positive values at indices 100–102 and zero elsewhere:
+- at candidate-vector length 512, `cutoff = 2.048`, so the run of length 3 survives;
+- at candidate-vector length 1024, `cutoff = 4.096`, so the same run is removed.
+
+Both lengths are valid for the scale-zero optimizer input of a complete power-of-two decomposition. The appended observations are all zero and occur after the unchanged run.
+
+This disproves prefix-extension invariance when the horizon is allowed to change. It does **not** by itself rule out exact causal processing when a finite total horizon is declared and fixed before processing starts. In that contract, `n * cutoff_fraction` is a known constant at each scale; run classification can be delayed until run termination, and interpolation can be delayed until its right-hand post-filter candidate is known. The remaining question is whether the complete multiscale residual dependency graph can be executed incrementally with bounded state and correct legacy ordering. That requires an explicit algorithm and adversarial implementation tests; it is not established by this static audit.
 
 ### Operation classification
 
@@ -180,3 +186,41 @@ This is a constructive failure of prefix-extension invariance for the legacy sem
 | Additive reconstruction | deterministic once coefficients are final | Does not itself remove upstream look-ahead |
 
 **Decision-gate conclusion:** do not implement a streaming wrapper around the existing optimizer and call it causal. First choose, in a separately reviewed and versioned proposal, whether to freeze the cutoff horizon, replace the run policy, or define a new causal representation. Preserve the current offline v1 behavior and artifacts unchanged.
+
+
+## 11. Candidate contract C — fixed, declared finite horizon (not selected)
+
+The static counterexample distinguishes a changing-horizon stream from a finite recording whose total length is known before the first observation. The latter deserves a separate feasibility test before concluding that every causal implementation requires a new decomposition representation.
+
+### Contract
+
+- Declare the complete recording length $N$ before consuming observations. Require the existing power-of-two input length and the existing global origin.
+- At scale $s$, the candidate-vector length is $n_s=N/2^s$, and the legacy cutoff remains exactly $c_s=n_s f$, where $f$ is the unchanged v1 cutoff fraction.
+- The declared $N$, $f$, tie-breaking, window alignment, center-left subtraction, and operation order are immutable for the run. A stream whose declared horizon changes is a different run and cannot inherit previously finalized outputs.
+- Consume observations incrementally. Do not read or precompute from future sample values. The horizon is metadata, not permission to inspect future observations.
+- Keep legacy `event_time`; report the actual `available_at` separately. Never report a center-left timestamp as if the coefficient were known at that tick.
+
+### Required incremental execution strategy to investigate
+
+1. At each scale, generate each raw window candidate only after the residual for that complete window has been finalized by all larger scales.
+2. Apply the exact legacy run filter using the fixed scale-specific cutoff. A positive run remains provisional until a zero candidate or end-of-horizon establishes its complete length.
+3. Apply interpolation in the exact legacy left-to-right, in-place order. Candidate $i$ cannot be finalized until the post-run-filter value at $i+1$ is known; retain the previous interpolated value because the legacy pass reads the already-updated $i-1$.
+4. Once candidate $i$ is final, apply the legacy source-sample removal and center-left residual subtraction for its own disjoint window, then make its child windows eligible for the next lower scale.
+5. Preserve the distinction between raw candidates, post-run-filter candidates, interpolated candidates, and committed residual updates. Do not recompute an earlier candidate using a later residual state.
+6. At end-of-horizon, flush all pending runs and right-context dependencies using the exact batch boundary behavior. Compare every coefficient and reconstructed sample against the legacy batch implementation.
+
+This is a dependency-order proposal, not a proven algorithm. In particular, higher-scale candidate optimization can delay residual availability for lower-scale windows; the implementation must establish that the resulting cross-scale schedule is acyclic, deterministic, and incrementally executable. Worst-case availability may be as late as the end of the recording. Such an implementation could be strictly causal but offer little or no low-latency benefit.
+
+### Required tests and acceptance gate
+
+- Test both $N=512$ and $N=1024$ with the three-value run above, proving that the fixed-horizon cutoff is used consistently and that changing the declared horizon starts a distinct run.
+- Test positive runs that terminate at the final candidate, at a zero, and immediately before an interpolated gap.
+- Test the sequential in-place interpolation behavior, including cases where the previous value was itself interpolated.
+- Test ties/repeated maxima and exact source-removal/emission ordering across adjacent windows and scales.
+- For each input prefix, assert that every output already marked final is byte-identical as more observations arrive under the same declared $N$.
+- At EOF, require byte-for-byte equality of the full coefficient matrix and reconstruction against the existing R and Rust batch implementations.
+- Report per-scale finalization latency and peak pending-state size. Do not claim useful real-time latency unless measured.
+
+### Decision
+
+Contract C is the first implementation experiment to attempt because it may preserve the complete finite-record v1 coefficients without selecting a new cutoff or changing the schema. It is not yet approved for implementation or selected as the stochastic model's decomposition. If exact incremental execution fails, stop and propose a versioned causal representation or explicitly different online interval policy. Unknown-horizon streaming remains a separate problem and cannot silently change $N$ after outputs have been committed.
