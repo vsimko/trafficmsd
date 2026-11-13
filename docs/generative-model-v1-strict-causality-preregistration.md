@@ -260,7 +260,7 @@ This establishes an acyclic *dependency graph* for a fixed finite horizon, subje
 - A residual update is ready when its optimized candidate is ready.
 - End-of-horizon flush closes the final positive run at each scale and resolves the final interpolation dependencies; it must not append a synthetic zero candidate.
 
-The total number of raw candidate slots across scales $s=1,\ldots,S$ is $N/2+N/4+\cdots+1=N-1$. Thus, retaining every not-yet-committed raw candidate requires at most $O$N$$ candidate storage, in addition to the $O$N$$ residual state. This is a coarse upper bound; it is not a latency bound. A single positive run can defer commitment until end-of-horizon, so worst-case output latency remains $O$N$$ ticks.
+The total number of raw candidate slots across scales $s=1,\ldots,S$ is $N/2+N/4+\cdots+1=N-1$. Thus, retaining every not-yet-committed raw candidate requires at most $O(N)$ candidate storage, in addition to the $O(N)$ residual state. This is a coarse upper bound; it is not a latency bound. A single positive run can defer commitment until end-of-horizon, so worst-case output latency remains $O(N)$ ticks.
 
 ### Implementation go/no-go
 
