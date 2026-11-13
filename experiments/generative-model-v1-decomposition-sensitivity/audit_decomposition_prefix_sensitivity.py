@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import math
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +17,7 @@ FOLD_ORIGINS = (1024, 1280, 1536, 1792)
 CUTOFF_FRACTION = 0.004
 PINNED_COUNTS = (0, 193, 287, 224, 128, 64, 32, 16, 8, 4, 2, 1)
 MAX_REFERENCE_SCALE = 11
+PINNED_REFERENCE_EVENT_MAP_SHA256 = "29a500dbcb42163c37260fafa3f67f421995ad72d3eeee5346d1afeab06d0ea6"
 
 
 def read_training_prefix(path):
@@ -256,6 +258,11 @@ def run(path):
     ]
     if tuple(counts) != PINNED_COUNTS:
         raise ValueError(f"pinned reference event-count conformance failed: {counts}")
+    reference_sha256 = sha256_bytes(reference_bytes)
+    if reference_sha256 != PINNED_REFERENCE_EVENT_MAP_SHA256:
+        raise ValueError(
+            "pinned reference event-map SHA-256 mismatch: " + reference_sha256
+        )
 
     folds = []
     for number, end in enumerate(FOLD_ORIGINS, 1):
@@ -285,7 +292,8 @@ def run(path):
         "window_rule": "globally_aligned_complete_windows_only",
         "emission_offset": "2^(scale-1)-1",
         "reference_positive_events_by_scale_0_to_11": counts,
-        "reference_event_map_sha256": sha256_bytes(reference_bytes),
+        "reference_event_map_sha256": reference_sha256,
+        "runtime_versions": {"python": sys.version.split()[0], "numpy": np.__version__},
         "script_sha256": sha256_bytes(script_bytes),
         "configuration_sha256": sha256_bytes(
             json.dumps(configuration, sort_keys=True, separators=(",", ":")).encode()
