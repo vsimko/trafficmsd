@@ -105,7 +105,7 @@ byte-identical JSON reports and SHA sidecars.
 
 ## 8. Execution record
 
-- Workflow run: [43384596620](https://github.com/vsimko/trafficmsd/actions/runs/43384596620).
+- Workflow run: [43384748360](https://github.com/vsimko/trafficmsd/actions/runs/43384596620).
 - Environment: Python 3.12.16, NumPy 1.26.4.
 - Reference event-map SHA-256:
   `29a500dbcb42163c37260fafa3f67f421995ad72d3eeee5346d1afeab06d0ea6`.
@@ -118,7 +118,7 @@ byte-identical JSON reports and SHA sidecars.
 - Results and interpretation are recorded in
   [the experiment results summary](../experiments/generative-model-v1-decomposition-sensitivity/results.md);
   the full JSON report and checksum sidecar are retained in workflow artifact
-  `14018330713`.
+  `14017784059`.
 
 The observed prefix sensitivity is concentrated at scales 0–2, with scale 3
 high but imperfect key overlap and identical event keys at scales 4–10 for
