@@ -48,10 +48,7 @@ fn staged_dependency_audit(
         // All candidates at this scale read the same immutable residual
         // snapshot. No same-scale update can contaminate a later candidate.
         let snapshot = residual.clone();
-        let candidates: Vec<_> = snapshot
-            .chunks_exact(width)
-            .map(unique_maximum)
-            .collect();
+        let candidates: Vec<_> = snapshot.chunks_exact(width).map(unique_maximum).collect();
         let candidates = optimize_intervals(&candidates, cutoff_fraction);
 
         for (window, candidate) in candidates.into_iter().enumerate() {
