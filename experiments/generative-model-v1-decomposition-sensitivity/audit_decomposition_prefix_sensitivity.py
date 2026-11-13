@@ -204,8 +204,10 @@ def compare_fold(reference_events, local_events, end, fold):
             "prefix_positive_events": len(local_scale),
             "event_key_agreement_count": len(common_scale),
             "event_key_union_count": len(scale_union),
-            "event_key_jaccard": (len(common_scale) / len(scale_union)
-                                  if scale_union else 1.0),
+            "event_key_jaccard": (
+                None if opportunities == 0 else
+                len(common_scale) / len(scale_union) if scale_union else 1.0
+            ),
             "additions_prefix_only": len(set(local_scale) - set(ref_scale)),
             "removals_reference_only": len(set(ref_scale) - set(local_scale)),
             "reference_positive_mark_sum": ref_sum,
