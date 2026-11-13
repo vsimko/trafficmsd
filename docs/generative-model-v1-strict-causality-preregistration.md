@@ -194,9 +194,9 @@ The static counterexample distinguishes a changing-horizon stream from a finite 
 
 ### Contract
 
-- Declare the complete recording length (N) before consuming observations. Require the existing power-of-two input length and the existing global origin.
-- At scale (s), the candidate-vector length is (n_s=N/2^s), and the legacy cutoff remains exactly (c_s=n_s\,f), where (f) is the unchanged v1 cutoff fraction.
-- The declared (N), (f), tie-breaking, window alignment, center-left subtraction, and operation order are immutable for the run. A stream whose declared horizon changes is a different run and cannot inherit previously finalized outputs.
+- Declare the complete recording length $N$ before consuming observations. Require the existing power-of-two input length and the existing global origin.
+- At scale $s$, the candidate-vector length is $n_s=N/2^s$, and the legacy cutoff remains exactly (c_s=n_s\,f), where $f$ is the unchanged v1 cutoff fraction.
+- The declared $N$, $f$, tie-breaking, window alignment, center-left subtraction, and operation order are immutable for the run. A stream whose declared horizon changes is a different run and cannot inherit previously finalized outputs.
 - Consume observations incrementally. Do not read or precompute from future sample values. The horizon is metadata, not permission to inspect future observations.
 - Keep legacy `event_time`; report the actual `available_at` separately. Never report a center-left timestamp as if the coefficient were known at that tick.
 
@@ -204,8 +204,8 @@ The static counterexample distinguishes a changing-horizon stream from a finite 
 
 1. At each scale, generate each raw window candidate only after the residual for that complete window has been finalized by all larger scales.
 2. Apply the exact legacy run filter using the fixed scale-specific cutoff. A positive run remains provisional until a zero candidate or end-of-horizon establishes its complete length.
-3. Apply interpolation in the exact legacy left-to-right, in-place order. Candidate (i) cannot be finalized until the post-run-filter value at (i+1) is known; retain the previous interpolated value because the legacy pass reads the already-updated (i-1).
-4. Once candidate (i) is final, apply the legacy source-sample removal and center-left residual subtraction for its own disjoint window, then make its child windows eligible for the next lower scale.
+3. Apply interpolation in the exact legacy left-to-right, in-place order. Candidate $i$ cannot be finalized until the post-run-filter value at $i+1$ is known; retain the previous interpolated value because the legacy pass reads the already-updated $i-1$.
+4. Once candidate $i$ is final, apply the legacy source-sample removal and center-left residual subtraction for its own disjoint window, then make its child windows eligible for the next lower scale.
 5. Preserve the distinction between raw candidates, post-run-filter candidates, interpolated candidates, and committed residual updates. Do not recompute an earlier candidate using a later residual state.
 6. At end-of-horizon, flush all pending runs and right-context dependencies using the exact batch boundary behavior. Compare every coefficient and reconstructed sample against the legacy batch implementation.
 
@@ -213,14 +213,14 @@ This is a dependency-order proposal, not a proven algorithm. In particular, high
 
 ### Required tests and acceptance gate
 
-- Test both (N=512) and (N=1024) with the three-value run above, proving that the fixed-horizon cutoff is used consistently and that changing the declared horizon starts a distinct run.
+- Test both $N=512$ and $N=1024$ with the three-value run above, proving that the fixed-horizon cutoff is used consistently and that changing the declared horizon starts a distinct run.
 - Test positive runs that terminate at the final candidate, at a zero, and immediately before an interpolated gap.
 - Test the sequential in-place interpolation behavior, including cases where the previous value was itself interpolated.
 - Test ties/repeated maxima and exact source-removal/emission ordering across adjacent windows and scales.
-- For each input prefix, assert that every output already marked final is byte-identical as more observations arrive under the same declared (N).
+- For each input prefix, assert that every output already marked final is byte-identical as more observations arrive under the same declared $N$.
 - At EOF, require byte-for-byte equality of the full coefficient matrix and reconstruction against the existing R and Rust batch implementations.
 - Report per-scale finalization latency and peak pending-state size. Do not claim useful real-time latency unless measured.
 
 ### Decision
 
-Contract C is the first implementation experiment to attempt because it may preserve the complete finite-record v1 coefficients without selecting a new cutoff or changing the schema. It is not yet approved for implementation or selected as the stochastic model's decomposition. If exact incremental execution fails, stop and propose a versioned causal representation or explicitly different online interval policy. Unknown-horizon streaming remains a separate problem and cannot silently change (N) after outputs have been committed.
+Contract C is the first implementation experiment to attempt because it may preserve the complete finite-record v1 coefficients without selecting a new cutoff or changing the schema. It is not yet approved for implementation or selected as the stochastic model's decomposition. If exact incremental execution fails, stop and propose a versioned causal representation or explicitly different online interval policy. Unknown-horizon streaming remains a separate problem and cannot silently change $N$ after outputs have been committed.
