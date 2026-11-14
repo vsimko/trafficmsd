@@ -239,3 +239,30 @@ fn positive_run_at_eof_is_not_closed_with_a_synthetic_sample() {
     let events = scheduler.finish().unwrap();
     assert!(events.iter().all(|event| event.available_at == horizon - 1));
 }
+
+#[test]
+fn staged_parent_ready_matrix_matches_batch_bit_for_bit() {
+    for horizon in [16usize, 32, 64, 128, 256, 512] {
+        for seed in 0..24usize {
+            let signal: Vec<f64> = (0..horizon)
+                .map(|index| ((index * 19 + seed * 11 + (index / 5) * 3) % 13) as f64)
+                .collect();
+            for cutoff in [0.004, 0.1, 0.3, 0.75, 0.99] {
+                let batch = decompose(&signal, cutoff).unwrap();
+                let staged = staged_decompose(&signal, cutoff).unwrap();
+                assert_eq!(staged.len(), batch.coefficients.len());
+                for (scale, (actual, expected)) in staged.iter().zip(&batch.coefficients).enumerate() {
+                    assert_eq!(actual.len(), expected.len());
+                    for (index, (a, b)) in actual.iter().zip(expected).enumerate() {
+                        assert_eq!(
+                            a.to_bits(),
+                            b.to_bits(),
+                            "horizon {horizon}, seed {seed}, cutoff {cutoff}, scale {scale}, index {index}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
