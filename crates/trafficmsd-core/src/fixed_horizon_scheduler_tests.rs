@@ -127,10 +127,12 @@ impl FixedHorizonScheduler {
 /// at a scale is read from the same residual snapshot before any writes at
 /// that scale are applied. Completing a parent window unlocks its two child
 /// windows; the root spans the full horizon, so the first commit is at EOF.
+type StagedDecomposition = (Vec<Vec<f64>>, Vec<Vec<Option<usize>>>);
+
 fn staged_decompose(
     signal: &[f64],
     cutoff_fraction: f64,
-) -> Result<(Vec<Vec<f64>>, Vec<Vec<Option<usize>>>), SignalError> {
+) -> Result<StagedDecomposition, SignalError> {
     let n = signal.len();
     let max_scale = n.trailing_zeros() as usize;
     let mut coefficients = vec![vec![0.0; n]; max_scale + 1];
@@ -345,11 +347,10 @@ fn staged_parent_ready_matrix_matches_batch_bit_for_bit() {
                 let batch = decompose(&signal, cutoff).unwrap();
                 let (staged, committed_at) = staged_decompose(&signal, cutoff).unwrap();
                 assert_eq!(staged.len(), batch.coefficients.len());
-                for scale in 1..staged.len() {
-                    let width = 1usize << scale;
-                    for window in 0..(horizon / width) {
-                        if scale < staged.len() - 1 {
-                            assert_eq!(committed_at[scale][window], Some(horizon - 1));
+                for (scale, windows) in committed_at.iter().enumerate().skip(1) {
+                    if scale < staged.len() - 1 {
+                        for committed in windows {
+                            assert_eq!(*committed, Some(horizon - 1));
                         }
                     }
                 }
