@@ -1,15 +1,15 @@
 //! Test-only fixed-horizon scheduler baseline.
 //!
-//! This is an EOF-finalized control implementation for issue #104. It consumes
-//! samples sequentially, never reads future input, and deliberately publishes
-//! no provisional records. The conservative availability timestamp (N - 1)
-//! makes prefix-finality trivial but exposes the worst-case latency bound.
-//! It is not evidence of an incremental low-latency multiscale scheduler.
+//! Test-only fixed-horizon multiscale scheduler for issue #104.
 //!
-//! The next implementation step is to replace the EOF barrier with per-window
-//! readiness while preserving the same batch coefficient matrix.
+//! The dyadic dependency graph is executed explicitly: a scale reads one
+//! immutable residual snapshot, commits its non-overlapping windows, and only
+//! then unlocks child windows at the next scale. The top-level window spans the
+//! entire declared horizon, so strict parent readiness means the first commit
+//! cannot happen before the final sample. This is an honest fixed-horizon
+//! latency bound, not a claim of sub-horizon output.
 
-use crate::decomposition::{decompose, SignalError};
+use crate::decomposition::{decompose, optimize_intervals, SignalError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SchedulerError {
@@ -88,12 +88,12 @@ impl FixedHorizonScheduler {
             });
         }
 
-        let decomposition = decompose(&self.received, self.cutoff_fraction)
+        let coefficients = staged_decompose(&self.received, self.cutoff_fraction)
             .map_err(|error: SignalError| SchedulerError::Decomposition(error.to_string()))?;
         let available_at = self.horizon - 1;
         let mut events = Vec::new();
 
-        for (scale, row) in decomposition.coefficients.iter().enumerate() {
+        for (scale, row) in coefficients.iter().enumerate() {
             if scale == 0 {
                 for (event_time, amplitude) in row.iter().copied().enumerate() {
                     if amplitude > 0.0 {
