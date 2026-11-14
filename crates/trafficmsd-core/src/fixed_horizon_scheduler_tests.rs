@@ -185,6 +185,12 @@ fn eof_finalized_events_match_batch_coefficients_bit_for_bit() {
                     scheduler.push(index, value).unwrap();
                 }
                 let events = scheduler.finish().unwrap();
+                let expected_count = expected
+                    .coefficients
+                    .iter()
+                    .map(|row| row.iter().filter(|value| **value > 0.0).count())
+                    .sum::<usize>();
+                assert_eq!(events.len(), expected_count);
 
                 for event in events {
                     let expected_amplitude = if event.scale == 0 {
