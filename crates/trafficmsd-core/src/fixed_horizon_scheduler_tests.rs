@@ -1,5 +1,3 @@
-//! Test-only fixed-horizon scheduler baseline.
-//!
 //! Test-only fixed-horizon multiscale scheduler for issue #104.
 //!
 //! The dyadic dependency graph is executed explicitly: a scale reads one
@@ -53,8 +51,8 @@ impl FixedHorizonScheduler {
         })
     }
 
-    /// Consume exactly the next sample. No output is final before EOF in this
-    /// baseline; the returned vector is therefore always empty.
+    /// Consume exactly the next sample. Parent readiness delays the root
+    /// window until the full declared horizon has arrived.
     fn push(
         &mut self,
         index: usize,
@@ -127,6 +125,69 @@ impl FixedHorizonScheduler {
         events.sort_by_key(|event| (event.available_at, event.scale, event.event_time));
         Ok(events)
     }
+}
+
+
+/// Execute the dyadic dependency graph one scale at a time. Every candidate
+/// at a scale is read from the same residual snapshot before any writes at
+/// that scale are applied. Completing a parent window unlocks its two child
+/// windows; the root spans the full horizon, so the first commit is at EOF.
+fn staged_decompose(signal: &[f64], cutoff_fraction: f64) -> Result<Vec<Vec<f64>>, SignalError> {
+    let reference = decompose(signal, cutoff_fraction)?;
+    let n = signal.len();
+    let max_scale = n.trailing_zeros() as usize;
+    let mut coefficients = vec![vec![0.0; n]; max_scale + 1];
+    let mut residual = signal.to_vec();
+    let mut committed = vec![vec![false; n]; max_scale + 1];
+
+    for scale in (1..=max_scale).rev() {
+        let width = 1usize << scale;
+        let windows = n / width;
+        if scale < max_scale {
+            for child in 0..windows {
+                if !committed[scale + 1][child / 2] {
+                    return Err(SignalError::InvalidCoefficients("child window before parent commit"));
+                }
+            }
+        }
+
+        let snapshot = residual.clone();
+        let mut candidates = Vec::with_capacity(windows);
+        for chunk in snapshot.chunks_exact(width) {
+            let mut sorted = chunk.to_vec();
+            sorted.sort_by(|a, b| b.total_cmp(a));
+            let mut candidate = 0.0;
+            let mut i = 0;
+            while i < sorted.len() {
+                let mut j = i + 1;
+                while j < sorted.len() && sorted[j] == sorted[i] { j += 1; }
+                if j - i == 1 { candidate = sorted[i]; break; }
+                i = j;
+            }
+            candidates.push(candidate);
+        }
+        let candidates = optimize_intervals(&candidates, cutoff_fraction);
+
+        // Apply writes only after every candidate was derived from the snapshot.
+        for (window, candidate) in candidates.into_iter().enumerate() {
+            let begin = window * width;
+            let end = begin + width;
+            if candidate > 0.0 {
+                let source = snapshot[begin..end].iter().position(|value| *value == candidate);
+                coefficients[scale][begin..end].fill(candidate);
+                if let Some(position) = source { residual[begin + position] = 0.0; }
+                let emit = begin + width / 2 - 1;
+                residual[emit] = (residual[emit] - candidate).max(0.0);
+            }
+            committed[scale][window] = true;
+        }
+    }
+
+    coefficients[0] = optimize_intervals(&residual, cutoff_fraction);
+    if coefficients.len() != reference.coefficients.len() {
+        return Err(SignalError::InvalidCoefficients("staged scale count mismatch"));
+    }
+    Ok(coefficients)
 }
 
 #[test]
