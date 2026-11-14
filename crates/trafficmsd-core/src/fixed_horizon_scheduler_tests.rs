@@ -86,7 +86,7 @@ impl FixedHorizonScheduler {
             });
         }
 
-        let coefficients = staged_decompose(&self.received, self.cutoff_fraction)
+        let (coefficients, _committed_at) = staged_decompose(&self.received, self.cutoff_fraction)
             .map_err(|error: SignalError| SchedulerError::Decomposition(error.to_string()))?;
         let available_at = self.horizon - 1;
         let mut events = Vec::new();
@@ -140,9 +140,9 @@ fn staged_decompose(
     let max_scale = n.trailing_zeros() as usize;
     let mut coefficients = vec![vec![0.0; n]; max_scale + 1];
     let mut residual = signal.to_vec();
-    // Each entry records the input index at which that window's parent
-    // update committed. None means the dependency has not been satisfied.
-    let mut parent_committed_at = vec![vec![None; n]; max_scale + 1];
+    // Each entry records the input index at which that scale/window committed.
+    // A child can run only after its containing parent window has committed.
+    let mut committed_at = vec![vec![None; n]; max_scale + 1];
 
     for scale in (1..=max_scale).rev() {
         let width = 1usize << scale;
