@@ -185,11 +185,14 @@ fn eof_finalized_events_match_batch_coefficients_bit_for_bit() {
                     scheduler.push(index, value).unwrap();
                 }
                 let events = scheduler.finish().unwrap();
-                let expected_count = expected
-                    .coefficients
-                    .iter()
-                    .map(|row| row.iter().filter(|value| **value > 0.0).count())
-                    .sum::<usize>();
+                let expected_count = expected.coefficients.iter().enumerate().map(|(scale, row)| {
+                    if scale == 0 {
+                        row.iter().filter(|value| **value > 0.0).count()
+                    } else {
+                        let width = 1usize << scale;
+                        row.chunks_exact(width).filter(|chunk| chunk[0] > 0.0).count()
+                    }
+                }).sum::<usize>();
                 assert_eq!(events.len(), expected_count);
 
                 for event in events {
