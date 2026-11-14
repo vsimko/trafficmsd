@@ -53,11 +53,7 @@ impl FixedHorizonScheduler {
 
     /// Consume exactly the next sample. Parent readiness delays the root
     /// window until the full declared horizon has arrived.
-    fn push(
-        &mut self,
-        index: usize,
-        value: f64,
-    ) -> Result<Vec<FinalEvent>, SchedulerError> {
+    fn push(&mut self, index: usize, value: f64) -> Result<Vec<FinalEvent>, SchedulerError> {
         let expected = self.received.len();
         if index != expected {
             return Err(SchedulerError::NonSequentialInput {
@@ -127,7 +123,6 @@ impl FixedHorizonScheduler {
     }
 }
 
-
 /// Execute the dyadic dependency graph one scale at a time. Every candidate
 /// at a scale is read from the same residual snapshot before any writes at
 /// that scale are applied. Completing a parent window unlocks its two child
@@ -150,7 +145,9 @@ fn staged_decompose(
         if scale < max_scale {
             for child in 0..windows {
                 if committed_at[scale + 1][child / 2].is_none() {
-                    return Err(SignalError::InvalidCoefficients("child window before parent commit"));
+                    return Err(SignalError::InvalidCoefficients(
+                        "child window before parent commit",
+                    ));
                 }
             }
         }
@@ -164,8 +161,13 @@ fn staged_decompose(
             let mut i = 0;
             while i < sorted.len() {
                 let mut j = i + 1;
-                while j < sorted.len() && sorted[j] == sorted[i] { j += 1; }
-                if j - i == 1 { candidate = sorted[i]; break; }
+                while j < sorted.len() && sorted[j] == sorted[i] {
+                    j += 1;
+                }
+                if j - i == 1 {
+                    candidate = sorted[i];
+                    break;
+                }
                 i = j;
             }
             candidates.push(candidate);
@@ -177,9 +179,13 @@ fn staged_decompose(
             let begin = window * width;
             let end = begin + width;
             if candidate > 0.0 {
-                let source = snapshot[begin..end].iter().position(|value| *value == candidate);
+                let source = snapshot[begin..end]
+                    .iter()
+                    .position(|value| *value == candidate);
                 coefficients[scale][begin..end].fill(candidate);
-                if let Some(position) = source { residual[begin + position] = 0.0; }
+                if let Some(position) = source {
+                    residual[begin + position] = 0.0;
+                }
                 let emit = begin + width / 2 - 1;
                 residual[emit] = (residual[emit] - candidate).max(0.0);
             }
@@ -202,8 +208,12 @@ fn consumes_declared_horizon_sequentially_and_publishes_only_at_eof() {
     assert!(early.is_empty());
 
     let final_events = scheduler.finish().unwrap();
-    assert!(final_events.iter().all(|event| event.available_at == horizon - 1));
-    assert!(final_events.iter().all(|event| event.event_time < event.available_at));
+    assert!(final_events
+        .iter()
+        .all(|event| event.available_at == horizon - 1));
+    assert!(final_events
+        .iter()
+        .all(|event| event.event_time < event.available_at));
 }
 
 #[test]
@@ -218,19 +228,28 @@ fn rejects_invalid_horizons_indices_overrun_and_premature_finish() {
     let mut scheduler = FixedHorizonScheduler::new(16, 0.1).unwrap();
     assert!(matches!(
         scheduler.push(1, 0.0),
-        Err(SchedulerError::NonSequentialInput { expected: 0, received: 1 })
+        Err(SchedulerError::NonSequentialInput {
+            expected: 0,
+            received: 1
+        })
     ));
     scheduler.push(0, 0.0).unwrap();
     assert!(matches!(
         scheduler.finish(),
-        Err(SchedulerError::IncompleteInput { expected: 16, received: 1 })
+        Err(SchedulerError::IncompleteInput {
+            expected: 16,
+            received: 1
+        })
     ));
 
     let mut full = FixedHorizonScheduler::new(16, 0.1).unwrap();
     for index in 0..16 {
         full.push(index, 0.0).unwrap();
     }
-    assert!(matches!(full.push(16, 0.0), Err(SchedulerError::TooManySamples)));
+    assert!(matches!(
+        full.push(16, 0.0),
+        Err(SchedulerError::TooManySamples)
+    ));
 }
 
 #[test]
@@ -247,14 +266,21 @@ fn eof_finalized_events_match_batch_coefficients_bit_for_bit() {
                     scheduler.push(index, value).unwrap();
                 }
                 let events = scheduler.finish().unwrap();
-                let expected_count = expected.coefficients.iter().enumerate().map(|(scale, row)| {
-                    if scale == 0 {
-                        row.iter().filter(|value| **value > 0.0).count()
-                    } else {
-                        let width = 1usize << scale;
-                        row.chunks_exact(width).filter(|chunk| chunk[0] > 0.0).count()
-                    }
-                }).sum::<usize>();
+                let expected_count = expected
+                    .coefficients
+                    .iter()
+                    .enumerate()
+                    .map(|(scale, row)| {
+                        if scale == 0 {
+                            row.iter().filter(|value| **value > 0.0).count()
+                        } else {
+                            let width = 1usize << scale;
+                            row.chunks_exact(width)
+                                .filter(|chunk| chunk[0] > 0.0)
+                                .count()
+                        }
+                    })
+                    .sum::<usize>();
                 assert_eq!(events.len(), expected_count);
 
                 for event in events {
@@ -282,7 +308,10 @@ fn all_outputs_are_prefix_final_by_withholding_them_until_declared_eof() {
     let horizon = 64;
     let mut scheduler = FixedHorizonScheduler::new(horizon, 0.1).unwrap();
     for index in 0..horizon - 1 {
-        assert!(scheduler.push(index, (index % 5) as f64).unwrap().is_empty());
+        assert!(scheduler
+            .push(index, (index % 5) as f64)
+            .unwrap()
+            .is_empty());
     }
     // The last observation is required before finish can produce any final
     // record. There is no retroactive mutation because no earlier record was
@@ -324,7 +353,9 @@ fn staged_parent_ready_matrix_matches_batch_bit_for_bit() {
                         }
                     }
                 }
-                for (scale, (actual, expected)) in staged.iter().zip(&batch.coefficients).enumerate() {
+                for (scale, (actual, expected)) in
+                    staged.iter().zip(&batch.coefficients).enumerate()
+                {
                     assert_eq!(actual.len(), expected.len());
                     for (index, (a, b)) in actual.iter().zip(expected).enumerate() {
                         assert_eq!(
