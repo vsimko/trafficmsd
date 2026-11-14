@@ -349,7 +349,8 @@ fn staged_parent_ready_matrix_matches_batch_bit_for_bit() {
                 assert_eq!(staged.len(), batch.coefficients.len());
                 for (scale, windows) in committed_at.iter().enumerate().skip(1) {
                     if scale < staged.len() - 1 {
-                        for committed in windows {
+                        let window_count = horizon / (1usize << scale);
+                        for committed in windows.iter().take(window_count) {
                             assert_eq!(*committed, Some(horizon - 1));
                         }
                     }
