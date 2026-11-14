@@ -132,20 +132,24 @@ impl FixedHorizonScheduler {
 /// at a scale is read from the same residual snapshot before any writes at
 /// that scale are applied. Completing a parent window unlocks its two child
 /// windows; the root spans the full horizon, so the first commit is at EOF.
-fn staged_decompose(signal: &[f64], cutoff_fraction: f64) -> Result<Vec<Vec<f64>>, SignalError> {
-    let reference = decompose(signal, cutoff_fraction)?;
+fn staged_decompose(
+    signal: &[f64],
+    cutoff_fraction: f64,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<Option<usize>>>), SignalError> {
     let n = signal.len();
     let max_scale = n.trailing_zeros() as usize;
     let mut coefficients = vec![vec![0.0; n]; max_scale + 1];
     let mut residual = signal.to_vec();
-    let mut committed = vec![vec![false; n]; max_scale + 1];
+    // Each entry records the input index at which that window's parent
+    // update committed. None means the dependency has not been satisfied.
+    let mut parent_committed_at = vec![vec![None; n]; max_scale + 1];
 
     for scale in (1..=max_scale).rev() {
         let width = 1usize << scale;
         let windows = n / width;
         if scale < max_scale {
             for child in 0..windows {
-                if !committed[scale + 1][child / 2] {
+                if parent_committed_at[scale + 1][child / 2].is_none() {
                     return Err(SignalError::InvalidCoefficients("child window before parent commit"));
                 }
             }
@@ -179,15 +183,12 @@ fn staged_decompose(signal: &[f64], cutoff_fraction: f64) -> Result<Vec<Vec<f64>
                 let emit = begin + width / 2 - 1;
                 residual[emit] = (residual[emit] - candidate).max(0.0);
             }
-            committed[scale][window] = true;
+            parent_committed_at[scale][window] = Some(n - 1);
         }
     }
 
     coefficients[0] = optimize_intervals(&residual, cutoff_fraction);
-    if coefficients.len() != reference.coefficients.len() {
-        return Err(SignalError::InvalidCoefficients("staged scale count mismatch"));
-    }
-    Ok(coefficients)
+    Ok((coefficients, parent_committed_at))
 }
 
 #[test]
@@ -313,8 +314,16 @@ fn staged_parent_ready_matrix_matches_batch_bit_for_bit() {
                 .collect();
             for cutoff in [0.004, 0.1, 0.3, 0.75, 0.99] {
                 let batch = decompose(&signal, cutoff).unwrap();
-                let staged = staged_decompose(&signal, cutoff).unwrap();
+                let (staged, parent_committed_at) = staged_decompose(&signal, cutoff).unwrap();
                 assert_eq!(staged.len(), batch.coefficients.len());
+                for scale in 1..staged.len() {
+                    let width = 1usize << scale;
+                    for window in 0..(horizon / width) {
+                        if scale < staged.len() - 1 {
+                            assert_eq!(parent_committed_at[scale][window], Some(horizon - 1));
+                        }
+                    }
+                }
                 for (scale, (actual, expected)) in staged.iter().zip(&batch.coefficients).enumerate() {
                     assert_eq!(actual.len(), expected.len());
                     for (index, (a, b)) in actual.iter().zip(expected).enumerate() {
