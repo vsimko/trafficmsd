@@ -78,7 +78,9 @@ impl FixedHorizonScheduler {
         if self.received.len() == self.horizon {
             let (coefficients, _committed_at, peak_pending) =
                 staged_decompose(&self.received, self.cutoff_fraction)
-                    .map_err(|error: SignalError| SchedulerError::Decomposition(error.to_string()))?;
+                    .map_err(|error: SignalError| {
+                        SchedulerError::Decomposition(error.to_string())
+                    })?;
             self.peak_pending_candidates = peak_pending;
             self.finalized = Some(events_from_coefficients(&coefficients, self.horizon));
         }
