@@ -30,3 +30,7 @@ mod tests {
         assert_eq!(version(), env!("CARGO_PKG_VERSION"));
     }
 }
+
+#[cfg(test)]
+#[path = "fixed_horizon_scheduler_tests.rs"]
+mod fixed_horizon_scheduler_tests;
