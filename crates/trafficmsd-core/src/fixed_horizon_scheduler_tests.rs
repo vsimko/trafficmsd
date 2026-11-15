@@ -77,10 +77,9 @@ impl FixedHorizonScheduler {
         self.received.push(value);
         if self.received.len() == self.horizon {
             let (coefficients, _committed_at, peak_pending) =
-                staged_decompose(&self.received, self.cutoff_fraction)
-                    .map_err(|error: SignalError| {
-                        SchedulerError::Decomposition(error.to_string())
-                    })?;
+                staged_decompose(&self.received, self.cutoff_fraction).map_err(
+                    |error: SignalError| SchedulerError::Decomposition(error.to_string()),
+                )?;
             self.peak_pending_candidates = peak_pending;
             self.finalized = Some(events_from_coefficients(&coefficients, self.horizon));
         }
@@ -103,42 +102,42 @@ impl FixedHorizonScheduler {
 }
 
 fn events_from_coefficients(coefficients: &[Vec<f64>], horizon: usize) -> Vec<FinalEvent> {
-        let available_at = horizon - 1;
-        let mut events = Vec::new();
+    let available_at = horizon - 1;
+    let mut events = Vec::new();
 
-        for (scale, row) in coefficients.iter().enumerate() {
-            if scale == 0 {
-                for (event_time, amplitude) in row.iter().copied().enumerate() {
-                    if amplitude > 0.0 {
-                        events.push(FinalEvent {
-                            scale,
-                            window_index: event_time,
-                            event_time,
-                            available_at,
-                            amplitude,
-                        });
-                    }
-                }
-                continue;
-            }
-
-            let width = 1usize << scale;
-            for (window_index, chunk) in row.chunks_exact(width).enumerate() {
-                let amplitude = chunk[0];
+    for (scale, row) in coefficients.iter().enumerate() {
+        if scale == 0 {
+            for (event_time, amplitude) in row.iter().copied().enumerate() {
                 if amplitude > 0.0 {
                     events.push(FinalEvent {
                         scale,
-                        window_index,
-                        event_time: window_index * width + width / 2 - 1,
+                        window_index: event_time,
+                        event_time,
                         available_at,
                         amplitude,
                     });
                 }
             }
+            continue;
         }
 
-        events.sort_by_key(|event| (event.available_at, event.scale, event.event_time));
-        events
+        let width = 1usize << scale;
+        for (window_index, chunk) in row.chunks_exact(width).enumerate() {
+            let amplitude = chunk[0];
+            if amplitude > 0.0 {
+                events.push(FinalEvent {
+                    scale,
+                    window_index,
+                    event_time: window_index * width + width / 2 - 1,
+                    available_at,
+                    amplitude,
+                });
+            }
+        }
+    }
+
+    events.sort_by_key(|event| (event.available_at, event.scale, event.event_time));
+    events
 }
 
 /// Execute the dyadic dependency graph one scale at a time. Every candidate
@@ -229,7 +228,10 @@ fn consumes_declared_horizon_sequentially_and_publishes_only_at_eof() {
         early.extend(scheduler.push(index, (index % 7) as f64).unwrap());
     }
     assert!(early.is_empty());
-    assert!(scheduler.finalized.is_some(), "graph executes during the final push");
+    assert!(
+        scheduler.finalized.is_some(),
+        "graph executes during the final push"
+    );
     assert!(scheduler.peak_pending_candidates > 0);
 
     let final_events = scheduler.finish().unwrap();
