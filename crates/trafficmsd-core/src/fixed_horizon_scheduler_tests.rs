@@ -32,6 +32,8 @@ struct FixedHorizonScheduler {
     horizon: usize,
     cutoff_fraction: f64,
     received: Vec<f64>,
+    finalized: Option<Vec<FinalEvent>>,
+    peak_pending_candidates: usize,
 }
 
 impl FixedHorizonScheduler {
@@ -48,6 +50,8 @@ impl FixedHorizonScheduler {
             horizon,
             cutoff_fraction,
             received: Vec::with_capacity(horizon),
+            finalized: None,
+            peak_pending_candidates: 0,
         })
     }
 
@@ -70,10 +74,18 @@ impl FixedHorizonScheduler {
             )));
         }
         self.received.push(value);
+        if self.received.len() == self.horizon {
+            let (coefficients, _committed_at, peak_pending) =
+                staged_decompose(&self.received, self.cutoff_fraction)
+                    .map_err(|error: SignalError| SchedulerError::Decomposition(error.to_string()))?;
+            self.peak_pending_candidates = peak_pending;
+            self.finalized = Some(events_from_coefficients(&coefficients, self.horizon));
+        }
         Ok(Vec::new())
     }
 
-    /// Finalize only after the declared horizon has been consumed.
+    /// Return records computed by the dependency graph on the final push.
+    /// This method only verifies EOF and drains the already-finalized result.
     fn finish(self) -> Result<Vec<FinalEvent>, SchedulerError> {
         if self.received.len() != self.horizon {
             return Err(SchedulerError::IncompleteInput {
@@ -81,10 +93,14 @@ impl FixedHorizonScheduler {
                 received: self.received.len(),
             });
         }
+        self.finalized.ok_or_else(|| {
+            SchedulerError::Decomposition("scheduler was not finalized at EOF".into())
+        })
+    }
+}
 
-        let (coefficients, _committed_at) = staged_decompose(&self.received, self.cutoff_fraction)
-            .map_err(|error: SignalError| SchedulerError::Decomposition(error.to_string()))?;
-        let available_at = self.horizon - 1;
+fn events_from_coefficients(coefficients: &[Vec<f64>], horizon: usize) -> Vec<FinalEvent> {
+        let available_at = horizon - 1;
         let mut events = Vec::new();
 
         for (scale, row) in coefficients.iter().enumerate() {
@@ -119,15 +135,14 @@ impl FixedHorizonScheduler {
         }
 
         events.sort_by_key(|event| (event.available_at, event.scale, event.event_time));
-        Ok(events)
-    }
+        events
 }
 
 /// Execute the dyadic dependency graph one scale at a time. Every candidate
 /// at a scale is read from the same residual snapshot before any writes at
 /// that scale are applied. Completing a parent window unlocks its two child
 /// windows; the root spans the full horizon, so the first commit is at EOF.
-type StagedDecomposition = (Vec<Vec<f64>>, Vec<Vec<Option<usize>>>);
+type StagedDecomposition = (Vec<Vec<f64>>, Vec<Vec<Option<usize>>>, usize);
 
 fn staged_decompose(
     signal: &[f64],
@@ -140,6 +155,7 @@ fn staged_decompose(
     // Each entry records the input index at which that scale/window committed.
     // A child can run only after its containing parent window has committed.
     let mut committed_at = vec![vec![None; n]; max_scale + 1];
+    let mut peak_pending_candidates = 0usize;
 
     for scale in (1..=max_scale).rev() {
         let width = 1usize << scale;
@@ -174,6 +190,7 @@ fn staged_decompose(
             }
             candidates.push(candidate);
         }
+        peak_pending_candidates = peak_pending_candidates.max(candidates.len());
         let candidates = optimize_intervals(&candidates, cutoff_fraction);
 
         // Apply writes only after every candidate was derived from the snapshot.
@@ -196,7 +213,7 @@ fn staged_decompose(
     }
 
     coefficients[0] = optimize_intervals(&residual, cutoff_fraction);
-    Ok((coefficients, committed_at))
+    Ok((coefficients, committed_at, peak_pending_candidates))
 }
 
 #[test]
@@ -319,6 +336,7 @@ fn all_outputs_are_prefix_final_by_withholding_them_until_declared_eof() {
     // record. There is no retroactive mutation because no earlier record was
     // marked final.
     assert!(scheduler.push(horizon - 1, 2.0).unwrap().is_empty());
+    assert!(scheduler.finalized.is_some(), "dependency graph runs on final push");
     let events = scheduler.finish().unwrap();
     assert!(events.iter().all(|event| event.available_at == horizon - 1));
 }
@@ -345,7 +363,8 @@ fn staged_parent_ready_matrix_matches_batch_bit_for_bit() {
                 .collect();
             for cutoff in [0.004, 0.1, 0.3, 0.75, 0.99] {
                 let batch = decompose(&signal, cutoff).unwrap();
-                let (staged, committed_at) = staged_decompose(&signal, cutoff).unwrap();
+                let (staged, committed_at, _peak_pending) =
+                    staged_decompose(&signal, cutoff).unwrap();
                 assert_eq!(staged.len(), batch.coefficients.len());
                 for (scale, windows) in committed_at.iter().enumerate().skip(1) {
                     if scale < staged.len() - 1 {
