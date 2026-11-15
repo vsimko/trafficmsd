@@ -55,8 +55,9 @@ impl FixedHorizonScheduler {
         })
     }
 
-    /// Consume exactly the next sample. Parent readiness delays the root
-    /// window until the full declared horizon has arrived.
+    /// Consume exactly the next sample. The root candidate cannot be derived
+    /// before the final sample; that final push executes the complete
+    /// dependency graph synchronously and stores its immutable final output.
     fn push(&mut self, index: usize, value: f64) -> Result<Vec<FinalEvent>, SchedulerError> {
         let expected = self.received.len();
         if index != expected {
@@ -141,7 +142,8 @@ fn events_from_coefficients(coefficients: &[Vec<f64>], horizon: usize) -> Vec<Fi
 /// Execute the dyadic dependency graph one scale at a time. Every candidate
 /// at a scale is read from the same residual snapshot before any writes at
 /// that scale are applied. Completing a parent window unlocks its two child
-/// windows; the root spans the full horizon, so the first commit is at EOF.
+/// windows. Because the root spans the declared horizon, graph execution is
+/// necessarily triggered by the final push; this is not sub-horizon streaming.
 type StagedDecomposition = (Vec<Vec<f64>>, Vec<Vec<Option<usize>>>, usize);
 
 fn staged_decompose(
@@ -225,6 +227,8 @@ fn consumes_declared_horizon_sequentially_and_publishes_only_at_eof() {
         early.extend(scheduler.push(index, (index % 7) as f64).unwrap());
     }
     assert!(early.is_empty());
+    assert!(scheduler.finalized.is_some(), "graph executes during the final push");
+    assert!(scheduler.peak_pending_candidates > 0);
 
     let final_events = scheduler.finish().unwrap();
     assert!(final_events
@@ -323,21 +327,28 @@ fn eof_finalized_events_match_batch_coefficients_bit_for_bit() {
 }
 
 #[test]
-fn all_outputs_are_prefix_final_by_withholding_them_until_declared_eof() {
+fn every_proper_prefix_has_no_final_outputs_under_the_same_declared_horizon() {
     let horizon = 64;
-    let mut scheduler = FixedHorizonScheduler::new(horizon, 0.1).unwrap();
-    for index in 0..horizon - 1 {
-        assert!(scheduler
-            .push(index, (index % 5) as f64)
-            .unwrap()
-            .is_empty());
+    let signal: Vec<f64> = (0..horizon).map(|index| (index % 5) as f64).collect();
+
+    for prefix_len in 0..horizon {
+        let mut scheduler = FixedHorizonScheduler::new(horizon, 0.1).unwrap();
+        for (index, value) in signal.iter().copied().take(prefix_len).enumerate() {
+            assert!(scheduler.push(index, value).unwrap().is_empty());
+        }
+        assert!(scheduler.finalized.is_none(), "prefix length {prefix_len}");
+        assert!(matches!(
+            scheduler.finish(),
+            Err(SchedulerError::IncompleteInput { .. })
+        ));
     }
-    // The last observation is required before finish can produce any final
-    // record. There is no retroactive mutation because no earlier record was
-    // marked final.
-    assert!(scheduler.push(horizon - 1, 2.0).unwrap().is_empty());
-    assert!(scheduler.finalized.is_some(), "dependency graph runs on final push");
-    let events = scheduler.finish().unwrap();
+
+    let mut complete = FixedHorizonScheduler::new(horizon, 0.1).unwrap();
+    for (index, value) in signal.iter().copied().enumerate() {
+        assert!(complete.push(index, value).unwrap().is_empty());
+    }
+    assert!(complete.finalized.is_some());
+    let events = complete.finish().unwrap();
     assert!(events.iter().all(|event| event.available_at == horizon - 1));
 }
 
