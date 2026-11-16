@@ -376,7 +376,6 @@ fn pending_state_is_bounded_by_the_open_run_and_interpolation_lookahead() {
     assert!(stream.peak_pending_candidates() <= 7);
 }
 
-
 // A deliberately different, horizon-independent policy used for research:
 // retain a positive run as soon as it reaches min_run candidates.
 #[derive(Debug)]
@@ -555,7 +554,6 @@ fn fixed_threshold_retains_at_boundary_and_discards_shorter_runs() {
     assert_eq!(by_time[4].value, 3.0);
     assert_eq!(by_time[6].value, 4.0);
 }
-
 
 #[test]
 fn fixed_threshold_prefix_emissions_are_invariant_to_declared_horizon() {
