@@ -375,3 +375,184 @@ fn pending_state_is_bounded_by_the_open_run_and_interpolation_lookahead() {
 
     assert!(stream.peak_pending_candidates() <= 7);
 }
+
+
+// A deliberately different, horizon-independent policy used for research:
+// retain a positive run as soon as it reaches min_run candidates.
+#[derive(Debug)]
+struct FixedThresholdOptimizer {
+    horizon: usize,
+    min_run: usize,
+    received: usize,
+    pending_positive_run: Vec<(usize, f64)>,
+    filtered: VecDeque<(usize, f64)>,
+    last_optimized: Option<f64>,
+}
+
+impl FixedThresholdOptimizer {
+    fn new(horizon: usize, min_run: usize) -> Self {
+        assert!(min_run > 0);
+        Self {
+            horizon,
+            min_run,
+            received: 0,
+            pending_positive_run: Vec::new(),
+            filtered: VecDeque::with_capacity(2),
+            last_optimized: None,
+        }
+    }
+
+    fn push(&mut self, value: f64) -> Result<Vec<FinalizedInterval>, StreamError> {
+        if self.received == self.horizon {
+            return Err(StreamError::TooManyValues);
+        }
+        let index = self.received;
+        self.received += 1;
+        let mut emitted = Vec::new();
+
+        if value > 0.0 {
+            self.pending_positive_run.push((index, value));
+            if self.pending_positive_run.len() == self.min_run {
+                let run = std::mem::take(&mut self.pending_positive_run);
+                for (event_time, run_value) in run {
+                    self.accept_filtered(run_value, event_time, index, &mut emitted);
+                }
+            }
+        } else {
+            self.close_short_run(index, &mut emitted);
+            self.accept_filtered(0.0, index, index, &mut emitted);
+        }
+        Ok(emitted)
+    }
+
+    fn close_short_run(&mut self, available_at: usize, emitted: &mut Vec<FinalizedInterval>) {
+        let run = std::mem::take(&mut self.pending_positive_run);
+        for (event_time, _) in run {
+            self.accept_filtered(0.0, event_time, available_at, emitted);
+        }
+    }
+
+    fn accept_filtered(
+        &mut self,
+        value: f64,
+        event_time: usize,
+        available_at: usize,
+        emitted: &mut Vec<FinalizedInterval>,
+    ) {
+        self.filtered.push_back((event_time, value));
+        if self.last_optimized.is_none() {
+            let (first_time, first_value) = self.filtered.pop_front().unwrap();
+            self.last_optimized = Some(first_value);
+            emitted.push(FinalizedInterval {
+                event_time: first_time,
+                available_at,
+                value: first_value,
+            });
+        }
+
+        while self.filtered.len() >= 2 {
+            let (middle_time, middle) = self.filtered[0];
+            let right = self.filtered[1].1;
+            let left = self.last_optimized.unwrap();
+            let lo = left.min(right);
+            let hi = left.max(right);
+            let optimized = if middle < lo {
+                lo
+            } else if middle > lo {
+                hi
+            } else {
+                middle
+            };
+            self.filtered.pop_front();
+            self.last_optimized = Some(optimized);
+            emitted.push(FinalizedInterval {
+                event_time: middle_time,
+                available_at,
+                value: optimized,
+            });
+        }
+    }
+
+    fn finish(mut self) -> Result<Vec<FinalizedInterval>, StreamError> {
+        if self.received != self.horizon {
+            return Err(StreamError::IncompleteInput {
+                expected: self.horizon,
+                received: self.received,
+            });
+        }
+        let eof = self.horizon.saturating_sub(1);
+        let mut emitted = Vec::new();
+        self.close_short_run(eof, &mut emitted);
+        while let Some((event_time, value)) = self.filtered.pop_front() {
+            emitted.push(FinalizedInterval {
+                event_time,
+                available_at: eof,
+                value,
+            });
+        }
+        Ok(emitted)
+    }
+}
+
+fn run_fixed_threshold(values: &[f64], min_run: usize) -> Vec<FinalizedInterval> {
+    let mut stream = FixedThresholdOptimizer::new(values.len(), min_run);
+    let mut output = Vec::new();
+    for value in values {
+        output.extend(stream.push(*value).unwrap());
+    }
+    output.extend(stream.finish().unwrap());
+    output
+}
+
+#[test]
+fn fixed_threshold_is_prefix_final_and_horizon_independent() {
+    let fixtures = [
+        vec![0.0, 3.0, 0.0, 2.0, 2.0, 0.0, 4.0, 4.0, 4.0, 0.0],
+        vec![5.0, 5.0, 0.0, 1.0, 0.0, 6.0, 6.0, 0.0, 0.0, 0.0],
+        vec![0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 7.0, 0.0, 0.0, 0.0],
+    ];
+    for values in fixtures {
+        for min_run in [1, 2, 3, 4] {
+            let mut stream = FixedThresholdOptimizer::new(values.len(), min_run);
+            let mut finalized = Vec::new();
+            for (index, value) in values.iter().enumerate() {
+                let batch_prefix = run_fixed_threshold(&values[..=index], min_run);
+                let newly_emitted = stream.push(*value).unwrap();
+                for record in &newly_emitted {
+                    assert_eq!(record.available_at, index);
+                    assert!(record.event_time <= record.available_at);
+                    assert_eq!(
+                        record.value.to_bits(),
+                        batch_prefix
+                            .iter()
+                            .find(|candidate| candidate.event_time == record.event_time)
+                            .map(|candidate| candidate.value)
+                            .unwrap()
+                            .to_bits()
+                    );
+                }
+                finalized.extend(newly_emitted);
+            }
+            finalized.extend(stream.finish().unwrap());
+            let full = run_fixed_threshold(&values, min_run);
+            let mut actual = finalized.clone();
+            actual.sort_by_key(|record| record.event_time);
+            assert_eq!(actual, full);
+        }
+    }
+}
+
+#[test]
+fn fixed_threshold_retains_at_boundary_and_discards_shorter_runs() {
+    let values = [0.0, 2.0, 0.0, 3.0, 3.0, 0.0, 4.0, 4.0, 4.0, 0.0];
+    let output = run_fixed_threshold(&values, 2);
+    let by_time: Vec<_> = {
+        let mut records = output;
+        records.sort_by_key(|record| record.event_time);
+        records
+    };
+    assert_eq!(by_time[1].value, 0.0);
+    assert_eq!(by_time[3].value, 3.0);
+    assert_eq!(by_time[4].value, 3.0);
+    assert_eq!(by_time[6].value, 4.0);
+}
