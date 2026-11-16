@@ -516,15 +516,14 @@ fn fixed_threshold_is_prefix_final_and_horizon_independent() {
             let mut stream = FixedThresholdOptimizer::new(values.len(), min_run);
             let mut finalized = Vec::new();
             for (index, value) in values.iter().enumerate() {
-                let batch_prefix = run_fixed_threshold(&values[..=index], min_run);
+                let full = run_fixed_threshold(&values, min_run);
                 let newly_emitted = stream.push(*value).unwrap();
                 for record in &newly_emitted {
                     assert_eq!(record.available_at, index);
                     assert!(record.event_time <= record.available_at);
                     assert_eq!(
                         record.value.to_bits(),
-                        batch_prefix
-                            .iter()
+                        full.iter()
                             .find(|candidate| candidate.event_time == record.event_time)
                             .map(|candidate| candidate.value)
                             .unwrap()
