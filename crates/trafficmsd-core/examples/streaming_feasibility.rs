@@ -37,7 +37,7 @@ impl Fixture {
     }
 
     fn signal(self, _size: usize) -> Vec<f64> {
-        (0..size)
+        (0.._size)
             .map(|i| match self {
                 Self::SparseBursts => {
                     if i % 257 < 8 {
@@ -67,7 +67,7 @@ impl Fixture {
                 }
                 Self::OneSampleGaps => {
                     let position = i % 33;
-                    if position < 16 || position > 16 {
+                    if position != 16 {
                         7.0
                     } else {
                         0.0
