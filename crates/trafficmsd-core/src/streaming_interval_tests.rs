@@ -79,11 +79,7 @@ impl StreamingOptimizer {
         Ok(emitted)
     }
 
-    fn close_positive_run(
-        &mut self,
-        available_at: usize,
-        emitted: &mut Vec<FinalizedInterval>,
-    ) {
+    fn close_positive_run(&mut self, available_at: usize, emitted: &mut Vec<FinalizedInterval>) {
         let keep = (self.pending_positive_run.len() as f64) > self.cutoff;
         let run = std::mem::take(&mut self.pending_positive_run);
         self.peak_pending_candidates = self
@@ -117,7 +113,9 @@ impl StreamingOptimizer {
             .max(pending_run_remaining + self.filtered.len());
 
         if index == 0 {
-            self.filtered.pop_front().expect("first filtered candidate exists");
+            self.filtered
+                .pop_front()
+                .expect("first filtered candidate exists");
             self.last_optimized = Some(value);
             emitted.push(FinalizedInterval {
                 event_time: 0,
@@ -206,11 +204,7 @@ fn assert_same_bits(left: &[f64], right: &[f64]) {
     }
 }
 
-fn assert_emission_matches_batch(
-    emission: FinalizedInterval,
-    batch: &[f64],
-    observed_at: usize,
-) {
+fn assert_emission_matches_batch(emission: FinalizedInterval, batch: &[f64], observed_at: usize) {
     assert!(emission.event_time <= emission.available_at);
     assert_eq!(emission.available_at, observed_at);
     assert_eq!(
@@ -301,13 +295,15 @@ fn positive_run_is_final_only_after_zero_or_declared_eof() {
     for (index, value) in values.iter().enumerate() {
         emitted.extend(stream.push(*value).unwrap());
         if index < 8 {
-            assert!(!emitted.iter().any(|record| (2..8).contains(&record.event_time)));
+            assert!(!emitted
+                .iter()
+                .any(|record| (2..8).contains(&record.event_time)));
         }
     }
 
-    assert!(emitted.iter().any(|record| {
-        (2..8).contains(&record.event_time) && record.available_at == 8
-    }));
+    assert!(emitted
+        .iter()
+        .any(|record| { (2..8).contains(&record.event_time) && record.available_at == 8 }));
     let tail = stream.finish().unwrap();
     emitted.extend(tail);
 
@@ -324,12 +320,16 @@ fn eof_closes_a_positive_run_without_appending_a_synthetic_zero() {
     let batch = optimize_intervals(&values, 0.25);
 
     assert_same_bits(
-        &streamed.iter().map(|record| record.value).collect::<Vec<_>>(),
+        &streamed
+            .iter()
+            .map(|record| record.value)
+            .collect::<Vec<_>>(),
         &batch,
     );
-    assert!(streamed.iter().filter(|record| record.event_time >= 2).all(
-        |record| record.available_at == 15
-    ));
+    assert!(streamed
+        .iter()
+        .filter(|record| record.event_time >= 2)
+        .all(|record| record.available_at == 15));
 }
 
 #[test]
