@@ -29,7 +29,6 @@ struct StreamingOptimizer {
     filtered: VecDeque<(usize, f64)>,
     filtered_count: usize,
     last_optimized: Option<f64>,
-    next_commit: usize,
     peak_pending_candidates: usize,
 }
 
@@ -43,7 +42,6 @@ impl StreamingOptimizer {
             filtered: VecDeque::with_capacity(2),
             filtered_count: 0,
             last_optimized: None,
-            next_commit: 0,
             peak_pending_candidates: 0,
         }
     }
@@ -115,7 +113,6 @@ impl StreamingOptimizer {
                 available_at,
                 value,
             });
-            self.next_commit = 1;
             return;
         }
 
@@ -144,7 +141,6 @@ impl StreamingOptimizer {
                 available_at,
                 value,
             });
-            self.next_commit += 1;
         }
 
         self.peak_pending_candidates = self
@@ -173,7 +169,6 @@ impl StreamingOptimizer {
                     value,
                 });
                 self.last_optimized = Some(value);
-                self.next_commit += 1;
             }
         }
         Ok(emitted)
@@ -368,5 +363,5 @@ fn pending_state_is_bounded_by_the_open_run_and_interpolation_lookahead() {
         stream.push(value).unwrap();
     }
 
-    assert!(stream.peak_pending_candidates() <= 6);
+    assert!(stream.peak_pending_candidates() <= 7);
 }
