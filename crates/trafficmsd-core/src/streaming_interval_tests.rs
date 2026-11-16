@@ -555,3 +555,39 @@ fn fixed_threshold_retains_at_boundary_and_discards_shorter_runs() {
     assert_eq!(by_time[4].value, 3.0);
     assert_eq!(by_time[6].value, 4.0);
 }
+
+
+#[test]
+fn fixed_threshold_prefix_emissions_are_invariant_to_declared_horizon() {
+    let prefix = [0.0, 3.0, 0.0, 2.0, 2.0, 0.0, 4.0, 4.0, 4.0];
+    let suffix = [0.0, 0.0, 1.0, 1.0, 1.0];
+    for min_run in [1, 2, 3, 4] {
+        let mut short = FixedThresholdOptimizer::new(prefix.len() + 1, min_run);
+        let mut long = FixedThresholdOptimizer::new(prefix.len() + suffix.len(), min_run);
+        let mut short_emitted = Vec::new();
+        let mut long_emitted = Vec::new();
+
+        for value in prefix {
+            short_emitted.extend(short.push(value).unwrap());
+            long_emitted.extend(long.push(value).unwrap());
+        }
+        assert_eq!(short_emitted, long_emitted);
+
+        let immutable_prefix = long_emitted.clone();
+        for value in suffix {
+            long_emitted.extend(long.push(value).unwrap());
+        }
+        long_emitted.extend(long.finish().unwrap());
+        for prior in immutable_prefix {
+            assert_eq!(
+                long_emitted
+                    .iter()
+                    .find(|record| record.event_time == prior.event_time)
+                    .unwrap()
+                    .value
+                    .to_bits(),
+                prior.value.to_bits()
+            );
+        }
+    }
+}
