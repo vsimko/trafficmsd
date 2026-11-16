@@ -93,7 +93,7 @@ The evaluation should use a trace-level train/validation split if T_min or any o
 
 `crates/trafficmsd-core/src/streaming_interval_tests.rs` now also contains a separate fixed-count prototype. It retains a positive run once its length reaches L; a shorter run is discarded when a zero closes it or at EOF. It uses the same two-candidate interpolation lookahead and left-to-right update order, but its run-retention rule is intentionally different from the offline reference.
 
-The accompanying tests cover threshold values L = 1, 2, 3, and 4, exact-threshold retention, shorter-run removal, and equality of already-emitted records with the completed fixed-threshold stream. This is an initial synthetic correctness check, not a full exhaustive proof or a performance/fidelity evaluation. In particular, no physical-duration adapter, trace-level calibration, multiscale integration, RSS measurement, or downstream simulation comparison is included yet.
+The initial tests cover threshold values L = 1, 2, 3, and 4, exact-threshold retention, shorter-run removal, and equality of already-emitted records with the completed fixed-threshold stream. A follow-up exhaustive suite now enumerates all vectors over {0,1,2} for horizons 1–8 and L = 1..4, checking every emitted record against the completed fixed-threshold result. It also enumerates all prefixes of lengths 1–6 and checks that emissions during the prefix are identical across every larger declared horizon through 8. This is still synthetic correctness evidence, not a performance/fidelity evaluation. In particular, no physical-duration adapter, trace-level calibration, multiscale integration, RSS measurement, or downstream simulation comparison is included yet.
 
 ## Current research conclusion
 
