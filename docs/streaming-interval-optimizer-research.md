@@ -12,9 +12,9 @@ The answer for the local optimizer is **yes**, with delayed finality. This does 
 
 ## Fixed-horizon contract
 
-The caller declares candidate-vector length (N) and cutoff fraction (f) at construction. The optimizer freezes (c=Nf) for the entire run. Changing (N) creates a new run; it cannot extend a run whose outputs have already been finalized.
+The caller declares candidate-vector length `N` and cutoff fraction `f` at construction. The optimizer freezes `c = N * f` for the entire run. Changing `N` creates a new run; it cannot extend a run whose outputs have already been finalized.
 
-Input values arrive in order through `push(value)`. Exactly (N) values are required before `finish()`. Overrun and premature finish are errors.
+Input values arrive in order through `push(value)`. Exactly `N` values are required before `finish()`. Overrun and premature finish are errors.
 
 Each output carries:
 - `event_time`: original candidate index;
@@ -27,11 +27,11 @@ These are distinct clocks. A candidate may represent an earlier event but become
 
 The test-only implementation in `crates/trafficmsd-core/src/streaming_interval_tests.rs` uses:
 
-1. **Run filter:** when (c>1), retain a positive run provisionally until a zero closes it or the declared horizon ends. Keep it iff its length is strictly greater than (c), matching the batch implementation. When (c\leq1), this filter is skipped exactly as in batch.
+1. **Run filter:** when `c > 1`, retain a positive run provisionally until a zero closes it or the declared horizon ends. Keep it iff its length is strictly greater than `c`, matching the batch implementation. When `c <= 1`, this filter is skipped exactly as in batch.
 2. **Interpolation:** feed filtered values into a two-value lookahead queue. Commit the middle value only after its right filtered neighbor is known. Keep the previous *optimized* value as the left neighbor, preserving the batch pass's in-place left-to-right behavior.
 3. **Boundaries:** emit the first value when it is known; flush the last value at `finish()`. EOF closes a positive run without appending a synthetic zero.
 
-The pending state is the open positive run plus at most two interpolation lookahead values. Thus the local optimizer uses (O(R)) pending candidate state where (R) is the longest unresolved positive run; the worst case is (O(N)). The prototype records the peak count of these pending candidates.
+The pending state is the open positive run plus at most two interpolation lookahead values. Thus the local optimizer uses `O(R)` pending candidate state where `R` is the longest unresolved positive run; the worst case is `O(N)`. The prototype records the peak count of these pending candidates.
 
 ## Evidence in tests
 
@@ -48,8 +48,8 @@ The exhaustive test exercises every possible suffix for each prefix at these sma
 
 ## Latency and limitations
 
-- With (c\leq1), the run filter is inactive and interpolation requires one right-hand candidate of lookahead (except boundaries).
-- With (c>1), an output inside a positive run cannot be finalized until that run closes. If the run reaches EOF, its outputs become available only at (N-1).
+- With `c <= 1`, the run filter is inactive and interpolation requires one right-hand candidate of lookahead (except boundaries).
+- With `c > 1`, an output inside a positive run cannot be finalized until that run closes. If the run reaches EOF, its outputs become available only at `N - 1`.
 - Worst-case local-optimizer finalization latency is therefore the full declared horizon. A fixed horizon preserves legacy semantics but does not guarantee useful low-latency output.
 - This prototype has not yet been benchmarked for throughput or RSS.
 - It does not integrate candidate generation, residual updates, or cross-scale readiness. The complete multiscale dependency schedule and its latency remain unproven by this local test.
