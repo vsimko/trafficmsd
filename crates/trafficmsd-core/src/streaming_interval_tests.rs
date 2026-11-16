@@ -74,7 +74,7 @@ impl StreamingOptimizer {
                 self.accept_filtered(value, index, 0, &mut emitted);
             }
         } else {
-            self.accept_filtered(value, index, &mut emitted);
+            self.accept_filtered(value, index, 0, &mut emitted);
         }
         Ok(emitted)
     }
@@ -90,6 +90,7 @@ impl StreamingOptimizer {
             .peak_pending_candidates
             .max(run.len() + self.filtered.len());
 
+        let mut remaining = run.len();
         for (_, value) in run {
             remaining -= 1;
             self.accept_filtered(
