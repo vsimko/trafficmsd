@@ -71,7 +71,7 @@ impl StreamingOptimizer {
                     .max(self.pending_positive_run.len() + self.filtered.len());
             } else {
                 self.close_positive_run(index, &mut emitted);
-                self.accept_filtered(value, index, &mut emitted);
+                self.accept_filtered(value, index, 0, &mut emitted);
             }
         } else {
             self.accept_filtered(value, index, &mut emitted);
@@ -91,7 +91,13 @@ impl StreamingOptimizer {
             .max(run.len() + self.filtered.len());
 
         for (_, value) in run {
-            self.accept_filtered(if keep { value } else { 0.0 }, available_at, emitted);
+            remaining -= 1;
+            self.accept_filtered(
+                if keep { value } else { 0.0 },
+                available_at,
+                remaining,
+                emitted,
+            );
         }
     }
 
@@ -99,11 +105,15 @@ impl StreamingOptimizer {
         &mut self,
         value: f64,
         available_at: usize,
+        pending_run_remaining: usize,
         emitted: &mut Vec<FinalizedInterval>,
     ) {
         let index = self.filtered_count;
         self.filtered_count += 1;
         self.filtered.push_back((index, value));
+        self.peak_pending_candidates = self
+            .peak_pending_candidates
+            .max(pending_run_remaining + self.filtered.len());
 
         if index == 0 {
             self.filtered.pop_front().expect("first filtered candidate exists");
@@ -145,7 +155,7 @@ impl StreamingOptimizer {
 
         self.peak_pending_candidates = self
             .peak_pending_candidates
-            .max(self.pending_positive_run.len() + self.filtered.len());
+            .max(pending_run_remaining + self.filtered.len());
     }
 
     fn finish(mut self) -> Result<Vec<FinalizedInterval>, StreamError> {
@@ -168,7 +178,6 @@ impl StreamingOptimizer {
                     available_at: eof,
                     value,
                 });
-                self.last_optimized = Some(value);
             }
         }
         Ok(emitted)
