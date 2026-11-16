@@ -36,7 +36,7 @@ impl Fixture {
         }
     }
 
-    fn signal(self, size: usize) -> Vec<f64> {
+    fn signal(self, _size: usize) -> Vec<f64> {
         (0..size)
             .map(|i| match self {
                 Self::SparseBursts => {
@@ -57,9 +57,9 @@ impl Fixture {
                     }
                 }
                 Self::LongPositiveRuns => {
-                    if (size / 8..size * 3 / 8).contains(&i) {
+                    if (128..1_024).contains(&i) {
                         5.0
-                    } else if (size / 2..size * 7 / 8).contains(&i) {
+                    } else if (2_048..4_096).contains(&i) {
                         3.0
                     } else {
                         0.0
@@ -74,7 +74,7 @@ impl Fixture {
                     }
                 }
                 Self::QuietTail => {
-                    if i < size / 2 && i % 193 < 12 {
+                    if i < 2_048 && i % 193 < 12 {
                         4.0 + (i % 12) as f64
                     } else {
                         0.0
