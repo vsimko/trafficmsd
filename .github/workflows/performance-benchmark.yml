@@ -73,13 +73,13 @@ jobs:
         run: |
           mkdir -p benchmarks/results
           if [ -x /usr/bin/time ]; then
-            /usr/bin/time -f '%M' -o benchmarks/results/streaming-feasibility-rss-kb.txt \\
-              target/release/examples/streaming_feasibility \\
+            /usr/bin/time -f '%M' -o benchmarks/results/streaming-feasibility-rss-kb.txt \
+              target/release/examples/streaming_feasibility \
               > benchmarks/results/streaming-feasibility.csv
           else
-            target/release/examples/streaming_feasibility \\
+            target/release/examples/streaming_feasibility \
               > benchmarks/results/streaming-feasibility.csv
-            printf 'unavailable\\n' > benchmarks/results/streaming-feasibility-rss-kb.txt
+            printf 'unavailable\n' > benchmarks/results/streaming-feasibility-rss-kb.txt
           fi
 
       - name: Upload benchmark results
