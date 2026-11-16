@@ -589,3 +589,95 @@ fn fixed_threshold_prefix_emissions_are_invariant_to_declared_horizon() {
         }
     }
 }
+
+
+#[test]
+fn fixed_threshold_exhaustively_finalizes_all_small_vectors() {
+    for horizon in 1..=8 {
+        let cases = 3usize.pow(horizon as u32);
+        for encoded in 0..cases {
+            let mut values = vec![0.0; horizon];
+            let mut digits = encoded;
+            for value in &mut values {
+                *value = (digits % 3) as f64;
+                digits /= 3;
+            }
+
+            for min_run in 1..=4 {
+                let expected = run_fixed_threshold(&values, min_run);
+                let mut stream = FixedThresholdOptimizer::new(horizon, min_run);
+                let mut seen = vec![false; horizon];
+
+                for (available_at, value) in values.iter().enumerate() {
+                    for record in stream.push(*value).unwrap() {
+                        assert_eq!(record.available_at, available_at);
+                        assert!(record.event_time <= available_at);
+                        assert!(!seen[record.event_time], "duplicate final event");
+                        seen[record.event_time] = true;
+                        assert_eq!(
+                            record.value.to_bits(),
+                            expected
+                                .iter()
+                                .find(|candidate| candidate.event_time == record.event_time)
+                                .unwrap()
+                                .value
+                                .to_bits()
+                        );
+                    }
+                }
+
+                for record in stream.finish().unwrap() {
+                    assert_eq!(record.available_at, horizon - 1);
+                    assert!(!seen[record.event_time], "duplicate final event at EOF");
+                    seen[record.event_time] = true;
+                    assert_eq!(
+                        record.value.to_bits(),
+                        expected
+                            .iter()
+                            .find(|candidate| candidate.event_time == record.event_time)
+                            .unwrap()
+                            .value
+                            .to_bits()
+                    );
+                }
+
+                assert!(seen.into_iter().all(|was_seen| was_seen));
+            }
+        }
+    }
+}
+
+#[test]
+fn fixed_threshold_prefix_emissions_are_invariant_for_all_small_suffixes_and_horizons() {
+    for prefix_len in 1..=6 {
+        let cases = 3usize.pow(prefix_len as u32);
+        for encoded in 0..cases {
+            let mut prefix = vec![0.0; prefix_len];
+            let mut digits = encoded;
+            for value in &mut prefix {
+                *value = (digits % 3) as f64;
+                digits /= 3;
+            }
+
+            for min_run in 1..=4 {
+                let mut baseline = FixedThresholdOptimizer::new(prefix_len + 1, min_run);
+                let mut baseline_emitted = Vec::new();
+                for value in &prefix {
+                    baseline_emitted.extend(baseline.push(*value).unwrap());
+                }
+
+                for horizon in (prefix_len + 1)..=8 {
+                    let mut extended = FixedThresholdOptimizer::new(horizon, min_run);
+                    let mut extended_emitted = Vec::new();
+                    for value in &prefix {
+                        extended_emitted.extend(extended.push(*value).unwrap());
+                    }
+                    assert_eq!(
+                        extended_emitted, baseline_emitted,
+                        "prefix length {prefix_len}, horizon {horizon}, min_run {min_run}"
+                    );
+                }
+            }
+        }
+    }
+}
