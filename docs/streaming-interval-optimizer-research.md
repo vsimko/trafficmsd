@@ -59,3 +59,36 @@ The exhaustive test exercises every possible suffix for each prefix at these sma
 ## Next decision
 
 Use this as the exact fixed-horizon baseline. Compare it with explicitly different causal policies (for example fixed absolute or scale-local run thresholds) using retained interval counts, amplitude differences, reconstruction error, finality latency, and pending state. Do not select a replacement policy or modify the production optimizer/model schema until those results are reviewed.
+## Candidate causal policies to compare
+
+| Policy | Run-retention rule | Horizon dependence | Expected run-decision delay |
+|---|---|---|---|
+| Fixed-horizon reference | Keep iff run length > N * f | Declared N | Up to the remaining horizon |
+| Fixed candidate count | Keep iff run length >= L | None | At most L candidates from run start |
+| Fixed physical duration | Keep iff run duration >= T_min | None; uses the scale's time width | At most ceil(T_min / (2^s * Δt)) candidates |
+
+For a scale s, one candidate represents 2^s * Δt seconds when the source sampling interval is Δt. A physical-duration policy therefore uses L_s = max(1, ceil(T_min / (2^s * Δt))). The contract must state whether a run exactly at the threshold is retained; the proposed convention is length >= L_s. This intentionally differs from the legacy strict length > N * f rule.
+
+A bounded-delay implementation can hold a positive run provisionally until it reaches its threshold. If it reaches the threshold, the run is known to be retained; if a zero arrives first, the shorter run is known to be removed. The interpolation pass still needs its right-hand neighbor and must preserve the legacy left-to-right update order. Do not emit a value as final until both the run decision and interpolation dependency are resolved. With a fixed threshold, pending run state is bounded by L_s (plus interpolation lookahead), rather than by the complete horizon.
+
+These are candidate policies, not selected semantics. A threshold expressed in physical time is preferable to a single candidate count when comparing multiple scales, but its value must be calibrated against downstream simulation requirements and the packet-trace sampling interval. A threshold of one candidate disables meaningful short-run filtering and should be included as a diagnostic baseline.
+
+## Comparison protocol and metrics
+
+Run all policies on the same deterministic fixtures and provenance-backed traces, across multiple total horizons and scale levels. For every policy and trace, record:
+
+- **Retention:** number and fraction of positive candidates retained; run-length distribution before and after filtering.
+- **Amplitude:** absolute and relative difference of retained candidate values against the offline reference.
+- **Reconstruction:** MAE, RMSE, and maximum absolute error of reconstructed traffic, plus total traffic-volume error.
+- **Events:** number of emitted intervals and their duration/amplitude distributions; do not equate candidate count with packet count.
+- **Finality:** available_at - event_time in candidate units and converted to seconds; report median, p95, p99, and maximum.
+- **Memory:** peak unresolved run and interpolation state; separately report process RSS.
+- **Runtime:** throughput and per-candidate processing latency, including warm and cold runs.
+
+Report results by scale as well as in aggregate. Include quiet tails, long uninterrupted positive runs, threshold-boundary lengths (L_s - 1, L_s, L_s + 1), one-sample gaps, alternating values, repeated maxima, and prefix extensions. For the causal policies, replay every prefix and assert that previously finalized records remain bit-identical. For the fixed-horizon reference, explicitly report its known horizon sensitivity rather than treating prefix replay as an online implementation.
+
+The evaluation should use a trace-level train/validation split if T_min or any other threshold is tuned. Select thresholds on validation data only, then report held-out results. Keep the threshold, time unit, sampling interval, scale, and tie-breaking rule in the experiment metadata so runs are reproducible.
+
+## Current research conclusion
+
+The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. It does not justify selecting a causal threshold. The next acceptance gate is a test-only fixed-count / physical-duration prototype with prefix-finality tests, followed by trace-level fidelity and downstream simulation measurements. The legacy optimizer remains unchanged.
