@@ -112,9 +112,7 @@ fn emit(
 }
 
 fn main() {
-    println!(
-        "fixture,size,operation,iterations,total_ns,mean_ns,changed_samples,changed_fraction"
-    );
+    println!("fixture,size,operation,iterations,total_ns,mean_ns,changed_samples,changed_fraction");
 
     for fixture in Fixture::ALL {
         for size in BENCHMARK_SIZES {
