@@ -54,6 +54,7 @@ jobs:
         run: |
           cargo build --release --bin trafficmsd
           cargo build --release -p trafficmsd-core --example benchmark
+          cargo build --release -p trafficmsd-core --example streaming_feasibility
 
       - name: Install TrafficMSD R package
         run: R CMD INSTALL .
@@ -67,6 +68,19 @@ jobs:
             target/release/examples/benchmark \
             benchmarks/results \
             "${{ inputs.iterations || '5' }}"
+
+      - name: Run streaming feasibility and prefix-extension experiments
+        run: |
+          mkdir -p benchmarks/results
+          if [ -x /usr/bin/time ]; then
+            /usr/bin/time -f '%M' -o benchmarks/results/streaming-feasibility-rss-kb.txt \
+              target/release/examples/streaming_feasibility \
+              > benchmarks/results/streaming-feasibility.csv
+          else
+            target/release/examples/streaming_feasibility \
+              > benchmarks/results/streaming-feasibility.csv
+            printf 'unavailable\n' > benchmarks/results/streaming-feasibility-rss-kb.txt
+          fi
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v7

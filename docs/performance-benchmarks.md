@@ -62,3 +62,29 @@ The GitHub Actions workflow \`Performance benchmarks\` runs this protocol on Ubu
 ## Limitations
 
 The current harness benchmarks the first migrated deterministic operations only. It does not benchmark raw PCAP preprocessing, clustering, stochastic generation, simulator integration, concurrency, or production-scale traces. Those require separate workloads and contracts.
+
+## Streaming feasibility and prefix-extension audit
+
+The `streaming_feasibility` Rust example supplements the R-versus-Rust batch benchmark. It does not implement a streaming scheduler. It measures the existing optimizer and batch decomposition on deterministic adversarial signal fixtures, then checks whether optimizing a longer prefix changes values in an already observed prefix.
+
+Build and run it from the repository root:
+
+```sh
+cargo build --release -p trafficmsd-core --example streaming_feasibility
+target/release/examples/streaming_feasibility > streaming-feasibility.csv
+```
+
+The CI performance workflow runs this example and uploads:
+
+- `streaming-feasibility.csv`: operation timings and prefix-extension revision counts;
+- `streaming-feasibility-rss-kb.txt`: process maximum resident set size in KiB from GNU time, or `unavailable` when GNU time is absent.
+
+Fixtures include sparse bursts, repeated/tied maxima, long positive runs, one-sample gaps, and a quiet tail. Full decomposition and `optimize_intervals()` are timed separately. Prefix-extension rows compare the optimizer's output for a prefix with the overlapping positions after extending that same fixture to the next horizon. The explicit 512-to-1,024 sample cutoff counterexample is also emitted.
+
+Interpretation limits:
+
+- These are deterministic synthetic fixtures, not packet traces.
+- Prefix-extension counts characterize the existing offline optimizer; they do not establish the behavior or performance of a future online replacement.
+- The benchmark measures total `decompose()` and the isolated public optimizer. It does not yet instrument private candidate-generation and residual-update stages independently.
+- RSS is process-level memory, not a per-operation allocation count.
+- CI timings are commit- and runner-specific. Compare artifacts from equivalent runners and do not treat a single run as a performance claim.
