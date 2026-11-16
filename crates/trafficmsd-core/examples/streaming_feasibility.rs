@@ -159,6 +159,11 @@ fn main() {
             let extended_size = pair[1];
             let previous = fixture.signal(previous_size);
             let extended = fixture.signal(extended_size);
+            assert_eq!(
+                &extended[..previous_size],
+                previous.as_slice(),
+                "fixture must be invariant under horizon extension"
+            );
             let start = Instant::now();
             let previous_output = optimize_intervals(&previous, CUTOFF);
             let extended_output = optimize_intervals(&extended, CUTOFF);
@@ -190,11 +195,14 @@ fn main() {
     extended_horizon[100..103].fill(1.0);
     let short_output = optimize_intervals(&short_horizon, CUTOFF);
     let extended_output = optimize_intervals(&extended_horizon, CUTOFF);
+    assert_eq!(&short_output[100..103], &[1.0, 1.0, 1.0]);
+    assert_eq!(&extended_output[100..103], &[0.0, 0.0, 0.0]);
     let changed_samples = short_output
         .iter()
         .zip(extended_output.iter())
         .filter(|(left, right)| left != right)
         .count();
+    assert_eq!(changed_samples, 3);
     emit(
         "cutoff_counterexample",
         1_024,
