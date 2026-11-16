@@ -89,6 +89,12 @@ Report results by scale as well as in aggregate. Include quiet tails, long unint
 
 The evaluation should use a trace-level train/validation split if T_min or any other threshold is tuned. Select thresholds on validation data only, then report held-out results. Keep the threshold, time unit, sampling interval, scale, and tie-breaking rule in the experiment metadata so runs are reproducible.
 
+## Test-only fixed-count prototype
+
+`crates/trafficmsd-core/src/streaming_interval_tests.rs` now also contains a separate fixed-count prototype. It retains a positive run once its length reaches L; a shorter run is discarded when a zero closes it or at EOF. It uses the same two-candidate interpolation lookahead and left-to-right update order, but its run-retention rule is intentionally different from the offline reference.
+
+The accompanying tests cover threshold values L = 1, 2, 3, and 4, exact-threshold retention, shorter-run removal, and equality of already-emitted records with the completed fixed-threshold stream. This is an initial synthetic correctness check, not a full exhaustive proof or a performance/fidelity evaluation. In particular, no physical-duration adapter, trace-level calibration, multiscale integration, RSS measurement, or downstream simulation comparison is included yet.
+
 ## Current research conclusion
 
-The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. It does not justify selecting a causal threshold. The next acceptance gate is a test-only fixed-count / physical-duration prototype with prefix-finality tests, followed by trace-level fidelity and downstream simulation measurements. The legacy optimizer remains unchanged.
+The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. The fixed-count prototype demonstrates a separate horizon-independent policy with bounded run-decision delay, but it intentionally changes semantics and has only initial synthetic tests. Neither prototype justifies selecting a production policy. The next acceptance gate is exhaustive adversarial and cross-horizon prefix-finality testing, followed by physical-duration mapping, trace-level fidelity, runtime/memory measurements, and downstream simulation impact. The legacy optimizer remains unchanged.
