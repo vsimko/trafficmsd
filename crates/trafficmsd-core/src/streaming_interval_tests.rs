@@ -106,7 +106,7 @@ impl StreamingOptimizer {
         self.filtered.push_back((index, value));
 
         if index == 0 {
-            self.filtered.pop_front();
+            self.filtered.pop_front().expect("first filtered candidate exists");
             self.last_optimized = Some(value);
             emitted.push(FinalizedInterval {
                 event_time: 0,
@@ -134,7 +134,7 @@ impl StreamingOptimizer {
                 middle
             };
 
-            self.filtered.pop_front();
+            self.filtered.pop_front().expect("middle candidate exists");
             self.last_optimized = Some(value);
             emitted.push(FinalizedInterval {
                 event_time,
