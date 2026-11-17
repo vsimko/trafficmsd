@@ -590,7 +590,6 @@ fn fixed_threshold_prefix_emissions_are_invariant_to_declared_horizon() {
     }
 }
 
-
 #[test]
 fn fixed_threshold_exhaustively_finalizes_all_small_vectors() {
     for horizon in 1..=8 {
