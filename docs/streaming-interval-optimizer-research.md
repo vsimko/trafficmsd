@@ -99,7 +99,7 @@ The initial tests cover threshold values L = 1, 2, 3, and 4, exact-threshold ret
 
 A reproducible, ignored Rust benchmark now exercises the fixed-count prototype on the checksum-verified Westermo v1.0 right-observation-point trace. The input is the 5,445-sample, one-second series of captured frame bytes per bin (trace SHA-256 `6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7`). It is a real packet-derived trace, but applying the aggregate series directly as one candidate vector is a **single-scale proxy**, not the actual multiscale candidate-generation/residual-update pipeline.
 
-The benchmark compares fixed run thresholds L = 1, 2, 4, 8, 16, 22, 32, and 64 with the unchanged offline `optimize_intervals()` at cutoff fraction 0.004. L=22 is included because the fixed-horizon offline cutoff on 5,445 samples is 21.78 and the fixed-count policy retains at integer threshold L when a run reaches that length. This is a comparison point, not a selected threshold.
+The benchmark compares fixed run thresholds L = 1, 2, 4, 8, 16, 22, 32, and 64 with the unchanged offline `optimize_intervals()` at cutoff fraction 0.004. L=22 is included because the fixed-horizon offline cutoff on 5,445 samples is 21.78 and the fixed-count policy retains at integer threshold L when a run reaches that length. This is a comparison point, not a selected threshold. Once a positive run reaches L, the prototype now keeps the remainder of that same run until zero or EOF; a regression test covers runs longer than 2L so the threshold transition cannot accidentally split them.
 
 For each policy it records:
 - streaming and offline elapsed time and candidate throughput;
