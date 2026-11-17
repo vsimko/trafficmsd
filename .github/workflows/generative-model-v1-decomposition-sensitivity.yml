@@ -49,7 +49,7 @@ jobs:
           cmp /tmp/decomposition-sensitivity-1.json /tmp/decomposition-sensitivity-2.json
           cmp /tmp/decomposition-sensitivity-1.json.sha256 /tmp/decomposition-sensitivity-2.json.sha256
       - name: Upload deterministic research report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: generative-model-v1-decomposition-prefix-sensitivity
           path: |

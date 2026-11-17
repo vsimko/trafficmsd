@@ -67,7 +67,7 @@ jobs:
 
       - name: Upload model and result evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: line-qpn-v1-${{ github.run_id }}
           path: artifacts/line-qpn-v1/
