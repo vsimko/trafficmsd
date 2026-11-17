@@ -184,3 +184,30 @@ The 32-second multiscale results reproduce the earlier fidelity and finality fin
 ## Current research conclusion
 
 The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. The fixed-count prototype demonstrates a separate horizon-independent policy with bounded run-decision delay, but it intentionally changes semantics and has only initial synthetic tests. Neither prototype justifies selecting a production policy. The next acceptance gate is exhaustive adversarial and cross-horizon prefix-finality testing, followed by physical-duration mapping, trace-level fidelity, runtime/memory measurements, and downstream simulation impact. The legacy optimizer remains unchanged.
+
+
+## Corrected three-point finality results (2026-11-17)
+
+The corrected implementation is validated by the passing regression test in PR #111 and the successful [three-point benchmark workflow 44082355832](https://github.com/vsimko/trafficmsd/actions/runs/44082355832), artifact `streaming-fixed-threshold-westermo`. This rerun uses the same three independently processed, checksum-verified Westermo observation points. The earlier finality tables above are historical and **superseded**; their p50/p95/p99/max values, including the 2,048-second maximum, must not be cited as current.
+
+For a positive scale with source window `w = 2^s`, candidate `k` represents the legacy center-left event timestamp `event_time = k*w + w/2 - 1`. Candidate `j` becomes available only after its complete source window, at `available_at = (j+1)*w - 1`. Therefore the source-sample delay is:
+
+```
+available_at - event_time = (j-k)*w + w/2
+```
+
+At scale zero, delay remains the candidate/source-sample index difference. The half-window term is essential; omitting it undercounts delay at every positive scale.
+
+For the exploratory `T_min = 32 s` policy:
+
+| Observation point | Samples | Finality p50 | p95 | p99 | Maximum | Reconstruction MAE | RMSE | Volume error |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| right | 5,445 | 3 s | 26 s | 96 s | 4,096 s | 710.80 | 2,149.99 | +4.51% |
+| left | 5,441 | 3 s | 24 s | 96 s | 4,096 s | 5,787.78 | 11,821.52 | +19.22% |
+| bottom | 5,443 | 3 s | 24 s | 96 s | 4,096 s | 11,123.98 | 14,864.53 | −43.18% |
+
+Across the full tested duration grid (1, 2, 4, 8, 16, 32, 64 s), the corrected aggregate p50 is 1–4 s depending on policy, p95 is 24–46 s, p99 is 96 s, and the maximum is 4,096 s on each observation point. The maximum is caused by the coarsest scale (window 8,192 s) and its center-left event-time convention; it is a genuine coarse-scale worst case, not a typical delay. At `T_min=32 s`, the coarsest scale contributes 4,096 s maximum, while scale 0 contributes at most 1 s on right/bottom and 2 s on left. Intermediate scale delays are reported in the JSON artifact.
+
+The timestamp correction does not change coefficient values, reconstructions, optimizer runtime, pending-state counts, or process RSS. Those metrics in the earlier sections remain historical measurements from their stated CI runs. At `T_min=32 s`, the latest rerun reports multiscale elapsed times of 9.900 ms (right), 12.563 ms (left), and 14.116 ms (bottom), with peak pending-candidate proxies of 15, 16, and 16 respectively. These are single CI invocations, not medians or a performance claim.
+
+The result remains exploratory: the three points belong to one dataset and may share duplicate packet observations; they are not independent held-out datasets. `T_min=32 s` is closest to the legacy offline reconstruction on these points, but that is not measured-trace fidelity and does not select a threshold. No production optimizer, API, or model schema is changed.
