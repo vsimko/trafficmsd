@@ -7,6 +7,15 @@ use std::collections::VecDeque;
 
 use crate::decomposition::optimize_intervals;
 
+fn process_peak_rss_kib() -> Option<u64> {
+    let status = std::fs::read_to_string("/proc/self/status").ok()?;
+    status.lines().find_map(|line| {
+        line.strip_prefix("VmHWM:")
+            .and_then(|value| value.split_whitespace().next())
+            .and_then(|value| value.parse().ok())
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StreamError {
     TooManyValues,
@@ -873,6 +882,7 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
         "quantity": "captured_frame_length_bytes_per_bin",
         "offline_cutoff_fraction": 0.004,
         "offline_elapsed_ns": offline_elapsed_ns,
+        "process_peak_rss_kib": process_peak_rss_kib(),
         "offline_candidates_per_second": values.len() as f64
             / (offline_elapsed_ns as f64 / 1_000_000_000.0),
         "policies": policies,
@@ -1199,6 +1209,7 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
         "quantity": "captured_frame_length_bytes_per_bin",
         "offline_cutoff_fraction": 0.004,
         "offline_decomposition_elapsed_ns": offline_elapsed_ns,
+        "process_peak_rss_kib": process_peak_rss_kib(),
         "policies": policies,
         "limitations": [
             "The trace is industrial-network traffic from one observation point.",
