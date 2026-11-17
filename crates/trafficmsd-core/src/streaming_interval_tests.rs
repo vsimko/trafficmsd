@@ -384,6 +384,7 @@ struct FixedThresholdOptimizer {
     min_run: usize,
     received: usize,
     pending_positive_run: Vec<(usize, f64)>,
+    retaining_positive_run: bool,
     filtered: VecDeque<(usize, f64)>,
     last_optimized: Option<f64>,
 }
@@ -396,6 +397,7 @@ impl FixedThresholdOptimizer {
             min_run,
             received: 0,
             pending_positive_run: Vec::new(),
+            retaining_positive_run: false,
             filtered: VecDeque::with_capacity(2),
             last_optimized: None,
         }
@@ -410,11 +412,16 @@ impl FixedThresholdOptimizer {
         let mut emitted = Vec::new();
 
         if value > 0.0 {
-            self.pending_positive_run.push((index, value));
-            if self.pending_positive_run.len() == self.min_run {
-                let run = std::mem::take(&mut self.pending_positive_run);
-                for (event_time, run_value) in run {
-                    self.accept_filtered(run_value, event_time, index, &mut emitted);
+            if self.retaining_positive_run {
+                self.accept_filtered(value, index, index, &mut emitted);
+            } else {
+                self.pending_positive_run.push((index, value));
+                if self.pending_positive_run.len() == self.min_run {
+                    let run = std::mem::take(&mut self.pending_positive_run);
+                    self.retaining_positive_run = true;
+                    for (event_time, run_value) in run {
+                        self.accept_filtered(run_value, event_time, index, &mut emitted);
+                    }
                 }
             }
         } else {
@@ -425,6 +432,7 @@ impl FixedThresholdOptimizer {
     }
 
     fn close_short_run(&mut self, available_at: usize, emitted: &mut Vec<FinalizedInterval>) {
+        self.retaining_positive_run = false;
         let run = std::mem::take(&mut self.pending_positive_run);
         for (event_time, _) in run {
             self.accept_filtered(0.0, event_time, available_at, emitted);
@@ -538,6 +546,23 @@ fn fixed_threshold_is_prefix_final_and_horizon_independent() {
             assert_eq!(actual, full);
         }
     }
+}
+
+
+#[test]
+fn fixed_threshold_keeps_the_entire_run_after_reaching_threshold() {
+    let values = [0.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 0.0];
+    let output = run_fixed_threshold(&values, 3);
+    let mut ordered = output;
+    ordered.sort_by_key(|record| record.event_time);
+    assert_eq!(
+        ordered.iter().map(|record| record.value).collect::<Vec<_>>(),
+        values
+    );
+    assert!(ordered
+        .iter()
+        .filter(|record| (1..7).contains(&record.event_time))
+        .all(|record| record.value == 2.0));
 }
 
 #[test]
