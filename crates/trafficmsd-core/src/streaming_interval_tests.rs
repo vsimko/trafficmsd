@@ -7,6 +7,27 @@ use std::collections::VecDeque;
 
 use crate::decomposition::optimize_intervals;
 
+/// Convert candidate-index finality to source-sample time for a positive scale.
+/// Candidate k represents the legacy center-left sample k*window + window/2 - 1;
+/// candidate j is available when its full source window ends at (j+1)*window - 1.
+fn source_time_finality_delay_seconds(window: usize, event_index: usize, available_index: usize) -> usize {
+    assert!(window >= 2 && window.is_power_of_two());
+    assert!(available_index >= event_index);
+    (available_index - event_index) * window + window / 2
+}
+
+#[test]
+fn multiscale_finality_uses_center_left_event_time_and_full_window_watermark() {
+    for window in [2usize, 4, 8, 16, 2048] {
+        assert_eq!(source_time_finality_delay_seconds(window, 3, 3), window / 2);
+        assert_eq!(source_time_finality_delay_seconds(window, 3, 4), window + window / 2);
+        // Directly verify the source-time mapping from the #108 contract.
+        let event_time = 3 * window + window / 2 - 1;
+        let available_at = (4 + 1) * window - 1;
+        assert_eq!(available_at - event_time, window + window / 2);
+    }
+}
+
 fn process_peak_rss_kib() -> Option<u64> {
     let status = std::fs::read_to_string("/proc/self/status").ok()?;
     status.lines().find_map(|line| {
@@ -1046,7 +1067,11 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
             let mut scale_delays = Vec::with_capacity(records.len());
             for record in records {
                 optimized[record.event_time] = record.value;
-                let delay_seconds = (record.available_at - record.event_time) * window;
+                let delay_seconds = source_time_finality_delay_seconds(
+                    window,
+                    record.event_time,
+                    record.available_at,
+                );
                 scale_delays.push(delay_seconds);
                 all_delays_seconds.push(delay_seconds);
             }
