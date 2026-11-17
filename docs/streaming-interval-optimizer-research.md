@@ -4,6 +4,8 @@
 **Issue:** #107  
 **Reference:** `decomposition::optimize_intervals()` remains unchanged and is the offline oracle.
 
+> **Finality correction (2026-11-17):** The multiscale benchmark reports below used an incorrect conversion from candidate-index delay to source-sample time. For a positive scale with window `w`, candidate `k` represents `event_time = k*w + w/2 - 1`, while candidate `j` is available at source watermark `(j+1)*w - 1`. The correct delay is `(j-k)*w + w/2`. The earlier per-scale and aggregate p50/p95/p99/max finality values (including the previously reported 2,048-second maximum) are **superseded and must not be used**. The corrected implementation and regression test are in PR #111; corrected three-point measurements are pending CI. Runtime and reconstruction metrics are unaffected by this timestamp-only correction.
+
 ## Question
 
 Can the existing interval optimization be evaluated incrementally without changing its output, if the complete candidate-vector horizon is declared before the first value arrives?
