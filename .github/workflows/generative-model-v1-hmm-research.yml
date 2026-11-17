@@ -49,7 +49,7 @@ jobs:
       - name: Run predictive-boundary and support regression tests
         run: python -m unittest discover -s experiments/generative-model-v1-hmm-research/tests -v
       - name: Upload research report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: generative-model-v1-hmm-research
           path: /tmp/hmm-report-1.json
