@@ -13,6 +13,7 @@ on:
       - "scripts/line_qpn_analytical_control.py"
       - "scripts/summarize_qpn_workload_evaluation.py"
       - "scripts/extend_qpn_comparison_streaming.py"
+      - "scripts/compare_streaming_coefficients.py"
       - "crates/trafficmsd-core/src/streaming_interval_tests.rs"
       - ".github/workflows/westermo-model-extraction.yml"
       - "schemas/model/v1/model.schema.json"
@@ -109,6 +110,15 @@ jobs:
           TRAFFICMSD_STREAMING_QPN_OUTPUT: ${{ github.workspace }}/artifacts/qpn-workload-evaluation-v1/streaming-signal.csv
           TRAFFICMSD_STREAMING_COEFFICIENTS_OUTPUT: ${{ github.workspace }}/artifacts/qpn-workload-evaluation-v1/streaming-coefficients.csv
         run: cargo test -p trafficmsd-core fixed_threshold_westermo_multiscale_benchmark -- --ignored --nocapture --test-threads=1
+
+      - name: Compare offline and streaming coefficient amplitudes
+        run: |
+          python scripts/compare_streaming_coefficients.py \\
+            --offline-model artifacts/westermo-model-extraction-v1/model/model-v1.json \\
+            --streaming-matrix artifacts/qpn-workload-evaluation-v1/streaming-coefficients.csv \\
+            --offline-signal artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv \\
+            --streaming-signal artifacts/qpn-workload-evaluation-v1/streaming-signal.csv \\
+            --output-dir artifacts/qpn-workload-evaluation-v1/coefficient-comparison
 
       - name: Build checksummed measured and deterministic-replay QPN schedules
         run: |
