@@ -874,3 +874,303 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
         .expect("write benchmark report");
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }
+
+
+/// Real-trace multiscale benchmark using the same candidate generation and
+/// residual-update order as production decompose(), but the test-only
+/// fixed-duration run policy. The source trace is padded to the next power of
+/// two exactly as the model-extraction workflow does.
+#[test]
+#[ignore = "requires the checksum-verified Westermo trace artifact"]
+fn fixed_threshold_westermo_multiscale_benchmark() {
+    use std::time::Instant;
+
+    let trace_path = std::env::var("TRAFFICMSD_STREAMING_TRACE")
+        .expect("set TRAFFICMSD_STREAMING_TRACE to the verified trace.csv path");
+    let text = std::fs::read_to_string(&trace_path).expect("read Westermo trace");
+    let mut lines = text.lines();
+    assert_eq!(lines.next(), Some("sample_index,value"));
+    let values: Vec<f64> = lines
+        .map(|line| {
+            let (_, value) = line.split_once(',').expect("CSV row has two columns");
+            value.parse().expect("finite numeric trace value")
+        })
+        .collect();
+    assert_eq!(values.len(), 5_445, "unexpected Westermo trace length");
+    assert!(values
+        .iter()
+        .all(|value| value.is_finite() && *value >= 0.0));
+
+    let observed_len = values.len();
+    let padded_len = observed_len.next_power_of_two();
+    let mut signal = values.clone();
+    signal.resize(padded_len, 0.0);
+
+    let offline_started = Instant::now();
+    let offline = crate::decomposition::decompose(&signal, 0.004).unwrap();
+    let offline_reconstructed =
+        crate::decomposition::reconstruct(&offline.coefficients).unwrap();
+    let offline_elapsed_ns = offline_started.elapsed().as_nanos();
+
+    let error_metrics = |estimate: &[f64], reference: &[f64]| {
+        assert_eq!(estimate.len(), reference.len());
+        let mut absolute_sum = 0.0;
+        let mut squared_sum = 0.0;
+        let mut max_absolute: f64 = 0.0;
+        let mut estimate_volume = 0.0;
+        let mut reference_volume = 0.0;
+        for (actual, expected) in estimate.iter().zip(reference) {
+            let error = actual - expected;
+            absolute_sum += error.abs();
+            squared_sum += error * error;
+            max_absolute = max_absolute.max(error.abs());
+            estimate_volume += actual;
+            reference_volume += expected;
+        }
+        (
+            absolute_sum / estimate.len() as f64,
+            (squared_sum / estimate.len() as f64).sqrt(),
+            max_absolute,
+            if reference_volume > 0.0 {
+                (estimate_volume - reference_volume) / reference_volume * 100.0
+            } else {
+                0.0
+            },
+        )
+    };
+
+    let interval_count = |series: &[f64]| {
+        series
+            .iter()
+            .enumerate()
+            .filter(|(index, value)| {
+                **value > 0.0 && (*index == 0 || series[*index - 1] <= 0.0)
+            })
+            .count()
+    };
+
+    let mut policies = Vec::new();
+    for min_duration_seconds in [1usize, 2, 4, 8, 16, 32, 64] {
+        let mut residual = signal.clone();
+        let max_scale = padded_len.trailing_zeros();
+        let mut coefficients = vec![vec![0.0; padded_len]; max_scale as usize + 1];
+        let mut scale_reports = Vec::new();
+        let mut all_delays_seconds = Vec::new();
+        let mut total_candidates = 0usize;
+        let mut total_streaming_elapsed_ns = 0u128;
+        let mut peak_pending = 0usize;
+
+        for scale in (1..=max_scale).rev() {
+            let window = 1usize << scale;
+            let mut candidates = Vec::with_capacity(padded_len / window);
+            for chunk in residual.chunks_exact(window) {
+                let mut sorted = chunk.to_vec();
+                sorted.sort_by(|a, b| b.total_cmp(a));
+
+                let mut candidate = 0.0;
+                let mut i = 0;
+                while i < sorted.len() {
+                    let mut j = i + 1;
+                    while j < sorted.len() && sorted[j] == sorted[i] {
+                        j += 1;
+                    }
+                    if j - i == 1 {
+                        candidate = sorted[i];
+                        break;
+                    }
+                    i = j;
+                }
+                candidates.push(candidate);
+            }
+
+            let min_run = min_duration_seconds.div_ceil(window).max(1);
+            let started = Instant::now();
+            let mut stream = FixedThresholdOptimizer::new(candidates.len(), min_run);
+            let mut records = Vec::with_capacity(candidates.len());
+            for candidate in &candidates {
+                records.extend(stream.push(*candidate).unwrap());
+                peak_pending = peak_pending.max(
+                    stream.pending_positive_run.len() + stream.filtered.len(),
+                );
+            }
+            records.extend(stream.finish().unwrap());
+            let elapsed_ns = started.elapsed().as_nanos();
+            total_streaming_elapsed_ns += elapsed_ns;
+            total_candidates += candidates.len();
+            assert_eq!(records.len(), candidates.len());
+
+            let mut optimized = vec![0.0; candidates.len()];
+            let mut scale_delays = Vec::with_capacity(records.len());
+            for record in records {
+                optimized[record.event_time] = record.value;
+                let delay_seconds = (record.available_at - record.event_time) * window;
+                scale_delays.push(delay_seconds);
+                all_delays_seconds.push(delay_seconds);
+            }
+            scale_delays.sort_unstable();
+
+            for (k, candidate) in optimized.iter().copied().enumerate() {
+                if candidate <= 0.0 {
+                    continue;
+                }
+                let begin = k * window;
+                let end = begin + window;
+                let position = residual[begin..end].iter().position(|value| *value == candidate);
+                coefficients[scale as usize][begin..end].fill(candidate);
+                if let Some(position) = position {
+                    residual[begin + position] = 0.0;
+                }
+                let emit = begin + window / 2 - 1;
+                residual[emit] = (residual[emit] - candidate).max(0.0);
+            }
+
+            let percentile = |fraction: f64| -> usize {
+                let index = ((scale_delays.len() as f64 * fraction).ceil() as usize)
+                    .saturating_sub(1)
+                    .min(scale_delays.len() - 1);
+                scale_delays[index]
+            };
+            scale_reports.push(serde_json::json!({
+                "scale": scale,
+                "window_seconds": window,
+                "candidate_count": candidates.len(),
+                "min_run_candidates": min_run,
+                "retained_positive_candidates": optimized.iter().filter(|value| **value > 0.0).count(),
+                "positive_interval_count": interval_count(&optimized),
+                "streaming_elapsed_ns": elapsed_ns,
+                "finality_delay_seconds": {
+                    "p50": percentile(0.50),
+                    "p95": percentile(0.95),
+                    "p99": percentile(0.99),
+                    "max": *scale_delays.last().unwrap()
+                }
+            }));
+        }
+
+        // The residual row is scale zero: one candidate per source sample.
+        let min_run = min_duration_seconds;
+        let started = Instant::now();
+        let mut stream = FixedThresholdOptimizer::new(padded_len, min_run);
+        let mut records = Vec::with_capacity(padded_len);
+        for candidate in &residual {
+            records.extend(stream.push(*candidate).unwrap());
+            peak_pending = peak_pending.max(
+                stream.pending_positive_run.len() + stream.filtered.len(),
+            );
+        }
+        records.extend(stream.finish().unwrap());
+        let elapsed_ns = started.elapsed().as_nanos();
+        total_streaming_elapsed_ns += elapsed_ns;
+        total_candidates += padded_len;
+        assert_eq!(records.len(), padded_len);
+
+        let mut residual_output = vec![0.0; padded_len];
+        let mut residual_delays = Vec::with_capacity(records.len());
+        for record in records {
+            residual_output[record.event_time] = record.value;
+            residual_delays.push(record.available_at - record.event_time);
+            all_delays_seconds.push(record.available_at - record.event_time);
+        }
+        residual_delays.sort_unstable();
+        coefficients[0] = residual_output.clone();
+
+        let percentile = |fraction: f64| -> usize {
+            let index = ((residual_delays.len() as f64 * fraction).ceil() as usize)
+                .saturating_sub(1)
+                .min(residual_delays.len() - 1);
+            residual_delays[index]
+        };
+        scale_reports.push(serde_json::json!({
+            "scale": 0,
+            "window_seconds": 1,
+            "candidate_count": padded_len,
+            "min_run_candidates": min_run,
+            "retained_positive_candidates": residual_output.iter().filter(|value| **value > 0.0).count(),
+            "positive_interval_count": interval_count(&residual_output),
+            "streaming_elapsed_ns": elapsed_ns,
+            "finality_delay_seconds": {
+                "p50": percentile(0.50),
+                "p95": percentile(0.95),
+                "p99": percentile(0.99),
+                "max": *residual_delays.last().unwrap()
+            }
+        }));
+
+        all_delays_seconds.sort_unstable();
+        let percentile = |fraction: f64| -> usize {
+            let index = ((all_delays_seconds.len() as f64 * fraction).ceil() as usize)
+                .saturating_sub(1)
+                .min(all_delays_seconds.len() - 1);
+            all_delays_seconds[index]
+        };
+
+        let reconstructed = crate::decomposition::reconstruct(&coefficients).unwrap();
+        let (mae, rmse, max_abs, volume_error_pct) =
+            error_metrics(&reconstructed[..observed_len], &values);
+        let (offline_mae, offline_rmse, offline_max_abs, offline_volume_error_pct) =
+            error_metrics(&offline_reconstructed[..observed_len], &values);
+        let (mae_vs_offline, rmse_vs_offline, max_vs_offline, volume_vs_offline_pct) =
+            error_metrics(&reconstructed[..observed_len], &offline_reconstructed[..observed_len]);
+
+        policies.push(serde_json::json!({
+            "min_duration_seconds": min_duration_seconds,
+            "streaming_elapsed_ns": total_streaming_elapsed_ns,
+            "streaming_candidates_per_second": total_candidates as f64
+                / (total_streaming_elapsed_ns as f64 / 1_000_000_000.0),
+            "peak_pending_candidates_observed": peak_pending,
+            "finality_delay_seconds": {
+                "p50": percentile(0.50),
+                "p95": percentile(0.95),
+                "p99": percentile(0.99),
+                "max": *all_delays_seconds.last().unwrap()
+            },
+            "reconstruction_vs_trace": {
+                "mae": mae,
+                "rmse": rmse,
+                "max_absolute_error": max_abs,
+                "volume_error_percent": volume_error_pct
+            },
+            "difference_vs_offline_reference": {
+                "mae": mae_vs_offline,
+                "rmse": rmse_vs_offline,
+                "max_absolute_error": max_vs_offline,
+                "volume_error_percent": volume_vs_offline_pct
+            },
+            "offline_reference_reconstruction_vs_trace": {
+                "mae": offline_mae,
+                "rmse": offline_rmse,
+                "max_absolute_error": offline_max_abs,
+                "volume_error_percent": offline_volume_error_pct
+            },
+            "scales": scale_reports
+        }));
+    }
+
+    let report = serde_json::json!({
+        "benchmark": "westermo-fixed-duration-multiscale-interval-prototype-v1",
+        "scope": "test-only fixed-duration interval policy integrated with production candidate generation and residual-update order",
+        "dataset": "Westermo Network Traffic Dataset v1.0, right observation point",
+        "trace_sha256": "6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7",
+        "observed_sample_count": observed_len,
+        "padded_sample_count": padded_len,
+        "sampling_interval_seconds": 1,
+        "quantity": "captured_frame_length_bytes_per_bin",
+        "offline_cutoff_fraction": 0.004,
+        "offline_decomposition_elapsed_ns": offline_elapsed_ns,
+        "policies": policies,
+        "limitations": [
+            "The trace is industrial-network traffic from one observation point.",
+            "Fixed-duration thresholds are exploratory and have not been calibrated on held-out traces.",
+            "This benchmark does not measure process RSS or downstream simulator effects.",
+            "The prototype remains test-only; no production optimizer, API, or model schema is changed."
+        ]
+    });
+
+    let output_path = std::env::var("TRAFFICMSD_STREAMING_MULTISCALE_OUTPUT")
+        .unwrap_or_else(|_| "artifacts/streaming-fixed-threshold-westermo/multiscale-benchmark.json".into());
+    let output_path = std::path::Path::new(&output_path);
+    std::fs::create_dir_all(output_path.parent().unwrap()).expect("create report directory");
+    std::fs::write(output_path, serde_json::to_vec_pretty(&report).unwrap())
+        .expect("write multiscale benchmark report");
+    println!("{}", serde_json::to_string_pretty(&report).unwrap());
+}
