@@ -95,6 +95,30 @@ The evaluation should use a trace-level train/validation split if T_min or any o
 
 The initial tests cover threshold values L = 1, 2, 3, and 4, exact-threshold retention, shorter-run removal, and equality of already-emitted records with the completed fixed-threshold stream. A follow-up exhaustive suite now enumerates all vectors over {0,1,2} for horizons 1–8 and L = 1..4, checking every emitted record against the completed fixed-threshold result. It also enumerates all prefixes of lengths 1–6 and checks that emissions during the prefix are identical across every larger declared horizon through 8. This is still synthetic correctness evidence, not a performance/fidelity evaluation. In particular, no physical-duration adapter, trace-level calibration, multiscale integration, RSS measurement, or downstream simulation comparison is included yet.
 
+## Westermo trace benchmark protocol
+
+A reproducible, ignored Rust benchmark now exercises the fixed-count prototype on the checksum-verified Westermo v1.0 right-observation-point trace. The input is the 5,445-sample, one-second series of captured frame bytes per bin (trace SHA-256 `6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7`). It is a real packet-derived trace, but applying the aggregate series directly as one candidate vector is a **single-scale proxy**, not the actual multiscale candidate-generation/residual-update pipeline.
+
+The benchmark compares fixed run thresholds L = 1, 2, 4, 8, 16, 22, 32, and 64 with the unchanged offline `optimize_intervals()` at cutoff fraction 0.004. L=22 is included because the fixed-horizon offline cutoff on 5,445 samples is 21.78 and the fixed-count policy retains at integer threshold L when a run reaches that length. This is a comparison point, not a selected threshold.
+
+For each policy it records:
+- streaming and offline elapsed time and candidate throughput;
+- observed peak pending run plus interpolation candidates (not process RSS);
+- retained positive candidates and positive interval count;
+- finality delay in candidate units (p50/p95/p99/max);
+- MAE, RMSE, maximum absolute error, and total-volume error against the measured series;
+- the same reconstruction differences against the offline optimizer.
+
+Reproduction uses the immutable artifact from Westermo extraction workflow run 42001977735. The dedicated GitHub Actions workflow downloads it, verifies the trace SHA-256 and exact sample count, then runs:
+
+```sh
+TRAFFICMSD_STREAMING_TRACE=artifacts/westermo-model-extraction-v1/trace.csv \
+TRAFFICMSD_STREAMING_BENCHMARK_OUTPUT=artifacts/streaming-fixed-threshold-westermo/benchmark.json \
+cargo test -p trafficmsd-core fixed_threshold_westermo_packet_trace_benchmark -- --ignored --nocapture
+```
+
+The workflow uploads `benchmark.json` as the `streaming-fixed-threshold-westermo` artifact. Timings are CI-environment measurements and should be interpreted as a baseline, not a general performance claim. The threshold grid is exploratory and is not calibrated on held-out data. This benchmark does not measure raw PCAP parsing, scale-specific candidate generation, residual updates, cross-scale finality, downstream simulation effects, or process RSS. Westermo is industrial-network traffic from one observation point, so it does not establish general Internet representativeness.
+
 ## Current research conclusion
 
 The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. The fixed-count prototype demonstrates a separate horizon-independent policy with bounded run-decision delay, but it intentionally changes semantics and has only initial synthetic tests. Neither prototype justifies selecting a production policy. The next acceptance gate is exhaustive adversarial and cross-horizon prefix-finality testing, followed by physical-duration mapping, trace-level fidelity, runtime/memory measurements, and downstream simulation impact. The legacy optimizer remains unchanged.
