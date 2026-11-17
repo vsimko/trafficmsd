@@ -66,3 +66,20 @@ Report per-replication observations, sample standard deviations, 95% confidence 
 - The deterministic reconstruction is not stochastic generation and does not establish generator fidelity.
 - Westermo is industrial-network traffic and is not representative evidence for general Internet traffic.
 - No packet-level TCP/IP, routing, congestion-control, or application semantics are modeled.
+
+
+## First test-only streaming comparison (2026-11-17)
+
+The successful run is attached to [workflow 44089684128](https://github.com/vsimko/trafficmsd/actions/runs/44089684128), artifact westermo-model-extraction-and-qpn-v1. It compares the measured right-point trace, the offline deterministic reconstruction, and the test-only fixed-duration multiscale reconstruction (T_min=32 s). All three use the exact same resolved model (service rate 1.03728191 jobs/s), one-second bins, 1,000 bytes/job, LINE 3.0.8.0 LDES, warmup=none, the same completion-event budget policy, and 10 independent replications with disjoint seed sets.
+
+| Condition | Jobs / bytes | Offered rate (jobs/s) | Offered load |
+|---|---:|---:|---:|
+| Measured | 2,824 / 2,824,350 | 0.518641 | 0.5000 |
+| Offline replay | 2,926 / 2,926,979 | 0.537374 | 0.5181 |
+| Streaming T_min=32 s | 2,951 / 2,951,779 | 0.541965 | 0.5225 |
+
+Streaming minus measured (95% Welch CI) was positive for all four metrics: throughput +0.0238123 jobs/s [0.0238067, 0.0238178], queue population +2.84145 jobs [2.59635, 3.08655], utilization +0.0240629 [0.0232247, 0.0249011], and residence time +0.791135 s [0.336507, 1.24576].
+
+Streaming minus offline replay was much smaller: throughput +0.00529516 jobs/s [0.00527913, 0.0053112] and utilization +0.00584459 [0.00512317, 0.00656601]. The queue-population difference (+0.269740 jobs, 95% CI [-0.0469074, 0.586387]) and residence-time difference (-0.505014 s, 95% CI [-1.09146, 0.0814304]) include zero. Thus, under this particular authored QPN, streaming and offline reconstruction are close on queue population and residence time, but not identical on offered workload, throughput, or utilization.
+
+This is one observation point from one industrial capture and one exploratory threshold; the observation points are not independent datasets. The result is not a held-out fidelity claim, not a production optimizer result, and not evidence of general Internet traffic or network capacity. It does show that downstream QPN effects can be measured with a frozen model and explicit workload mapping rather than inferred from reconstruction MAE/RMSE alone.
