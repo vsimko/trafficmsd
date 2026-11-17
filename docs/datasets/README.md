@@ -153,3 +153,41 @@ M-Lab may support a distinct header/timing-focused experiment or a flow-level ro
 | M-Lab | No bounded total; per-flow sizes unknown | Yes, for a separately defined header/timing experiment | Per-flow TCP header analysis; not current byte-volume target |
 
 None of these entries changes the 50 MB repository/ordinary-CI policy. Large candidates may be used in local research or explicitly dispatched workflows when their terms, exact file selection, checksum, and storage controls are approved. Do not split, truncate, or curate a large capture merely to make it appear to meet the CI limit; any subset must be scientifically justified and described as a distinct sample.
+
+
+## Additional UNSW IoT flow-level candidates (screened 2026-11-17)
+
+These two Dryad releases are useful independent IoT *flow-level* candidates, but neither is a raw PCAP corpus. They are recorded separately from the packet-capture candidates above because their observation unit and available packet detail differ from the current TrafficMSD one-second captured-frame-byte signal.
+
+### UNSW DATA2025v1 / DATA2025v2 cross-environment flow datasets
+
+| Field | Value |
+|---|---|
+| Registry ID | `unsw-data2025-customflows-v1-v2` |
+| Source | [Dryad DOI 10.5061/dryad.7h44j1098](https://doi.org/10.5061/dryad.7h44j1098) |
+| Published archives | `DATA2025v1.tar.gz`: 12.64 GB; `DATA2025v2.tar.gz`: 7.66 GB; full deposit: 22.52 GB |
+| Dataset scale | Approximately 16.5 million Custom Flow records; v1 about 7.7 million records from 18 device types; v2 about 8.8 million records from 10 overlapping device types |
+| Capture context | Physical IoT devices in live 2025 deployments; v2 is a separate deployment with a different network topology, background traffic, and user activity |
+| Format / fields | Daily Parquet flow records with flow timestamps, total flow bytes, packet counts, and offsets/sizes/directions for the first 10 packets; encoded payload fields are also present |
+| License / terms | Review the dataset README and Dryad record for the applicable data license, privacy, and redistribution terms before acquisition; no permission is inferred from the page's general content-reuse notice |
+| Acquisition status | Metadata reviewed only; no files downloaded; daily member sizes and checksums not verified |
+| TrafficMSD suitability | **Potentially useful for independent cross-environment flow-level validation**, especially v1 versus v2. Both full archives are far above the 50 MB ordinary-CI budget. It is not a raw packet trace and cannot directly reproduce the current packet-level captured-frame-byte signal. |
+
+The v2 deployment is particularly interesting as a separate environment, not just another device/observation point. A scientifically defensible experiment could derive a flow-level signal from daily Parquet members and compare flow sizes, packet counts, packet-size/time-offset summaries, and inter-flow activity. It must be labelled as a separate flow-level measurement target. A single daily member may be smaller than the full archive, but its exact size, checksum, and representativeness must be checked before selecting it. Local or explicit on-demand research acquisition is possible under the repository's large-dataset policy; ordinary CI must not fetch the complete archives.
+
+### UNSW DATA2016 custom-flow representation
+
+| Field | Value |
+|---|---|
+| Registry ID | `unsw-data2016-customflows` |
+| Source | [Dryad DOI 10.5061/dryad.6q573n6c1](https://doi.org/10.5061/dryad.6q573n6c1) |
+| Published archives | Bidirectional: 1.78 GB; unidirectional: 794.91 MB; total: 2.57 GB |
+| Dataset scale | More than 5.9 million custom-flow records from 60 days of IoT PCAP captures, covering 22 device types |
+| Format / fields | Daily Parquet custom flows; total flow bytes and packet counts plus time offsets, packet sizes, and directions for the first 10 packets; selected payload bytes |
+| License / terms | Review the README and Dryad record for the applicable data license, privacy, and redistribution terms before acquisition |
+| Acquisition status | Metadata reviewed only; no files downloaded; daily member sizes and checksums not verified |
+| TrafficMSD suitability | **Usable for a separate flow-level temporal/size experiment**, but the complete archives exceed 50 MB and the derived custom-flow representation is not equivalent to a raw packet capture or the current one-second byte series. |
+
+DATA2016 is based on earlier UNSW IoT packet captures and provides a structured hybrid of flow metadata and selected packet-level features. It may be useful for exploratory flow-level workload analysis, but it is not an independent raw capture for the current packet-level acceptance gate. Prefer DATA2025v1/v2 if cross-environment validation is the goal; prefer a raw PCAP candidate when validating the existing packet-length signal.
+
+Both candidates are metadata-only and unapproved for acquisition at this point. Any selected Parquet member still requires an immutable version, exact member path and byte size, SHA-256, license/terms review, and a documented flow-to-time-series transformation. Do not commit the full archives or fetch them in ordinary CI.
