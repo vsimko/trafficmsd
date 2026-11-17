@@ -91,3 +91,8 @@ The three conditions use the exact same resolved model, workload mapping, backen
 ## Workload-distribution and temporal descriptors
 
 See [Westermo streaming workload descriptors v1](../../docs/research-results/westermo-streaming-workload-descriptors-v1.md) for signal quantiles, zero-bin share, lagged autocorrelation, burst runs, per-bin job batching, periodic interarrival distributions, and scale-wise retained-candidate counts derived from the same reproducible artifact. The report explicitly distinguishes comparable candidate counts from coefficient-amplitude comparisons, which remain unavailable because the streaming coefficient matrix is not yet exported.
+
+
+## Per-scale coefficient comparison
+
+The Westermo workflow also exports the complete padded streaming coefficient matrix to `streaming-coefficients.csv` (scale index, sample index, value) for the (T_{min}=32s) policy. `scripts/compare_streaming_coefficients.py` extracts the center-left emission coefficient at each scale, compares offline model-v1 and streaming amplitudes over both the full padded domain and the unpadded observed bins, and verifies that each representation reconstructs its corresponding signal CSV. The machine-readable and Markdown reports are written to `coefficient-comparison/`. This remains a test-only research artifact; it does not alter production model schemas or APIs.
