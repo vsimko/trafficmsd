@@ -104,10 +104,12 @@ jobs:
               left) trace_dir="artifacts/westermo-left" ;;
               bottom) trace_dir="artifacts/westermo-bottom" ;;
             esac
-            TRAFFICMSD_STREAMING_TRACE="$GITHUB_WORKSPACE/$trace_dir/trace.csv" \
-            TRAFFICMSD_STREAMING_BENCHMARK_OUTPUT="$GITHUB_WORKSPACE/artifacts/streaming-fixed-threshold-westermo/$point/benchmark.json" \
-            TRAFFICMSD_STREAMING_MULTISCALE_OUTPUT="$GITHUB_WORKSPACE/artifacts/streaming-fixed-threshold-westermo/$point/multiscale-benchmark.json" \
-              cargo test -p trafficmsd-core fixed_threshold_westermo -- --ignored --nocapture
+            export TRAFFICMSD_STREAMING_TRACE="$GITHUB_WORKSPACE/$trace_dir/trace.csv"
+            export TRAFFICMSD_STREAMING_BENCHMARK_OUTPUT="$GITHUB_WORKSPACE/artifacts/streaming-fixed-threshold-westermo/$point/benchmark.json"
+            cargo test -p trafficmsd-core fixed_threshold_westermo_packet_trace_benchmark -- --ignored --nocapture --test-threads=1
+
+            export TRAFFICMSD_STREAMING_MULTISCALE_OUTPUT="$GITHUB_WORKSPACE/artifacts/streaming-fixed-threshold-westermo/$point/multiscale-benchmark.json"
+            cargo test -p trafficmsd-core fixed_threshold_westermo_multiscale_benchmark -- --ignored --nocapture --test-threads=1
           done
 
       - name: Upload benchmark report
