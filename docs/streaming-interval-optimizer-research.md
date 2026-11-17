@@ -162,6 +162,23 @@ T_min = 32 s is the closest of the tested grid to the offline reconstruction at 
 
 The full pipeline timing remains a single CI invocation per point, with no repeated warmups or medians. It is retained as a reproducibility baseline only. All three points show the same coarse-scale maximum delay of 2,048 seconds, reinforcing that scale-window interpolation—not just the run-retention threshold—dominates the worst-case wall-clock finality.
 
+
+## Three-point rerun and process-level memory snapshot
+
+A subsequent successful workflow run [44046240297](https://github.com/vsimko/trafficmsd/actions/runs/44046240297) repeated both the single-scale candidate-vector proxy and the full multiscale experiment for all three checksum-verified observation points. Its artifact contains six JSON reports. The multiscale process reports peak RSS (process-level, including runtime and test harness), so this is not an isolated allocation measurement for the optimizer.
+
+For the physical-duration policy T_min = 32 seconds:
+
+| Observation point | Offline full pipeline | Fixed-duration full pipeline | Interval optimizer only | Process peak RSS | Peak pending candidates |
+|---|---:|---:|---:|---:|---:|
+| right | 8.83 ms | 9.87 ms | 1.63 ms | 6,236 KiB | 15 |
+| left | 11.54 ms | 12.66 ms | 1.66 ms | 6,392 KiB | 16 |
+| bottom | 13.10 ms | 14.24 ms | 1.62 ms | 6,288 KiB | 16 |
+
+These are single CI invocations, not repeated medians or a performance comparison. The fixed-duration full pipeline was slower in these three measurements; no throughput advantage is established. The single-scale proxy process peak RSS was 3,972–4,000 KiB, but it excludes the multiscale path and must not be compared as an optimizer-only allocation figure.
+
+The 32-second multiscale results reproduce the earlier fidelity and finality findings: maximum finality remains 2,048 seconds on every point; p50/p95/p99 are 2/24/64 seconds (right), 2/20/64 seconds (left), and 2/16/64 seconds (bottom). The peak pending-candidate proxy is 15–16. The three observation points are locations within one dataset, not independent validation datasets. No threshold is selected and no production code/API/schema changes are justified by this rerun.
+
 ## Current research conclusion
 
 The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. The fixed-count prototype demonstrates a separate horizon-independent policy with bounded run-decision delay, but it intentionally changes semantics and has only initial synthetic tests. Neither prototype justifies selecting a production policy. The next acceptance gate is exhaustive adversarial and cross-horizon prefix-finality testing, followed by physical-duration mapping, trace-level fidelity, runtime/memory measurements, and downstream simulation impact. The legacy optimizer remains unchanged.
