@@ -113,11 +113,11 @@ jobs:
 
       - name: Compare offline and streaming coefficient amplitudes
         run: |
-          python scripts/compare_streaming_coefficients.py \\
-            --offline-model artifacts/westermo-model-extraction-v1/model/model-v1.json \\
-            --streaming-matrix artifacts/qpn-workload-evaluation-v1/streaming-coefficients.csv \\
-            --offline-signal artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv \\
-            --streaming-signal artifacts/qpn-workload-evaluation-v1/streaming-signal.csv \\
+          python scripts/compare_streaming_coefficients.py \
+            --offline-model artifacts/westermo-model-extraction-v1/model/model-v1.json \
+            --streaming-matrix artifacts/qpn-workload-evaluation-v1/streaming-coefficients.csv \
+            --offline-signal artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv \
+            --streaming-signal artifacts/qpn-workload-evaluation-v1/streaming-signal.csv \
             --output-dir artifacts/qpn-workload-evaluation-v1/coefficient-comparison
 
       - name: Build checksummed measured and deterministic-replay QPN schedules
@@ -232,7 +232,7 @@ jobs:
                   errors = sorted(validator.iter_errors(document),
                                   key=lambda error: list(error.path))
                   if errors:
-                      raise SystemExit("\\n".join(
+                      raise SystemExit("\n".join(
                           f"{document_path}: {list(error.path)}: {error.message}"
                           for error in errors
                       ))
