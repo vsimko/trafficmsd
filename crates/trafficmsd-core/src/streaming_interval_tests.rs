@@ -1056,7 +1056,7 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
             }
 
             let min_run = min_duration_seconds.div_ceil(window).max(1);
-            // The offline optimizer drops runs whose length is <= 0.004 * N.
+            // The offline optimizer drops runs whose length is <= 0.004 * N (first retained length: floor(cutoff)+1).
             // Record the exact boundary mismatch against the streaming min-run policy.
             let offline_cutoff = candidates.len() as f64 * 0.004;
             let offline_min_run = if offline_cutoff > 1.0 {
