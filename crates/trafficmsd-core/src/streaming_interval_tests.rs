@@ -721,6 +721,19 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
 
     let trace_path = std::env::var("TRAFFICMSD_STREAMING_TRACE")
         .expect("set TRAFFICMSD_STREAMING_TRACE to the verified trace.csv path");
+    let trace_file = std::path::Path::new(&trace_path);
+    let manifest_path = trace_file.parent().unwrap().join("manifest.json");
+    let manifest: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(manifest_path).expect("read trace manifest"),
+    )
+    .expect("parse trace manifest");
+    let trace_sha256 = manifest["trace_sha256"].as_str().expect("manifest trace SHA-256");
+    let observation_point = manifest["observation_point"]
+        .as_str()
+        .expect("manifest observation point");
+    let expected_sample_count = manifest["sample_count"]
+        .as_u64()
+        .expect("manifest sample count") as usize;
     let text = std::fs::read_to_string(&trace_path).expect("read Westermo trace");
     let mut lines = text.lines();
     assert_eq!(lines.next(), Some("sample_index,value"));
@@ -730,7 +743,7 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
             value.parse().expect("finite numeric trace value")
         })
         .collect();
-    assert_eq!(values.len(), 5_445, "unexpected Westermo trace length");
+    assert_eq!(values.len(), expected_sample_count, "trace length differs from manifest");
     assert!(values
         .iter()
         .all(|value| value.is_finite() && *value >= 0.0));
@@ -847,8 +860,9 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
     let report = serde_json::json!({
         "benchmark": "westermo-fixed-threshold-interval-prototype-v1",
         "scope": "single-scale candidate-vector proxy; no multiscale candidate generation or residual update",
-        "dataset": "Westermo Network Traffic Dataset v1.0, right observation point",
-        "trace_sha256": "6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7",
+        "dataset": format!("Westermo Network Traffic Dataset v1.0, {observation_point} observation point"),
+        "observation_point": observation_point,
+        "trace_sha256": trace_sha256,
         "sample_count": values.len(),
         "sampling_interval_seconds": 1,
         "quantity": "captured_frame_length_bytes_per_bin",
@@ -886,6 +900,19 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
 
     let trace_path = std::env::var("TRAFFICMSD_STREAMING_TRACE")
         .expect("set TRAFFICMSD_STREAMING_TRACE to the verified trace.csv path");
+    let trace_file = std::path::Path::new(&trace_path);
+    let manifest_path = trace_file.parent().unwrap().join("manifest.json");
+    let manifest: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(manifest_path).expect("read trace manifest"),
+    )
+    .expect("parse trace manifest");
+    let trace_sha256 = manifest["trace_sha256"].as_str().expect("manifest trace SHA-256");
+    let observation_point = manifest["observation_point"]
+        .as_str()
+        .expect("manifest observation point");
+    let expected_sample_count = manifest["sample_count"]
+        .as_u64()
+        .expect("manifest sample count") as usize;
     let text = std::fs::read_to_string(&trace_path).expect("read Westermo trace");
     let mut lines = text.lines();
     assert_eq!(lines.next(), Some("sample_index,value"));
@@ -895,7 +922,7 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
             value.parse().expect("finite numeric trace value")
         })
         .collect();
-    assert_eq!(values.len(), 5_445, "unexpected Westermo trace length");
+    assert_eq!(values.len(), expected_sample_count, "trace length differs from manifest");
     assert!(values
         .iter()
         .all(|value| value.is_finite() && *value >= 0.0));
@@ -1153,8 +1180,9 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
     let report = serde_json::json!({
         "benchmark": "westermo-fixed-duration-multiscale-interval-prototype-v1",
         "scope": "test-only fixed-duration interval policy integrated with production candidate generation and residual-update order",
-        "dataset": "Westermo Network Traffic Dataset v1.0, right observation point",
-        "trace_sha256": "6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7",
+        "dataset": format!("Westermo Network Traffic Dataset v1.0, {observation_point} observation point"),
+        "observation_point": observation_point,
+        "trace_sha256": trace_sha256,
         "observed_sample_count": observed_len,
         "padded_sample_count": padded_len,
         "sampling_interval_seconds": 1,
