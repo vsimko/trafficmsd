@@ -107,6 +107,7 @@ jobs:
           TRAFFICMSD_STREAMING_TRACE: ${{ github.workspace }}/artifacts/westermo-model-extraction-v1/trace.csv
           TRAFFICMSD_STREAMING_MULTISCALE_OUTPUT: ${{ github.workspace }}/artifacts/qpn-workload-evaluation-v1/streaming-multiscale-benchmark.json
           TRAFFICMSD_STREAMING_QPN_OUTPUT: ${{ github.workspace }}/artifacts/qpn-workload-evaluation-v1/streaming-signal.csv
+          TRAFFICMSD_STREAMING_COEFFICIENTS_OUTPUT: ${{ github.workspace }}/artifacts/qpn-workload-evaluation-v1/streaming-coefficients.csv
         run: cargo test -p trafficmsd-core fixed_threshold_westermo_multiscale_benchmark -- --ignored --nocapture --test-threads=1
 
       - name: Build checksummed measured and deterministic-replay QPN schedules
