@@ -19,6 +19,13 @@ RELEASE = "dataset-westermo-v1.0"
 BASE_URL = f"https://github.com/vsimko/trafficmsd/releases/download/{RELEASE}"
 ARCHIVE = "westermo-right.zip"
 COMMON_ASSETS = ("SHA256SUMS", "manifest.yaml", "validation-report.json")
+OBSERVATION_POINTS = ("right", "left", "bottom")
+
+
+def archive_for_observation_point(point: str) -> str:
+    if point not in OBSERVATION_POINTS:
+        raise ValueError(f"Unsupported observation point: {point}")
+    return f"westermo-{point}.zip"
 
 
 def sha256(path: Path) -> str:
@@ -220,12 +227,12 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/westermo-model-extraction-v1"))
     parser.add_argument("--cache-dir", type=Path, default=Path("data/external/westermo"))
     parser.add_argument("--bin-width", type=Decimal, default=Decimal("1"))
-    parser.add_argument("--observation-point", choices=("right", "left", "bottom"), default="right")
+    parser.add_argument("--observation-point", choices=OBSERVATION_POINTS, default="right")
     args = parser.parse_args()
     if args.bin_width <= 0:
         parser.error("--bin-width must be positive")
 
-    archive = f"westermo-{args.observation_point}.zip"
+    archive = archive_for_observation_point(args.observation_point)
     hashes = download_assets(args.cache_dir, archive)
     tshark_version = subprocess.run(
         ["tshark", "--version"], check=True, capture_output=True, text=True
@@ -259,7 +266,7 @@ def main() -> int:
         "limitations": [
             "Industrial-network traffic; not representative of general Internet traffic.",
             "Values are captured frame lengths in bytes, not application payload bytes.",
-            "Only the right observation-point archive is processed; no cross-observation-point deduplication is performed.",
+            "Only the selected observation-point archive is processed; no cross-observation-point deduplication is performed.",
             "Event annotations are time windows, not packet-level labels.",
         ],
     }
