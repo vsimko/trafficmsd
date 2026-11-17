@@ -24,7 +24,10 @@ fn source_time_finality_delay_seconds(
 fn multiscale_finality_uses_center_left_event_time_and_full_window_watermark() {
     for window in [2usize, 4, 8, 16, 2048] {
         assert_eq!(source_time_finality_delay_seconds(window, 3, 3), window / 2);
-        assert_eq!(source_time_finality_delay_seconds(window, 3, 4), window + window / 2);
+        assert_eq!(
+            source_time_finality_delay_seconds(window, 3, 4),
+            window + window / 2
+        );
         // Directly verify the source-time mapping from the #108 contract.
         let event_time = 3 * window + window / 2 - 1;
         let available_at = (4 + 1) * window - 1;
