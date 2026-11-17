@@ -875,7 +875,6 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }
 
-
 /// Real-trace multiscale benchmark using the same candidate generation and
 /// residual-update order as production decompose(), but the test-only
 /// fixed-duration run policy. The source trace is padded to the next power of
@@ -908,8 +907,7 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
 
     let offline_started = Instant::now();
     let offline = crate::decomposition::decompose(&signal, 0.004).unwrap();
-    let offline_reconstructed =
-        crate::decomposition::reconstruct(&offline.coefficients).unwrap();
+    let offline_reconstructed = crate::decomposition::reconstruct(&offline.coefficients).unwrap();
     let offline_elapsed_ns = offline_started.elapsed().as_nanos();
 
     let error_metrics = |estimate: &[f64], reference: &[f64]| {
@@ -943,9 +941,7 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
         series
             .iter()
             .enumerate()
-            .filter(|(index, value)| {
-                **value > 0.0 && (*index == 0 || series[*index - 1] <= 0.0)
-            })
+            .filter(|(index, value)| **value > 0.0 && (*index == 0 || series[*index - 1] <= 0.0))
             .count()
     };
 
@@ -989,9 +985,8 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
             let mut records = Vec::with_capacity(candidates.len());
             for candidate in &candidates {
                 records.extend(stream.push(*candidate).unwrap());
-                peak_pending = peak_pending.max(
-                    stream.pending_positive_run.len() + stream.filtered.len(),
-                );
+                peak_pending =
+                    peak_pending.max(stream.pending_positive_run.len() + stream.filtered.len());
             }
             records.extend(stream.finish().unwrap());
             let elapsed_ns = started.elapsed().as_nanos();
@@ -1015,7 +1010,9 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
                 }
                 let begin = k * window;
                 let end = begin + window;
-                let position = residual[begin..end].iter().position(|value| *value == candidate);
+                let position = residual[begin..end]
+                    .iter()
+                    .position(|value| *value == candidate);
                 coefficients[scale as usize][begin..end].fill(candidate);
                 if let Some(position) = position {
                     residual[begin + position] = 0.0;
@@ -1054,9 +1051,8 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
         let mut records = Vec::with_capacity(padded_len);
         for candidate in &residual {
             records.extend(stream.push(*candidate).unwrap());
-            peak_pending = peak_pending.max(
-                stream.pending_positive_run.len() + stream.filtered.len(),
-            );
+            peak_pending =
+                peak_pending.max(stream.pending_positive_run.len() + stream.filtered.len());
         }
         records.extend(stream.finish().unwrap());
         let elapsed_ns = started.elapsed().as_nanos();
@@ -1110,7 +1106,10 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
         let (offline_mae, offline_rmse, offline_max_abs, offline_volume_error_pct) =
             error_metrics(&offline_reconstructed[..observed_len], &values);
         let (mae_vs_offline, rmse_vs_offline, max_vs_offline, volume_vs_offline_pct) =
-            error_metrics(&reconstructed[..observed_len], &offline_reconstructed[..observed_len]);
+            error_metrics(
+                &reconstructed[..observed_len],
+                &offline_reconstructed[..observed_len],
+            );
 
         policies.push(serde_json::json!({
             "min_duration_seconds": min_duration_seconds,
@@ -1166,8 +1165,10 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
         ]
     });
 
-    let output_path = std::env::var("TRAFFICMSD_STREAMING_MULTISCALE_OUTPUT")
-        .unwrap_or_else(|_| "artifacts/streaming-fixed-threshold-westermo/multiscale-benchmark.json".into());
+    let output_path =
+        std::env::var("TRAFFICMSD_STREAMING_MULTISCALE_OUTPUT").unwrap_or_else(|_| {
+            "artifacts/streaming-fixed-threshold-westermo/multiscale-benchmark.json".into()
+        });
     let output_path = std::path::Path::new(&output_path);
     std::fs::create_dir_all(output_path.parent().unwrap()).expect("create report directory");
     std::fs::write(output_path, serde_json::to_vec_pretty(&report).unwrap())
