@@ -217,7 +217,7 @@ def build_experiment(
     source_csv_sha256: str,
     source_manifest_sha256: str,
 ) -> dict[str, Any]:
-    seed_key = "measured_replication_seeds" if condition == "measured_trace_reference" else "replay_replication_seeds"
+    seed_key = {"measured_trace_reference": "measured_replication_seeds", "deterministic_replay_control": "replay_replication_seeds", "streaming_fixed_duration": "streaming_replication_seeds"}[condition]
     seeds = config["simulation"][seed_key]
     metrics = config["metrics"]["primary"] + config["metrics"]["secondary"]
     constructs = [
@@ -265,6 +265,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-csv", type=Path, required=True)
     parser.add_argument("--replay-csv", type=Path, required=True)
+    parser.add_argument("--streaming-csv", type=Path)
+    parser.add_argument("--streaming-metadata", type=Path)
     parser.add_argument("--source-manifest", type=Path, required=True)
     parser.add_argument(
         "--config", type=Path,
@@ -282,6 +284,24 @@ def main() -> None:
     source_manifest, source_manifest_raw = load_json(args.source_manifest)
     source_values, source_raw = read_signal_csv(args.source_csv)
     replay_values, replay_raw = read_signal_csv(args.replay_csv)
+    streaming_values = streaming_raw = streaming_metadata_raw = None
+    if (args.streaming_csv is None) != (args.streaming_metadata is None):
+        raise ValueError("--streaming-csv and --streaming-metadata must be supplied together")
+    if args.streaming_csv is not None:
+        streaming_values, streaming_raw = read_signal_csv(args.streaming_csv)
+        streaming_metadata, streaming_metadata_raw = load_json(args.streaming_metadata)
+        if streaming_metadata.get("schema_version") != "1.0":
+            raise ValueError("unsupported streaming reconstruction metadata schema")
+        if streaming_metadata.get("trace_sha256") != source_manifest.get("trace_sha256"):
+            raise ValueError("streaming reconstruction must reference the exact measured trace checksum")
+        if streaming_metadata.get("observation_point") != source_manifest.get("observation_point"):
+            raise ValueError("streaming reconstruction observation point must match measured trace")
+        if streaming_metadata.get("observed_sample_count") != len(source_values):
+            raise ValueError("streaming reconstruction sample count must match measured signal")
+        if streaming_metadata.get("min_duration_seconds") != 32:
+            raise ValueError("QPN v1 streaming condition is predeclared at T_min=32 seconds")
+        if len(streaming_values) != len(source_values):
+            raise ValueError("streaming reconstruction must have the same number of observed bins")
     if len(source_values) != len(replay_values):
         raise ValueError("measured and replay signals must have the same number of bins")
     if config["time_unit"] != base_model["time_unit"]:
@@ -305,16 +325,23 @@ def main() -> None:
         raise ValueError("periodic replay comparisons require a service-completion event budget")
     measured_seeds = config["simulation"]["measured_replication_seeds"]
     replay_seeds = config["simulation"]["replay_replication_seeds"]
-    if len(measured_seeds) < 2 or len(replay_seeds) < 2:
+    streaming_seeds = config["simulation"].get("streaming_replication_seeds", [])
+    seed_groups = [measured_seeds, replay_seeds] + ([streaming_seeds] if streaming_values is not None else [])
+    if any(len(seeds) < 2 for seeds in seed_groups):
         raise ValueError("at least two explicit replication seeds per condition are required")
-    if set(measured_seeds) & set(replay_seeds):
-        raise ValueError("measured and replay conditions must use disjoint replication seeds")
+    for index, seeds in enumerate(seed_groups):
+        if any(set(seeds) & set(other) for other in seed_groups[index + 1:]):
+            raise ValueError("all compared conditions must use disjoint replication seeds")
+    if streaming_values is not None and not streaming_seeds:
+        raise ValueError("streaming_replication_seeds are required for the streaming condition")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     conditions = [
         ("measured", source_values, source_raw, "measured_trace_reference"),
         ("replay", replay_values, replay_raw, "deterministic_replay_control"),
     ]
+    if streaming_values is not None:
+        conditions.append(("streaming", streaming_values, streaming_raw, "streaming_fixed_duration"))
     prepared = []
     for suffix, values, raw_signal, condition_name in conditions:
         schedule, summary = build_schedule(
@@ -349,6 +376,8 @@ def main() -> None:
         "experiment_family": config["experiment_family"],
         "source_dataset_id": source_manifest.get("dataset_id"),
         "source_manifest_sha256": sha256_bytes(source_manifest_raw),
+        "streaming_metadata_sha256": sha256_bytes(streaming_metadata_raw) if streaming_metadata_raw else None,
+        "streaming_policy": {"min_duration_seconds": 32, "prototype": "test-only-fixed-duration-multiscale"} if streaming_values is not None else None,
         "config_sha256": sha256_bytes(config_raw),
         "base_model_sha256": sha256_bytes(base_model_raw),
         "model": {
@@ -407,6 +436,7 @@ def main() -> None:
         "replication_strategy": "10 independent replications per condition with disjoint seed sets",
         "measured_replication_seeds": config["simulation"]["measured_replication_seeds"],
         "replay_replication_seeds": config["simulation"]["replay_replication_seeds"],
+        "streaming_replication_seeds": config["simulation"].get("streaming_replication_seeds", []),
         "same_warmup_policy": config["simulation"]["warmup_policy"],
         "same_termination_policy": "service_completion_event_budget_on_periodic_replay",
         "primary_metrics": config["metrics"]["primary"],

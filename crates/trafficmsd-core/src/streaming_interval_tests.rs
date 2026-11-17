@@ -1181,6 +1181,33 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
         };
 
         let reconstructed = crate::decomposition::reconstruct(&coefficients).unwrap();
+        if min_duration_seconds == 32 {
+            if let Ok(output) = std::env::var("TRAFFICMSD_STREAMING_QPN_OUTPUT") {
+                let output_path = std::path::Path::new(&output);
+                std::fs::create_dir_all(output_path.parent().unwrap())
+                    .expect("create streaming QPN output directory");
+                let mut csv = String::from("sample_index,value\\n");
+                for (index, value) in reconstructed[..observed_len].iter().enumerate() {
+                    assert!(value.is_finite() && *value >= 0.0);
+                    csv.push_str(&format!("{index},{value:.17}\\n"));
+                }
+                std::fs::write(output_path, csv).expect("write streaming QPN reconstruction");
+                let metadata = serde_json::json!({
+                    "schema_version": "1.0",
+                    "trace_sha256": trace_sha256,
+                    "observation_point": observation_point,
+                    "observed_sample_count": observed_len,
+                    "padded_sample_count": padded_len,
+                    "min_duration_seconds": min_duration_seconds,
+                    "policy": "test-only-fixed-duration-multiscale"
+                });
+                let metadata_path = output_path.with_extension("json");
+                std::fs::write(
+                    metadata_path,
+                    serde_json::to_vec_pretty(&metadata).unwrap(),
+                ).expect("write streaming QPN reconstruction metadata");
+            }
+        }
         let total_multiscale_elapsed_ns = multiscale_started.elapsed().as_nanos();
         let (mae, rmse, max_abs, volume_error_pct) =
             error_metrics(&reconstructed[..observed_len], &values);
