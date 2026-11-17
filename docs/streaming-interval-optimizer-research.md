@@ -127,6 +127,25 @@ The multiscale report records per-scale candidate counts, thresholds, retained i
 
 The benchmark workflow runs both ignored tests whose names match `fixed_threshold_westermo` and uploads both JSON reports under the `streaming-fixed-threshold-westermo` artifact.
 
+## Preliminary Westermo multiscale result
+
+The first completed multiscale run is GitHub Actions workflow run [44044797672](https://github.com/vsimko/trafficmsd/actions/runs/44044797672), using the immutable trace checksum above. It evaluates all 16,383 candidate positions across scales for each duration policy. The report artifact is `streaming-fixed-threshold-westermo`.
+
+The offline decomposition plus reconstruction took 19.17 ms in this CI invocation. The fixed-duration full pipeline (candidate generation, interval optimization, residual updates, and reconstruction) took 15.22–16.66 ms across the tested thresholds. These are single-run CI measurements without a repeated warmup/median protocol; **do not interpret them as a performance advantage**. Interval-optimizer-only time was 2.66–3.16 ms.
+
+| T_min | Full pipeline | Finality p50 / p95 / p99 / max | MAE | RMSE | Volume error |
+|---:|---:|---:|---:|---:|---:|
+| 1 s | 16.66 ms | 1 / 16 / 64 / 2,048 s | 601.98 | 1,988.60 | +46.24% |
+| 16 s | 15.41 ms | 2 / 16 / 64 / 2,048 s | 679.74 | 2,079.10 | +21.35% |
+| 32 s | 15.34 ms | 2 / 24 / 64 / 2,048 s | 710.80 | 2,149.99 | +4.51% |
+| 64 s | 15.22 ms | 4 / 32 / 64 / 2,048 s | 721.36 | 2,183.31 | −10.46% |
+
+The offline reference on the observed 5,445 samples has MAE 710.61, RMSE 2,149.18, and volume error +3.63%. T_min = 32 s is the closest tested reconstruction to the offline reference (MAE difference 14.89; RMSE difference 118.32), but this is only similarity to the legacy decomposition—not a claim of better measured-trace fidelity. T_min = 16 s improves MAE/RMSE modestly while materially worsening volume preservation. No threshold is selected.
+
+The maximum 2,048-second finality delay is caused by one-candidate interpolation lookahead at a coarse scale whose candidate represents 2,048 seconds. This shows that bounding the run threshold alone does not bound wall-clock finality to a small value across scales. Scale-dependent event duration and interpolation dependencies must be included in any latency contract.
+
+The benchmark remains exploratory: one industrial trace, one observation point, one CI run, no held-out threshold calibration, no process RSS, and no downstream simulator comparison. The full JSON report contains per-scale candidate counts, retained intervals, thresholds, and delay distributions. No production optimizer or schema was changed.
+
 ## Current research conclusion
 
 The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. The fixed-count prototype demonstrates a separate horizon-independent policy with bounded run-decision delay, but it intentionally changes semantics and has only initial synthetic tests. Neither prototype justifies selecting a production policy. The next acceptance gate is exhaustive adversarial and cross-horizon prefix-finality testing, followed by physical-duration mapping, trace-level fidelity, runtime/memory measurements, and downstream simulation impact. The legacy optimizer remains unchanged.
