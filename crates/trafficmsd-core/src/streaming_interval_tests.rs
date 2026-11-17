@@ -10,7 +10,11 @@ use crate::decomposition::optimize_intervals;
 /// Convert candidate-index finality to source-sample time for a positive scale.
 /// Candidate k represents the legacy center-left sample k*window + window/2 - 1;
 /// candidate j is available when its full source window ends at (j+1)*window - 1.
-fn source_time_finality_delay_seconds(window: usize, event_index: usize, available_index: usize) -> usize {
+fn source_time_finality_delay_seconds(
+    window: usize,
+    event_index: usize,
+    available_index: usize,
+) -> usize {
     assert!(window >= 2 && window.is_power_of_two());
     assert!(available_index >= event_index);
     (available_index - event_index) * window + window / 2
