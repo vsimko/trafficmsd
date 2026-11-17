@@ -1205,6 +1205,23 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
                 std::fs::write(metadata_path, serde_json::to_vec_pretty(&metadata).unwrap())
                     .expect("write streaming QPN reconstruction metadata");
             }
+
+            // Export the full padded per-scale coefficient matrix so the
+            // research workflow can compare amplitudes, not only counts.
+            if let Ok(output) = std::env::var("TRAFFICMSD_STREAMING_COEFFICIENTS_OUTPUT") {
+                let output_path = std::path::Path::new(&output);
+                std::fs::create_dir_all(output_path.parent().unwrap())
+                    .expect("create streaming coefficient output directory");
+                let mut csv = String::from("scale_index,sample_index,value\n");
+                for (scale_index, row) in coefficients.iter().enumerate() {
+                    for (sample_index, value) in row.iter().enumerate() {
+                        assert!(value.is_finite() && *value >= 0.0);
+                        csv.push_str(&format!("{scale_index},{sample_index},{value:.17}\n"));
+                    }
+                }
+                std::fs::write(output_path, csv)
+                    .expect("write streaming per-scale coefficient matrix");
+            }
         }
         let total_multiscale_elapsed_ns = multiscale_started.elapsed().as_nanos();
         let (mae, rmse, max_abs, volume_error_pct) =
