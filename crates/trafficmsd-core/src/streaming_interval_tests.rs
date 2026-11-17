@@ -1186,10 +1186,10 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
                 let output_path = std::path::Path::new(&output);
                 std::fs::create_dir_all(output_path.parent().unwrap())
                     .expect("create streaming QPN output directory");
-                let mut csv = String::from("sample_index,value\\n");
+                let mut csv = String::from("sample_index,value\n");
                 for (index, value) in reconstructed[..observed_len].iter().enumerate() {
                     assert!(value.is_finite() && *value >= 0.0);
-                    csv.push_str(&format!("{index},{value:.17}\\n"));
+                    csv.push_str(&format!("{index},{value:.17}\n"));
                 }
                 std::fs::write(output_path, csv).expect("write streaming QPN reconstruction");
                 let metadata = serde_json::json!({
