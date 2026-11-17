@@ -18,7 +18,7 @@ from pathlib import Path, PurePosixPath
 RELEASE = "dataset-westermo-v1.0"
 BASE_URL = f"https://github.com/vsimko/trafficmsd/releases/download/{RELEASE}"
 ARCHIVE = "westermo-right.zip"
-ASSETS = ("westermo-right.zip", "SHA256SUMS", "manifest.yaml", "validation-report.json")
+COMMON_ASSETS = ("SHA256SUMS", "manifest.yaml", "validation-report.json")
 
 
 def sha256(path: Path) -> str:
@@ -29,9 +29,9 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def download_assets(directory: Path) -> dict[str, str]:
+def download_assets(directory: Path, archive: str = ARCHIVE) -> dict[str, str]:
     directory.mkdir(parents=True, exist_ok=True)
-    for name in ASSETS:
+    for name in (archive, *COMMON_ASSETS):
         destination = directory / name
         if not destination.exists():
             request = urllib.request.Request(f"{BASE_URL}/{name}", headers={"User-Agent": "trafficmsd-research-pipeline"})
@@ -47,9 +47,9 @@ def download_assets(directory: Path) -> dict[str, str]:
     release_manifest = (directory / "manifest.yaml").read_text(encoding="utf-8")
     if "license: CC-BY-4.0" not in release_manifest:
         raise RuntimeError("Dataset release manifest does not declare the expected CC-BY-4.0 license")
-    actual = sha256(directory / ARCHIVE)
-    if expected.get(ARCHIVE) != actual:
-        raise RuntimeError(f"SHA-256 mismatch for {ARCHIVE}: expected {expected.get(ARCHIVE)}, got {actual}")
+    actual = sha256(directory / archive)
+    if expected.get(archive) != actual:
+        raise RuntimeError(f"SHA-256 mismatch for {archive}: expected {expected.get(archive)}, got {actual}")
     return {
         "archive_sha256": actual,
         "release_manifest_sha256": sha256(directory / "manifest.yaml"),
@@ -103,12 +103,12 @@ def capinfos_packet_count(report_text: str) -> int:
     raise ValueError("capinfos report does not contain an exact packet count")
 
 
-def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
+def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal, archive: str = ARCHIVE):
     report_path = archive_path.parent / "validation-report.json"
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    archive_report = next((item for item in report["archives"] if item["archive"] == ARCHIVE), None)
+    archive_report = next((item for item in report["archives"] if item["archive"] == archive), None)
     if archive_report is None:
-        raise RuntimeError(f"{ARCHIVE} is absent from validation-report.json")
+        raise RuntimeError(f"{archive} is absent from validation-report.json")
 
     packet_rows = []
     member_records = []
@@ -195,8 +195,8 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
     signal, origin, last_timestamp = aggregate_packets(packet_rows, bin_width)
     sample_count = len(signal)
     return signal, {
-        "archive": ARCHIVE,
-        "observation_point": "right",
+        "archive": archive,
+        "observation_point": archive.removeprefix("westermo-").removesuffix(".zip"),
         "capture_members": member_records,
         "packet_count": len(packet_rows),
         "truncated_packet_count": sum(item["truncated_packet_count"] for item in member_records),
@@ -211,7 +211,7 @@ def extract_packets(archive_path: Path, work_dir: Path, bin_width: Decimal):
         "value_unit": "byte",
         "bin_convention": "left_closed_right_open",
         "empty_bin_value": 0,
-        "deduplication": "none; only the right observation-point archive is processed",
+        "deduplication": "none; only the selected observation-point archive is processed",
     }
 
 
@@ -220,16 +220,18 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/westermo-model-extraction-v1"))
     parser.add_argument("--cache-dir", type=Path, default=Path("data/external/westermo"))
     parser.add_argument("--bin-width", type=Decimal, default=Decimal("1"))
+    parser.add_argument("--observation-point", choices=("right", "left", "bottom"), default="right")
     args = parser.parse_args()
     if args.bin_width <= 0:
         parser.error("--bin-width must be positive")
 
-    hashes = download_assets(args.cache_dir)
+    archive = f"westermo-{args.observation_point}.zip"
+    hashes = download_assets(args.cache_dir, archive)
     tshark_version = subprocess.run(
         ["tshark", "--version"], check=True, capture_output=True, text=True
     ).stdout.splitlines()[0]
     with tempfile.TemporaryDirectory(prefix="trafficmsd-westermo-") as temporary:
-        signal, details = extract_packets(args.cache_dir / ARCHIVE, Path(temporary), args.bin_width)
+        signal, details = extract_packets(args.cache_dir / archive, Path(temporary), args.bin_width, archive)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     trace_path = args.output_dir / "trace.csv"
