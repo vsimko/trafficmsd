@@ -2,8 +2,8 @@
 
 **Status:** research result; test-only streaming prototype, not a production contract  
 **Issue:** [#108](https://github.com/vsimko/trafficmsd/issues/108)  
-**Experiment:** GitHub Actions run [44105306711](https://github.com/vsimko/trafficmsd/actions/runs/44105306711), artifact `westermo-model-extraction-and-qpn-v1`  
-**Artifact SHA-256:** `6d1edaf3bf158f9225580a1ee00886df47f1df45b6053052566dd16b2eed92d2`
+**Experiment:** GitHub Actions run [44123007093](https://github.com/vsimko/trafficmsd/actions/runs/44123007093), artifact `westermo-model-extraction-and-qpn-v1`  
+**Artifact SHA-256:** `a514eca96be665e2a8db40f5eaf132822c44b46ec12fce21a4b9f86e759ec531`
 
 ## Scope and reproducibility
 
@@ -113,7 +113,7 @@ The fixed-duration prototype returns records only when they are final. It does n
 
 The test-only workflow now exports the full padded streaming matrix and runs `scripts/compare_streaming_coefficients.py`. The generated report is included in the same workflow artifact under `qpn-workload-evaluation-v1/coefficient-comparison/`.
 
-**Provenance:** workflow [44119725671](https://github.com/vsimko/trafficmsd/actions/runs/44119725671), artifact SHA-256 `ff43f6a8c206e1067d524d643feb23f2c6db8a3f62585325684b3e6262cf549d`; offline model SHA-256 `233cd8f0e76e2ca9dcb275a494ca63a802ea724a382c137e3b10be71c4d39ce5`; streaming coefficient matrix SHA-256 `bd17491b79dafa24ccd8ce9d6d21afc6d126c9bb6f05e3e0cf470b9a06a45ad2`.
+**Provenance:** workflow [44123007093](https://github.com/vsimko/trafficmsd/actions/runs/44123007093), artifact SHA-256 `a514eca96be665e2a8db40f5eaf132822c44b46ec12fce21a4b9f86e759ec531`; offline model SHA-256 `233cd8f0e76e2ca9dcb275a494ca63a802ea724a382c137e3b10be71c4d39ce5`; streaming coefficient matrix SHA-256 `bd17491b79dafa24ccd8ce9d6d21afc6d126c9bb6f05e3e0cf470b9a06a45ad2`.
 
 The comparison extracts each scale's coefficient at the center-left emission position used by reconstruction. It reports both the complete 8,192-sample padded domain and the 5,445 observed bins. Both representations independently reconstruct their corresponding signal CSVs with maximum absolute round-trip error no greater than (10^{-8}).
 
@@ -144,9 +144,9 @@ The two paths do not currently apply the same positive-run retention boundary. O
 | Scale | Window | Candidate count | Offline cutoff | Offline minimum retained run | Streaming minimum retained run | Runs retained only by streaming |
 |---:|---:|---:|---:|---:|---:|---:|
 | 3 | 8 s | 1,024 | 4.096 | 5 | 4 | 13 |
-| 2 | 4 s | 2,048 | 8.192 | 9 | 8 | 14 |
+| 2 | 4 s | 2,048 | 8.192 | 9 | 8 | 13 |
 
-The boundary-run counts were reproduced from the same padded trace and the candidate-generation/residual-update order, and the resulting per-scale rows match the exported offline model and streaming matrix exactly. At scale 3, 13 raw positive runs of length 4 are retained by streaming but removed offline. At scale 2, 14 raw positive runs of length 8 are retained by streaming but removed offline. The higher-scale difference also changes the residual passed into the 4-second scale, so the 4-second effect is not independent; interpolation can further spread the coefficient differences beyond the number of boundary runs.
+The boundary-run counts were reproduced from the same padded trace and the candidate-generation/residual-update order, and the resulting per-scale rows match the exported offline model and streaming matrix exactly. At scale 3, 13 raw positive runs of length 4 are retained by streaming but removed offline. At scale 2, 13 raw positive runs of length 8 are retained by streaming but removed offline. The higher-scale difference also changes the residual passed into the 4-second scale, so the 4-second effect is not independent; interpolation can further spread the coefficient differences beyond the number of boundary runs.
 
 This explains the observed discrepancy as a policy-definition mismatch, not a serialization or reconstruction error. The streaming experiment is a fixed-duration policy, whereas offline v1 uses a scale-relative fraction of the candidate-vector length. The current comparison therefore measures two different retention policies. It must not be presented as a like-for-like optimizer equivalence test. A follow-up equivalence experiment should apply the exact offline threshold rule in streaming form (or explicitly compare the two policies as separate candidates) before drawing conclusions about implementation compatibility.
 
