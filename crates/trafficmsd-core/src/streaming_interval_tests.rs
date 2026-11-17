@@ -680,3 +680,170 @@ fn fixed_threshold_prefix_emissions_are_invariant_for_all_small_suffixes_and_hor
         }
     }
 }
+
+
+/// Real-trace microbenchmark. Set TRAFFICMSD_STREAMING_TRACE to the verified
+/// trace.csv path and run the ignored test explicitly.
+///
+/// This treats the one-second Westermo aggregate as a single candidate vector.
+/// It isolates interval filtering/interpolation and does not claim to benchmark
+/// multiscale candidate generation or residual updates.
+#[test]
+#[ignore = "requires the checksum-verified Westermo trace artifact"]
+fn fixed_threshold_westermo_packet_trace_benchmark() {
+    use std::time::Instant;
+
+    let trace_path = std::env::var("TRAFFICMSD_STREAMING_TRACE")
+        .expect("set TRAFFICMSD_STREAMING_TRACE to the verified trace.csv path");
+    let text = std::fs::read_to_string(&trace_path).expect("read Westermo trace");
+    let mut lines = text.lines();
+    assert_eq!(lines.next(), Some("sample_index,value"));
+    let values: Vec<f64> = lines
+        .map(|line| {
+            let (_, value) = line.split_once(',').expect("CSV row has two columns");
+            value.parse().expect("finite numeric trace value")
+        })
+        .collect();
+    assert_eq!(values.len(), 5_445, "unexpected Westermo trace length");
+    assert!(values.iter().all(|value| value.is_finite() && *value >= 0.0));
+
+    let offline_started = Instant::now();
+    let offline = optimize_intervals(&values, 0.004);
+    let offline_elapsed_ns = offline_started.elapsed().as_nanos();
+
+    let error_metrics = |estimate: &[f64], reference: &[f64]| {
+        assert_eq!(estimate.len(), reference.len());
+        let mut absolute_sum = 0.0;
+        let mut squared_sum = 0.0;
+        let mut max_absolute: f64 = 0.0;
+        let mut estimate_volume = 0.0;
+        let mut reference_volume = 0.0;
+        for (actual, expected) in estimate.iter().zip(reference) {
+            let error = actual - expected;
+            absolute_sum += error.abs();
+            squared_sum += error * error;
+            max_absolute = max_absolute.max(error.abs());
+            estimate_volume += actual;
+            reference_volume += expected;
+        }
+        (
+            absolute_sum / estimate.len() as f64,
+            (squared_sum / estimate.len() as f64).sqrt(),
+            max_absolute,
+            if reference_volume > 0.0 {
+                (estimate_volume - reference_volume) / reference_volume * 100.0
+            } else {
+                0.0
+            },
+        )
+    };
+
+    let interval_count = |series: &[f64]| {
+        series
+            .iter()
+            .enumerate()
+            .filter(|(index, value)| **value > 0.0 && (*index == 0 || series[*index - 1] <= 0.0))
+            .count()
+    };
+
+    let mut policies = Vec::new();
+    for min_run in [1usize, 2, 4, 8, 16, 22, 32, 64] {
+        let started = Instant::now();
+        let mut stream = FixedThresholdOptimizer::new(values.len(), min_run);
+        let mut records = Vec::with_capacity(values.len());
+        let mut peak_pending = 0usize;
+        for value in &values {
+            records.extend(stream.push(*value).unwrap());
+            peak_pending = peak_pending.max(
+                stream.pending_positive_run.len() + stream.filtered.len(),
+            );
+        }
+        records.extend(stream.finish().unwrap());
+        let streaming_elapsed_ns = started.elapsed().as_nanos();
+        assert_eq!(records.len(), values.len());
+
+        let mut finalized = vec![0.0; values.len()];
+        let mut delays = Vec::with_capacity(records.len());
+        for record in records {
+            finalized[record.event_time] = record.value;
+            delays.push(record.available_at - record.event_time);
+        }
+        delays.sort_unstable();
+        let percentile = |fraction: f64| -> usize {
+            let index = ((delays.len() as f64 * fraction).ceil() as usize)
+                .saturating_sub(1)
+                .min(delays.len() - 1);
+            delays[index]
+        };
+
+        let (mae, rmse, max_abs, volume_error_pct) = error_metrics(&finalized, &values);
+        let (offline_mae, offline_rmse, offline_max_abs, offline_volume_error_pct) =
+            error_metrics(&offline, &values);
+        let (mae_vs_offline, rmse_vs_offline, max_vs_offline, volume_vs_offline_pct) =
+            error_metrics(&finalized, &offline);
+
+        policies.push(serde_json::json!({
+            "min_run_candidates": min_run,
+            "streaming_elapsed_ns": streaming_elapsed_ns,
+            "streaming_candidates_per_second": values.len() as f64
+                / (streaming_elapsed_ns as f64 / 1_000_000_000.0),
+            "peak_pending_candidates_observed": peak_pending,
+            "positive_candidate_count": finalized.iter().filter(|value| **value > 0.0).count(),
+            "positive_interval_count": interval_count(&finalized),
+            "finality_delay_candidates": {
+                "p50": percentile(0.50),
+                "p95": percentile(0.95),
+                "p99": percentile(0.99),
+                "max": *delays.last().unwrap()
+            },
+            "reconstruction_vs_trace": {
+                "mae": mae,
+                "rmse": rmse,
+                "max_absolute_error": max_abs,
+                "volume_error_percent": volume_error_pct
+            },
+            "difference_vs_offline_reference": {
+                "mae": mae_vs_offline,
+                "rmse": rmse_vs_offline,
+                "max_absolute_error": max_vs_offline,
+                "volume_error_percent": volume_vs_offline_pct
+            },
+            "offline_reference_reconstruction_vs_trace": {
+                "mae": offline_mae,
+                "rmse": offline_rmse,
+                "max_absolute_error": offline_max_abs,
+                "volume_error_percent": offline_volume_error_pct
+            }
+        }));
+    }
+
+    let report = serde_json::json!({
+        "benchmark": "westermo-fixed-threshold-interval-prototype-v1",
+        "scope": "single-scale candidate-vector proxy; no multiscale candidate generation or residual update",
+        "dataset": "Westermo Network Traffic Dataset v1.0, right observation point",
+        "trace_sha256": "6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7",
+        "sample_count": values.len(),
+        "sampling_interval_seconds": 1,
+        "quantity": "captured_frame_length_bytes_per_bin",
+        "offline_cutoff_fraction": 0.004,
+        "offline_elapsed_ns": offline_elapsed_ns,
+        "offline_candidates_per_second": values.len() as f64
+            / (offline_elapsed_ns as f64 / 1_000_000_000.0),
+        "policies": policies,
+        "limitations": [
+            "The trace is industrial-network traffic from one observation point.",
+            "The fixed-count prototype is applied directly to the aggregate series as a candidate-vector proxy.",
+            "No scale-specific candidate construction, residual updates, or multiscale readiness is measured.",
+            "Pending-candidate count is an algorithmic state proxy, not process RSS.",
+            "The threshold grid is exploratory and is not calibrated or selected on held-out data."
+        ]
+    });
+
+    let output_path = std::env::var("TRAFFICMSD_STREAMING_BENCHMARK_OUTPUT")
+        .unwrap_or_else(|_| "artifacts/streaming-fixed-threshold-westermo/benchmark.json".into());
+    let output_path = std::path::Path::new(&output_path);
+    std::fs::create_dir_all(output_path.parent().unwrap()).expect("create report directory");
+    std::fs::write(output_path, serde_json::to_vec_pretty(&report).unwrap())
+        .expect("write benchmark report");
+    println!("{}", serde_json::to_string_pretty(&report).unwrap());
+}
