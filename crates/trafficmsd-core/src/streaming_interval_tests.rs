@@ -727,7 +727,9 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
         &std::fs::read_to_string(manifest_path).expect("read trace manifest"),
     )
     .expect("parse trace manifest");
-    let trace_sha256 = manifest["trace_sha256"].as_str().expect("manifest trace SHA-256");
+    let trace_sha256 = manifest["trace_sha256"]
+        .as_str()
+        .expect("manifest trace SHA-256");
     let observation_point = manifest["observation_point"]
         .as_str()
         .expect("manifest observation point");
@@ -743,7 +745,11 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
             value.parse().expect("finite numeric trace value")
         })
         .collect();
-    assert_eq!(values.len(), expected_sample_count, "trace length differs from manifest");
+    assert_eq!(
+        values.len(),
+        expected_sample_count,
+        "trace length differs from manifest"
+    );
     assert!(values
         .iter()
         .all(|value| value.is_finite() && *value >= 0.0));
