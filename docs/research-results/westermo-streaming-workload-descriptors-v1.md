@@ -137,6 +137,19 @@ The comparison extracts each scale's coefficient at the center-left emission pos
 
 All observed coefficient-amplitude differences are concentrated at the 4-second and 8-second scales. Scales 0, 1, and 4–13 match exactly at the reconstruction emission positions. This localizes the observed discrepancy to the shorter multiscale candidates affected by the fixed-duration policy. It does not demonstrate equivalence of the complete models or generalize beyond this capture.
 
+### Threshold-policy diagnosis
+
+The two paths do not currently apply the same positive-run retention boundary. Offline `optimize_intervals()` removes a positive run when its length is less than or equal to `0.004 × N`, where N is the number of candidates at that scale. The streaming prototype instead retains a run as soon as its length reaches `ceil(T_min / window_seconds)`. For the exploratory `T_min=32 s` policy, this gives:
+
+| Scale | Window | Candidate count | Offline cutoff | Offline minimum retained run | Streaming minimum retained run | Runs retained only by streaming |
+|---:|---:|---:|---:|---:|---:|---:|
+| 3 | 8 s | 1,024 | 4.096 | 5 | 4 | 13 |
+| 2 | 4 s | 2,048 | 8.192 | 9 | 8 | 14 |
+
+The boundary-run counts were reproduced from the same padded trace and the candidate-generation/residual-update order, and the resulting per-scale rows match the exported offline model and streaming matrix exactly. At scale 3, 13 raw positive runs of length 4 are retained by streaming but removed offline. At scale 2, 14 raw positive runs of length 8 are retained by streaming but removed offline. The higher-scale difference also changes the residual passed into the 4-second scale, so the 4-second effect is not independent; interpolation can further spread the coefficient differences beyond the number of boundary runs.
+
+This explains the observed discrepancy as a policy-definition mismatch, not a serialization or reconstruction error. The streaming experiment is a fixed-duration policy, whereas offline v1 uses a scale-relative fraction of the candidate-vector length. The current comparison therefore measures two different retention policies. It must not be presented as a like-for-like optimizer equivalence test. A follow-up equivalence experiment should apply the exact offline threshold rule in streaming form (or explicitly compare the two policies as separate candidates) before drawing conclusions about implementation compatibility.
+
 ## Interpretation and remaining work
 
 This report strengthens the workload comparison but does not establish compatibility:
