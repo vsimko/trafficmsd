@@ -119,6 +119,14 @@ cargo test -p trafficmsd-core fixed_threshold_westermo_packet_trace_benchmark --
 
 The workflow passes absolute workspace paths because Cargo runs package tests from the crate directory, then uploads `benchmark.json` as the `streaming-fixed-threshold-westermo` artifact. Timings are CI-environment measurements and should be interpreted as a baseline, not a general performance claim. The threshold grid is exploratory and is not calibrated on held-out data. This benchmark does not measure raw PCAP parsing, scale-specific candidate generation, residual updates, cross-scale finality, downstream simulation effects, or process RSS. Westermo is industrial-network traffic from one observation point, so it does not establish general Internet representativeness.
 
+## Multiscale Westermo benchmark
+
+The same workflow now runs a second experiment that applies a fixed **physical-duration** threshold throughout the real multiscale decomposition. It pads the 5,445 observed samples to 8,192 as the model-extraction pipeline does, uses the production unique-maximum candidate generation and residual-update order at every scale, and replaces only the interval optimizer with the test-only fixed-count stream. For a duration threshold T_min and scale s, it uses L_s = max(1, ceil(T_min / (2^s * Δt))); here Δt = 1 second and T_min is swept over 1, 2, 4, 8, 16, 32, and 64 seconds. Scale zero uses L_0 = T_min.
+
+The multiscale report records per-scale candidate counts, thresholds, retained intervals, finality delays in seconds, and runtime; aggregate throughput and pending-state proxy; and reconstruction MAE/RMSE/max/volume error against both the measured trace and the unchanged offline decomposition. This is materially closer to the production decomposition path than the single-scale proxy above. It still does not measure process RSS, PCAP parsing, downstream simulator outcomes, or calibration on a held-out dataset. No production implementation or API/schema change is made.
+
+The benchmark workflow runs both ignored tests whose names match `fixed_threshold_westermo` and uploads both JSON reports under the `streaming-fixed-threshold-westermo` artifact.
+
 ## Current research conclusion
 
 The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. The fixed-count prototype demonstrates a separate horizon-independent policy with bounded run-decision delay, but it intentionally changes semantics and has only initial synthetic tests. Neither prototype justifies selecting a production policy. The next acceptance gate is exhaustive adversarial and cross-horizon prefix-finality testing, followed by physical-duration mapping, trace-level fidelity, runtime/memory measurements, and downstream simulation impact. The legacy optimizer remains unchanged.
