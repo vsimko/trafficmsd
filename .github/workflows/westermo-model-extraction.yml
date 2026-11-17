@@ -113,7 +113,7 @@ jobs:
         run: |
           python scripts/build_qpn_workload_schedules.py \
             --source-csv artifacts/westermo-model-extraction-v1/model/source-signal.csv \
-            --replay-csv artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv
+            --replay-csv artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv \
             --streaming-csv artifacts/qpn-workload-evaluation-v1/streaming-signal.csv \
             --streaming-metadata artifacts/qpn-workload-evaluation-v1/streaming-signal.json \
             --source-manifest artifacts/westermo-model-extraction-v1/manifest.json \
