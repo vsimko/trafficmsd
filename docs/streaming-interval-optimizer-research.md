@@ -117,7 +117,7 @@ TRAFFICMSD_STREAMING_BENCHMARK_OUTPUT=artifacts/streaming-fixed-threshold-wester
 cargo test -p trafficmsd-core fixed_threshold_westermo_packet_trace_benchmark -- --ignored --nocapture
 ```
 
-The workflow uploads `benchmark.json` as the `streaming-fixed-threshold-westermo` artifact. Timings are CI-environment measurements and should be interpreted as a baseline, not a general performance claim. The threshold grid is exploratory and is not calibrated on held-out data. This benchmark does not measure raw PCAP parsing, scale-specific candidate generation, residual updates, cross-scale finality, downstream simulation effects, or process RSS. Westermo is industrial-network traffic from one observation point, so it does not establish general Internet representativeness.
+The workflow passes absolute workspace paths because Cargo runs package tests from the crate directory, then uploads `benchmark.json` as the `streaming-fixed-threshold-westermo` artifact. Timings are CI-environment measurements and should be interpreted as a baseline, not a general performance claim. The threshold grid is exploratory and is not calibrated on held-out data. This benchmark does not measure raw PCAP parsing, scale-specific candidate generation, residual updates, cross-scale finality, downstream simulation effects, or process RSS. Westermo is industrial-network traffic from one observation point, so it does not establish general Internet representativeness.
 
 ## Current research conclusion
 
