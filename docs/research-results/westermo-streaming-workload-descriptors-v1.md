@@ -109,12 +109,40 @@ The frozen-QPN experiment used 2,824 measured, 2,926 offline, and 2,951 streamin
 
 The fixed-duration prototype returns records only when they are final. It does not publish provisional records, so there is no provisional-revision rate to estimate for this implementation; the relevant consumer contract is to wait for final output. The benchmark's finality is source-time availability latency, not wall-clock consumer delay. For (T_{min}=32s), the aggregate finality p50/p95/p99/max is 3/26/96/4,096 seconds on the right observation point. The coarsest-scale EOF-sensitive tail is not a bounded-latency guarantee.
 
+## Direct per-scale coefficient-amplitude comparison
+
+The test-only workflow now exports the full padded streaming matrix and runs `scripts/compare_streaming_coefficients.py`. The generated report is included in the same workflow artifact under `qpn-workload-evaluation-v1/coefficient-comparison/`.
+
+**Provenance:** workflow [44119725671](https://github.com/vsimko/trafficmsd/actions/runs/44119725671), artifact SHA-256 `ff43f6a8c206e1067d524d643feb23f2c6db8a3f62585325684b3e6262cf549d`; offline model SHA-256 `233cd8f0e76e2ca9dcb275a494ca63a802ea724a382c137e3b10be71c4d39ce5`; streaming coefficient matrix SHA-256 `bd17491b79dafa24ccd8ce9d6d21afc6d126c9bb6f05e3e0cf470b9a06a45ad2`.
+
+The comparison extracts each scale's coefficient at the center-left emission position used by reconstruction. It reports both the complete 8,192-sample padded domain and the 5,445 observed bins. Both representations independently reconstruct their corresponding signal CSVs with maximum absolute round-trip error no greater than (10^{-8}).
+
+| Scale | Window (s) | Offline positive | Streaming positive | Full-domain MAE | Full-domain RMSE | Observed MAE | Observed RMSE | Max abs. error |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 2 | 4 | 321 | 373 | 23.8823 | 123.592 | 35.9375 | 151.610 | 2,416 |
+| 3 | 8 | 322 | 380 | 31.4229 | 209.495 | 47.2496 | 256.891 | 5,099 |
+| 4 | 16 | 341 | 341 | 0 | 0 | 0 | 0 | 0 |
+| 5 | 32 | 171 | 171 | 0 | 0 | 0 | 0 | 0 |
+| 6 | 64 | 86 | 86 | 0 | 0 | 0 | 0 | 0 |
+| 7 | 128 | 43 | 43 | 0 | 0 | 0 | 0 | 0 |
+| 8 | 256 | 22 | 22 | 0 | 0 | 0 | 0 | 0 |
+| 9 | 512 | 11 | 11 | 0 | 0 | 0 | 0 | 0 |
+| 10 | 1,024 | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
+| 11 | 2,048 | 3 | 3 | 0 | 0 | 0 | 0 | 0 |
+| 12 | 4,096 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| 13 | 8,192 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| **Total** | | **1,329** | **1,439** | | | | | |
+
+All observed coefficient-amplitude differences are concentrated at the 4-second and 8-second scales. Scales 0, 1, and 4–13 match exactly at the reconstruction emission positions. This localizes the observed discrepancy to the shorter multiscale candidates affected by the fixed-duration policy. It does not demonstrate equivalence of the complete models or generalize beyond this capture.
+
 ## Interpretation and remaining work
 
 This report strengthens the workload comparison but does not establish compatibility:
 
 - Only one Westermo observation point and one exploratory threshold are evaluated. The three Westermo observation points are not independent datasets.
-- The full coefficient-amplitude matrix is not exported for the streaming condition; per-scale amplitude comparison remains open.
+- Per-scale coefficient amplitudes are now compared directly for this one capture; independent-capture validation and held-out threshold selection remain open.
 - No independent capture has yet been processed.
 - Threshold selection has not been validated on held-out captures.
 - No production optimizer, model schema, or API change is proposed.
