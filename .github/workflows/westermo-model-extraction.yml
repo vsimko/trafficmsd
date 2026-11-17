@@ -12,6 +12,8 @@ on:
       - "scripts/line_qpn_trace_evaluation.py"
       - "scripts/line_qpn_analytical_control.py"
       - "scripts/summarize_qpn_workload_evaluation.py"
+      - "scripts/extend_qpn_comparison_streaming.py"
+      - "crates/trafficmsd-core/src/streaming_interval_tests.rs"
       - ".github/workflows/westermo-model-extraction.yml"
       - "schemas/model/v1/model.schema.json"
       - "schemas/model/v2/model.schema.json"
@@ -97,11 +99,23 @@ jobs:
             artifacts/westermo-model-extraction-v1/manifest.json \
             artifacts/westermo-model-extraction-v1/model
 
+      - name: Install Rust stable for test-only streaming reconstruction
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Export test-only T_min=32s streaming reconstruction
+        env:
+          TRAFFICMSD_STREAMING_TRACE: ${{ github.workspace }}/artifacts/westermo-model-extraction-v1/trace.csv
+          TRAFFICMSD_STREAMING_MULTISCALE_OUTPUT: ${{ github.workspace }}/artifacts/qpn-workload-evaluation-v1/streaming-multiscale-benchmark.json
+          TRAFFICMSD_STREAMING_QPN_OUTPUT: ${{ github.workspace }}/artifacts/qpn-workload-evaluation-v1/streaming-signal.csv
+        run: cargo test -p trafficmsd-core fixed_threshold_westermo_multiscale_benchmark -- --ignored --nocapture --test-threads=1
+
       - name: Build checksummed measured and deterministic-replay QPN schedules
         run: |
           python scripts/build_qpn_workload_schedules.py \
             --source-csv artifacts/westermo-model-extraction-v1/model/source-signal.csv \
             --replay-csv artifacts/westermo-model-extraction-v1/model/reconstructed-signal.csv \
+            --streaming-csv artifacts/qpn-workload-evaluation-v1/streaming-signal.csv \
+            --streaming-metadata artifacts/qpn-workload-evaluation-v1/streaming-signal.json \
             --source-manifest artifacts/westermo-model-extraction-v1/manifest.json \
             --output-dir artifacts/qpn-workload-evaluation-v1
 
@@ -124,6 +138,16 @@ jobs:
             --schedule artifacts/qpn-workload-evaluation-v1/replay-arrival-schedule.json \
             --model-spec artifacts/qpn-workload-evaluation-v1/resolved-model-spec.json \
             --output-dir artifacts/qpn-workload-evaluation-v1/replay
+
+      - name: Run streaming fixed-duration QPN condition
+        env:
+          LINE_LDES_FORCE_JAR: "1"
+        run: |
+          python scripts/line_qpn_trace_evaluation.py \
+            --experiment artifacts/qpn-workload-evaluation-v1/streaming-experiment.json \
+            --schedule artifacts/qpn-workload-evaluation-v1/streaming-arrival-schedule.json \
+            --model-spec artifacts/qpn-workload-evaluation-v1/resolved-model-spec.json \
+            --output-dir artifacts/qpn-workload-evaluation-v1/streaming
 
       - name: Derive measured offered job rate for the analytical control
         id: measured-rate
@@ -155,6 +179,15 @@ jobs:
             --control-result artifacts/qpn-workload-evaluation-v1/analytical-control/result.json \
             --control-config experiments/qpn-workload-evaluation-v1/analytical-control.json \
             --output-dir artifacts/qpn-workload-evaluation-v1/report
+
+      - name: Extend QPN comparison with streaming condition
+        run: |
+          python scripts/extend_qpn_comparison_streaming.py \
+            --manifest artifacts/qpn-workload-evaluation-v1/manifest.json \
+            --measured-result artifacts/qpn-workload-evaluation-v1/measured/result.json \
+            --replay-result artifacts/qpn-workload-evaluation-v1/replay/result.json \
+            --streaming-result artifacts/qpn-workload-evaluation-v1/streaming/result.json \
+            --report-dir artifacts/qpn-workload-evaluation-v1/report
 
       - name: Validate model and evaluation contracts
         run: |

@@ -134,6 +134,29 @@ class QpnWorkloadScheduleTests(unittest.TestCase):
         self.assertAlmostEqual(summary["periodic_replay_period"], 1.5)
         self.assertEqual([row["job_count"] for row in schedule["batches"]], [1, 0, 0])
 
+
+    def test_three_conditions_use_identical_cumulative_byte_to_job_mapping(self):
+        signals = [
+            [Decimal("600"), Decimal("600"), Decimal("0"), Decimal("900")],
+            [Decimal("500"), Decimal("700"), Decimal("0"), Decimal("900")],
+            [Decimal("650"), Decimal("550"), Decimal("0"), Decimal("900")],
+        ]
+        prepared = [
+            build_schedule(
+                values,
+                schedule_id=f"test-{index}",
+                time_unit="s",
+                bin_width=Decimal("1"),
+                bytes_per_job=Decimal("1000"),
+            )
+            for index, values in enumerate(signals)
+        ]
+        self.assertEqual([summary["horizon"] for _, summary in prepared], [4.0, 4.0, 4.0])
+        self.assertEqual([summary["total_jobs"] for _, summary in prepared], [2, 2, 2])
+        self.assertEqual([summary["final_remainder_bytes"] for _, summary in prepared], [100.0, 100.0, 100.0])
+        for schedule, _ in prepared:
+            validate_document("schedule", schedule)
+
     def test_schedule_rejects_nonpositive_mapping(self):
         with self.assertRaisesRegex(ValueError, "bytes_per_job"):
             build_schedule(
