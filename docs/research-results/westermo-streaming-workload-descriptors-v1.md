@@ -93,7 +93,7 @@ The offline counts below are positive-amplitude components in `model-v1.json`; s
 | 0 | 1 | 0 | 0 | 0 |
 | **Total** | | **1,329** | **1,439** | **+110 (+8.28%)** |
 
-The count difference is concentrated at the 4- and 8-second scales. The current streaming artifact does not serialize the full per-scale coefficient amplitude matrix, so per-scale amplitude error, sign/value alignment, and scale-wise reconstruction contribution are not yet available. Those must not be inferred from candidate counts.
+The count difference is concentrated at the 4- and 8-second scales. The full padded streaming coefficient matrix is now exported as `streaming-coefficients.csv`; direct per-scale amplitude metrics are reported in the coefficient-amplitude comparison below. Candidate-count differences alone should not be used as a substitute for those amplitude metrics.
 
 ## Reconstruction and QPN context
 
@@ -160,4 +160,4 @@ This report strengthens the workload comparison but does not establish compatibi
 - Threshold selection has not been validated on held-out captures.
 - No production optimizer, model schema, or API change is proposed.
 
-The next experiment should export the streaming coefficient matrix with provenance, compare it directly with offline coefficients on identical observed bins, and repeat the frozen-QPN analysis on an independent raw capture selected from the dataset registry. Large captures must use the documented on-demand/local acquisition policy.
+The next experiment should repeat the frozen-QPN and coefficient comparison on an independent raw capture selected from the dataset registry. Large captures must use the documented on-demand/local acquisition policy.
