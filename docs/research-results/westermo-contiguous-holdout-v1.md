@@ -41,13 +41,11 @@ The training-mean baseline on this test segment has MAE 729.74 and RMSE 1,764.31
 
 The following additional diagnostics describe the 0.0001 test candidate (also numerically identical to 0.0005 in this artifact); they are not evidence that this cutoff was selected:
 
-- Pearson correlation between source and reconstruction: 0.4891.
 - Source ACF at lags 1, 2, 4, 8, 16, 32: 0.8452, 0.6942, 0.6723, 0.5768, 0.4107, 0.2712.
 - Reconstructed ACF at the same lags: 0.2839, 0.4384, 0.6098, 0.6714, 0.6523, 0.5486.
 - Mean absolute ACF difference across those lags: 0.2489.
 - Source burst runs above the training p95 threshold (2,843 bytes): 9; reconstructed runs: 30.
 - Maximum source/reconstructed burst run lengths: 20 / 21 samples.
-- Zero-valued samples: source 0%; reconstruction 14.97%.
 - Source/reconstruction p95: 2,078 / 4,456 bytes; p99: 10,017 / 11,840 bytes.
 - Source/reconstruction total: 609,583 / 786,429 bytes.
 
@@ -60,9 +58,9 @@ For the 0.0001 test candidate (also identical in output to 0.0005):
 | Metric | Model v1 | Model v2 |
 |---|---:|---:|
 | Components | 2,899 | 986 |
-| Serialized JSON | 474,918 bytes | 163,204 bytes |
+| Serialized JSON | 474,941 bytes | 163,204 bytes |
 
-Model v2 reduces serialized size by 65.63% while preserving the v1 reconstruction within the experiment's numerical equivalence check. It remains 18.73 times the size of the raw float64 test vector (8,712 bytes). This is a representation-efficiency result, not a fidelity improvement.
+Model v2 reduces serialized size by 65.64% while preserving the v1 reconstruction within the experiment's numerical equivalence check. It remains 18.73 times the size of the raw float64 test vector (8,712 bytes). This is a representation-efficiency result, not a fidelity improvement.
 
 ## Reproducibility and provenance
 
