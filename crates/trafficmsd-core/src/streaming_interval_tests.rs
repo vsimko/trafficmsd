@@ -548,7 +548,6 @@ fn fixed_threshold_is_prefix_final_and_horizon_independent() {
     }
 }
 
-
 #[test]
 fn fixed_threshold_keeps_the_entire_run_after_reaching_threshold() {
     let values = [0.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 0.0];
@@ -556,7 +555,10 @@ fn fixed_threshold_keeps_the_entire_run_after_reaching_threshold() {
     let mut ordered = output;
     ordered.sort_by_key(|record| record.event_time);
     assert_eq!(
-        ordered.iter().map(|record| record.value).collect::<Vec<_>>(),
+        ordered
+            .iter()
+            .map(|record| record.value)
+            .collect::<Vec<_>>(),
         values
     );
     assert!(ordered
