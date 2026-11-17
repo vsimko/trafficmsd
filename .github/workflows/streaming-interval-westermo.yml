@@ -1,0 +1,120 @@
+name: Streaming interval benchmark (Westermo)
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "crates/trafficmsd-core/src/streaming_interval_tests.rs"
+      - "scripts/datasets/extract_westermo.py"
+      - "tests/python/test_extract_westermo.py"
+      - "docs/streaming-interval-optimizer-research.md"
+      - ".github/workflows/streaming-interval-westermo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: streaming-interval-westermo-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Download immutable Westermo extraction artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: westermo-model-extraction-v1
+          path: artifacts/westermo-model-extraction-v1
+          repository: vsimko/trafficmsd
+          run-id: 42001977735
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify trace provenance and checksum
+        run: |
+          echo "6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7  artifacts/westermo-model-extraction-v1/trace.csv" | sha256sum --check
+          test "$(($(wc -l < artifacts/westermo-model-extraction-v1/trace.csv) - 1))" -eq 5445
+
+      - name: Install tshark
+        run: |
+          sudo apt-get update -o Acquire::Retries=2 -o Acquire::http::Timeout=30
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tshark
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test deterministic Westermo extraction
+        run: python -m unittest discover -s tests/python -p test_extract_westermo.py -v
+
+      - name: Extract left and bottom observation points independently
+        run: |
+          python scripts/datasets/extract_westermo.py \
+            --observation-point left \
+            --output-dir artifacts/westermo-left \
+            --cache-dir data/external/westermo
+          python scripts/datasets/extract_westermo.py \
+            --observation-point bottom \
+            --output-dir artifacts/westermo-bottom \
+            --cache-dir data/external/westermo
+
+      - name: Verify all observation-point trace manifests
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          traces = {
+              "right": Path("artifacts/westermo-model-extraction-v1"),
+              "left": Path("artifacts/westermo-left"),
+              "bottom": Path("artifacts/westermo-bottom"),
+          }
+          for point, directory in traces.items():
+              manifest = json.loads((directory / "manifest.json").read_text())
+              trace = directory / "trace.csv"
+              actual = hashlib.sha256(trace.read_bytes()).hexdigest()
+              assert manifest["observation_point"] == point
+              assert manifest["sample_count"] == sum(1 for _ in trace.open()) - 1
+              assert manifest["trace_sha256"] == actual
+              print(f"{point}: {manifest['sample_count']} bins, sha256={actual}")
+          PY
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run fixed-duration benchmarks for each observation point
+        run: |
+          for point in right left bottom; do
+            case "$point" in
+              right) trace_dir="artifacts/westermo-model-extraction-v1" ;;
+              left) trace_dir="artifacts/westermo-left" ;;
+              bottom) trace_dir="artifacts/westermo-bottom" ;;
+            esac
+            export TRAFFICMSD_STREAMING_TRACE="$GITHUB_WORKSPACE/$trace_dir/trace.csv"
+            export TRAFFICMSD_STREAMING_BENCHMARK_OUTPUT="$GITHUB_WORKSPACE/artifacts/streaming-fixed-threshold-westermo/$point/benchmark.json"
+            cargo test -p trafficmsd-core fixed_threshold_westermo_packet_trace_benchmark -- --ignored --nocapture --test-threads=1
+
+            export TRAFFICMSD_STREAMING_MULTISCALE_OUTPUT="$GITHUB_WORKSPACE/artifacts/streaming-fixed-threshold-westermo/$point/multiscale-benchmark.json"
+            cargo test -p trafficmsd-core fixed_threshold_westermo_multiscale_benchmark -- --ignored --nocapture --test-threads=1
+          done
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v7
+        with:
+          name: streaming-fixed-threshold-westermo
+          path: artifacts/streaming-fixed-threshold-westermo/
+          if-no-files-found: error

@@ -57,6 +57,16 @@ class AggregatePacketsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             MODULE.capinfos_packet_count("No packet count")
 
+
+    def test_observation_point_archive_selection(self):
+        for point in ("right", "left", "bottom"):
+            self.assertEqual(
+                MODULE.archive_for_observation_point(point),
+                f"westermo-{point}.zip",
+            )
+        with self.assertRaises(ValueError):
+            MODULE.archive_for_observation_point("unknown")
+
     def test_rejects_non_positive_width_and_empty_input(self):
         with self.assertRaises(ValueError):
             MODULE.aggregate_packets([(Decimal("0"), 1)], Decimal("0"))
