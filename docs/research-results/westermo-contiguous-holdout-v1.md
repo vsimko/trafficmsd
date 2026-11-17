@@ -49,7 +49,7 @@ The following additional diagnostics describe the 0.0001 test candidate (also nu
 - Source/reconstruction p95: 2,078 / 4,456 bytes; p99: 10,017 / 11,840 bytes.
 - Source/reconstruction total: 609,583 / 786,429 bytes.
 
-These diagnostics show material distortion in temporal dependence, burst counts, zero occupancy, and volume. Matching a maximum burst length does not compensate for the other discrepancies.
+These diagnostics show material distortion in temporal dependence, burst counts, and total volume. Matching a maximum burst length does not compensate for the other discrepancies.
 
 ## Sparse representation v2
 
