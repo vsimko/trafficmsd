@@ -2,7 +2,7 @@
 
 **Status:** research result; test-only streaming prototype, not a production contract  
 **Issue:** [#108](https://github.com/vsimko/trafficmsd/issues/108)  
-**Experiment:** GitHub Actions run [44123007093](https://github.com/vsimko/trafficmsd/actions/runs/44123007093), artifact `westermo-model-extraction-and-qpn-v1`  
+**Experiment:** GitHub Actions run [44124933173](https://github.com/vsimko/trafficmsd/actions/runs/44124933173), artifact `westermo-model-extraction-and-qpn-v1`  
 **Artifact SHA-256:** `a514eca96be665e2a8db40f5eaf132822c44b46ec12fce21a4b9f86e759ec531`
 
 ## Scope and reproducibility
@@ -113,7 +113,7 @@ The fixed-duration prototype returns records only when they are final. It does n
 
 The test-only workflow now exports the full padded streaming matrix and runs `scripts/compare_streaming_coefficients.py`. The generated report is included in the same workflow artifact under `qpn-workload-evaluation-v1/coefficient-comparison/`.
 
-**Provenance:** workflow [44123007093](https://github.com/vsimko/trafficmsd/actions/runs/44123007093), artifact SHA-256 `a514eca96be665e2a8db40f5eaf132822c44b46ec12fce21a4b9f86e759ec531`; offline model SHA-256 `233cd8f0e76e2ca9dcb275a494ca63a802ea724a382c137e3b10be71c4d39ce5`; streaming coefficient matrix SHA-256 `bd17491b79dafa24ccd8ce9d6d21afc6d126c9bb6f05e3e0cf470b9a06a45ad2`.
+**Provenance:** workflow [44124933173](https://github.com/vsimko/trafficmsd/actions/runs/44124933173), artifact SHA-256 `a514eca96be665e2a8db40f5eaf132822c44b46ec12fce21a4b9f86e759ec531`; offline model SHA-256 `233cd8f0e76e2ca9dcb275a494ca63a802ea724a382c137e3b10be71c4d39ce5`; streaming coefficient matrix SHA-256 `bd17491b79dafa24ccd8ce9d6d21afc6d126c9bb6f05e3e0cf470b9a06a45ad2`.
 
 The comparison extracts each scale's coefficient at the center-left emission position used by reconstruction. It reports both the complete 8,192-sample padded domain and the 5,445 observed bins. Both representations independently reconstruct their corresponding signal CSVs with maximum absolute round-trip error no greater than (10^{-8}).
 
