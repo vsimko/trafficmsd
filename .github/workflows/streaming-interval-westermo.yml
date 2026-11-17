@@ -1,0 +1,62 @@
+name: Streaming interval benchmark (Westermo)
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "crates/trafficmsd-core/src/streaming_interval_tests.rs"
+      - "docs/streaming-interval-optimizer-research.md"
+      - ".github/workflows/streaming-interval-westermo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: streaming-interval-westermo-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Download immutable Westermo extraction artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: westermo-model-extraction-v1
+          path: artifacts/westermo-model-extraction-v1
+          repository: vsimko/trafficmsd
+          run-id: 42001977735
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify trace provenance and checksum
+        run: |
+          echo "6429e3d6a84efdc13edc14e44b2de2e6cbd31452e1958116c271745069b3fbb7  artifacts/westermo-model-extraction-v1/trace.csv" | sha256sum --check
+          test "$(($(wc -l < artifacts/westermo-model-extraction-v1/trace.csv) - 1))" -eq 5445
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run fixed-threshold packet-trace benchmark
+        env:
+          TRAFFICMSD_STREAMING_TRACE: artifacts/westermo-model-extraction-v1/trace.csv
+          TRAFFICMSD_STREAMING_BENCHMARK_OUTPUT: artifacts/streaming-fixed-threshold-westermo/benchmark.json
+        run: cargo test -p trafficmsd-core fixed_threshold_westermo_packet_trace_benchmark -- --ignored --nocapture
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v7
+        with:
+          name: streaming-fixed-threshold-westermo
+          path: artifacts/streaming-fixed-threshold-westermo/benchmark.json
+          if-no-files-found: error
