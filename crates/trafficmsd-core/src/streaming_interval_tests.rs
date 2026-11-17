@@ -947,6 +947,7 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
 
     let mut policies = Vec::new();
     for min_duration_seconds in [1usize, 2, 4, 8, 16, 32, 64] {
+        let multiscale_started = Instant::now();
         let mut residual = signal.clone();
         let max_scale = padded_len.trailing_zeros();
         let mut coefficients = vec![vec![0.0; padded_len]; max_scale as usize + 1];
@@ -1101,6 +1102,7 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
         };
 
         let reconstructed = crate::decomposition::reconstruct(&coefficients).unwrap();
+        let total_multiscale_elapsed_ns = multiscale_started.elapsed().as_nanos();
         let (mae, rmse, max_abs, volume_error_pct) =
             error_metrics(&reconstructed[..observed_len], &values);
         let (offline_mae, offline_rmse, offline_max_abs, offline_volume_error_pct) =
@@ -1113,9 +1115,12 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
 
         policies.push(serde_json::json!({
             "min_duration_seconds": min_duration_seconds,
-            "streaming_elapsed_ns": total_streaming_elapsed_ns,
-            "streaming_candidates_per_second": total_candidates as f64
+            "interval_optimizer_elapsed_ns": total_streaming_elapsed_ns,
+            "interval_optimizer_candidates_per_second": total_candidates as f64
                 / (total_streaming_elapsed_ns as f64 / 1_000_000_000.0),
+            "multiscale_elapsed_ns": total_multiscale_elapsed_ns,
+            "multiscale_candidates_per_second": total_candidates as f64
+                / (total_multiscale_elapsed_ns as f64 / 1_000_000_000.0),
             "peak_pending_candidates_observed": peak_pending,
             "finality_delay_seconds": {
                 "p50": percentile(0.50),
