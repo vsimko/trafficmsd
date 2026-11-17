@@ -2,8 +2,8 @@
 
 **Status:** research result; test-only streaming prototype, not a production contract  
 **Issue:** [#108](https://github.com/vsimko/trafficmsd/issues/108)  
-**Experiment:** GitHub Actions run [44105306711](https://github.com/vsimko/trafficmsd/actions/runs/44105306711), artifact `westermo-model-extraction-and-qpn-v1`  
-**Artifact SHA-256:** `6d1edaf3bf158f9225580a1ee00886df47f1df45b6053052566dd16b2eed92d2`
+**Experiment:** GitHub Actions run [44124933173](https://github.com/vsimko/trafficmsd/actions/runs/44124933173), artifact `westermo-model-extraction-and-qpn-v1`  
+**Artifact SHA-256:** `a514eca96be665e2a8db40f5eaf132822c44b46ec12fce21a4b9f86e759ec531`
 
 ## Scope and reproducibility
 
@@ -93,7 +93,7 @@ The offline counts below are positive-amplitude components in `model-v1.json`; s
 | 0 | 1 | 0 | 0 | 0 |
 | **Total** | | **1,329** | **1,439** | **+110 (+8.28%)** |
 
-The count difference is concentrated at the 4- and 8-second scales. The current streaming artifact does not serialize the full per-scale coefficient amplitude matrix, so per-scale amplitude error, sign/value alignment, and scale-wise reconstruction contribution are not yet available. Those must not be inferred from candidate counts.
+The count difference is concentrated at the 4- and 8-second scales. The full padded streaming coefficient matrix is now exported as `streaming-coefficients.csv`; direct per-scale amplitude metrics are reported in the coefficient-amplitude comparison below. Candidate-count differences alone should not be used as a substitute for those amplitude metrics.
 
 ## Reconstruction and QPN context
 
@@ -109,14 +109,55 @@ The frozen-QPN experiment used 2,824 measured, 2,926 offline, and 2,951 streamin
 
 The fixed-duration prototype returns records only when they are final. It does not publish provisional records, so there is no provisional-revision rate to estimate for this implementation; the relevant consumer contract is to wait for final output. The benchmark's finality is source-time availability latency, not wall-clock consumer delay. For (T_{min}=32s), the aggregate finality p50/p95/p99/max is 3/26/96/4,096 seconds on the right observation point. The coarsest-scale EOF-sensitive tail is not a bounded-latency guarantee.
 
+## Direct per-scale coefficient-amplitude comparison
+
+The test-only workflow now exports the full padded streaming matrix and runs `scripts/compare_streaming_coefficients.py`. The generated report is included in the same workflow artifact under `qpn-workload-evaluation-v1/coefficient-comparison/`.
+
+**Provenance:** workflow [44124933173](https://github.com/vsimko/trafficmsd/actions/runs/44124933173), artifact SHA-256 `a514eca96be665e2a8db40f5eaf132822c44b46ec12fce21a4b9f86e759ec531`; offline model SHA-256 `233cd8f0e76e2ca9dcb275a494ca63a802ea724a382c137e3b10be71c4d39ce5`; streaming coefficient matrix SHA-256 `bd17491b79dafa24ccd8ce9d6d21afc6d126c9bb6f05e3e0cf470b9a06a45ad2`.
+
+The comparison extracts each scale's coefficient at the center-left emission position used by reconstruction. It reports both the complete 8,192-sample padded domain and the 5,445 observed bins. Both representations independently reconstruct their corresponding signal CSVs with maximum absolute round-trip error no greater than (10^{-8}).
+
+| Scale | Window (s) | Offline positive | Streaming positive | Full-domain MAE | Full-domain RMSE | Observed MAE | Observed RMSE | Max abs. error |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 2 | 4 | 321 | 373 | 23.8823 | 123.592 | 35.9375 | 151.610 | 2,416 |
+| 3 | 8 | 322 | 380 | 31.4229 | 209.495 | 47.2496 | 256.891 | 5,099 |
+| 4 | 16 | 341 | 341 | 0 | 0 | 0 | 0 | 0 |
+| 5 | 32 | 171 | 171 | 0 | 0 | 0 | 0 | 0 |
+| 6 | 64 | 86 | 86 | 0 | 0 | 0 | 0 | 0 |
+| 7 | 128 | 43 | 43 | 0 | 0 | 0 | 0 | 0 |
+| 8 | 256 | 22 | 22 | 0 | 0 | 0 | 0 | 0 |
+| 9 | 512 | 11 | 11 | 0 | 0 | 0 | 0 | 0 |
+| 10 | 1,024 | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
+| 11 | 2,048 | 3 | 3 | 0 | 0 | 0 | 0 | 0 |
+| 12 | 4,096 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| 13 | 8,192 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| **Total** | | **1,329** | **1,439** | | | | | |
+
+All observed coefficient-amplitude differences are concentrated at the 4-second and 8-second scales. Scales 0, 1, and 4–13 match exactly at the reconstruction emission positions. This localizes the observed discrepancy to the shorter multiscale candidates affected by the fixed-duration policy. It does not demonstrate equivalence of the complete models or generalize beyond this capture.
+
+### Threshold-policy diagnosis
+
+The two paths do not currently apply the same positive-run retention boundary. Offline `optimize_intervals()` removes a positive run when its length is less than or equal to `0.004 × N`, where N is the number of candidates at that scale. The streaming prototype instead retains a run as soon as its length reaches `ceil(T_min / window_seconds)`. For the exploratory `T_min=32 s` policy, this gives:
+
+| Scale | Window | Candidate count | Offline cutoff | Offline minimum retained run | Streaming minimum retained run | Runs retained only by streaming |
+|---:|---:|---:|---:|---:|---:|---:|
+| 3 | 8 s | 1,024 | 4.096 | 5 | 4 | 13 |
+| 2 | 4 s | 2,048 | 8.192 | 9 | 8 | 13 |
+
+The boundary-run counts were reproduced from the same padded trace and the candidate-generation/residual-update order, and the resulting per-scale rows match the exported offline model and streaming matrix exactly. At scale 3, 13 raw positive runs of length 4 are retained by streaming but removed offline. At scale 2, 13 raw positive runs of length 8 are retained by streaming but removed offline. The higher-scale difference also changes the residual passed into the 4-second scale, so the 4-second effect is not independent; interpolation can further spread the coefficient differences beyond the number of boundary runs.
+
+This explains the observed discrepancy as a policy-definition mismatch, not a serialization or reconstruction error. The streaming experiment is a fixed-duration policy, whereas offline v1 uses a scale-relative fraction of the candidate-vector length. The current comparison therefore measures two different retention policies. It must not be presented as a like-for-like optimizer equivalence test. A follow-up equivalence experiment should apply the exact offline threshold rule in streaming form (or explicitly compare the two policies as separate candidates) before drawing conclusions about implementation compatibility.
+
 ## Interpretation and remaining work
 
 This report strengthens the workload comparison but does not establish compatibility:
 
 - Only one Westermo observation point and one exploratory threshold are evaluated. The three Westermo observation points are not independent datasets.
-- The full coefficient-amplitude matrix is not exported for the streaming condition; per-scale amplitude comparison remains open.
+- Per-scale coefficient amplitudes are now compared directly for this one capture; independent-capture validation and held-out threshold selection remain open.
 - No independent capture has yet been processed.
 - Threshold selection has not been validated on held-out captures.
 - No production optimizer, model schema, or API change is proposed.
 
-The next experiment should export the streaming coefficient matrix with provenance, compare it directly with offline coefficients on identical observed bins, and repeat the frozen-QPN analysis on an independent raw capture selected from the dataset registry. Large captures must use the documented on-demand/local acquisition policy.
+The next experiment should repeat the frozen-QPN and coefficient comparison on an independent raw capture selected from the dataset registry. Large captures must use the documented on-demand/local acquisition policy.

@@ -1056,6 +1056,31 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
             }
 
             let min_run = min_duration_seconds.div_ceil(window).max(1);
+            // The offline optimizer drops runs whose length is <= 0.004 * N (first retained length: floor(cutoff)+1).
+            // Record the exact boundary mismatch against the streaming min-run policy.
+            let offline_cutoff = candidates.len() as f64 * 0.004;
+            let offline_min_run = if offline_cutoff > 1.0 {
+                offline_cutoff.floor() as usize + 1
+            } else {
+                1
+            };
+            let mut streaming_only_boundary_runs = 0usize;
+            let mut run_start = 0usize;
+            while run_start < candidates.len() {
+                if candidates[run_start] <= 0.0 {
+                    run_start += 1;
+                    continue;
+                }
+                let mut run_end = run_start + 1;
+                while run_end < candidates.len() && candidates[run_end] > 0.0 {
+                    run_end += 1;
+                }
+                let run_length = run_end - run_start;
+                if run_length >= min_run && run_length < offline_min_run {
+                    streaming_only_boundary_runs += 1;
+                }
+                run_start = run_end;
+            }
             let started = Instant::now();
             let mut stream = FixedThresholdOptimizer::new(candidates.len(), min_run);
             let mut records = Vec::with_capacity(candidates.len());
@@ -1112,6 +1137,8 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
                 "window_seconds": window,
                 "candidate_count": candidates.len(),
                 "min_run_candidates": min_run,
+                "offline_min_run_candidates": offline_min_run,
+                "streaming_only_boundary_positive_runs": streaming_only_boundary_runs,
                 "retained_positive_candidates": optimized.iter().filter(|value| **value > 0.0).count(),
                 "positive_interval_count": interval_count(&optimized),
                 "streaming_elapsed_ns": elapsed_ns,
@@ -1126,6 +1153,29 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
 
         // The residual row is scale zero: one candidate per source sample.
         let min_run = min_duration_seconds;
+        let offline_cutoff = padded_len as f64 * 0.004;
+        let offline_min_run = if offline_cutoff > 1.0 {
+            offline_cutoff.floor() as usize + 1
+        } else {
+            1
+        };
+        let mut streaming_only_boundary_runs = 0usize;
+        let mut run_start = 0usize;
+        while run_start < residual.len() {
+            if residual[run_start] <= 0.0 {
+                run_start += 1;
+                continue;
+            }
+            let mut run_end = run_start + 1;
+            while run_end < residual.len() && residual[run_end] > 0.0 {
+                run_end += 1;
+            }
+            let run_length = run_end - run_start;
+            if run_length >= min_run && run_length < offline_min_run {
+                streaming_only_boundary_runs += 1;
+            }
+            run_start = run_end;
+        }
         let started = Instant::now();
         let mut stream = FixedThresholdOptimizer::new(padded_len, min_run);
         let mut records = Vec::with_capacity(padded_len);
@@ -1161,6 +1211,8 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
             "window_seconds": 1,
             "candidate_count": padded_len,
             "min_run_candidates": min_run,
+            "offline_min_run_candidates": offline_min_run,
+            "streaming_only_boundary_positive_runs": streaming_only_boundary_runs,
             "retained_positive_candidates": residual_output.iter().filter(|value| **value > 0.0).count(),
             "positive_interval_count": interval_count(&residual_output),
             "streaming_elapsed_ns": elapsed_ns,
@@ -1204,6 +1256,23 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
                 let metadata_path = output_path.with_extension("json");
                 std::fs::write(metadata_path, serde_json::to_vec_pretty(&metadata).unwrap())
                     .expect("write streaming QPN reconstruction metadata");
+            }
+
+            // Export the full padded per-scale coefficient matrix so the
+            // research workflow can compare amplitudes, not only counts.
+            if let Ok(output) = std::env::var("TRAFFICMSD_STREAMING_COEFFICIENTS_OUTPUT") {
+                let output_path = std::path::Path::new(&output);
+                std::fs::create_dir_all(output_path.parent().unwrap())
+                    .expect("create streaming coefficient output directory");
+                let mut csv = String::from("scale_index,sample_index,value\n");
+                for (scale_index, row) in coefficients.iter().enumerate() {
+                    for (sample_index, value) in row.iter().enumerate() {
+                        assert!(value.is_finite() && *value >= 0.0);
+                        csv.push_str(&format!("{scale_index},{sample_index},{value:.17}\n"));
+                    }
+                }
+                std::fs::write(output_path, csv)
+                    .expect("write streaming per-scale coefficient matrix");
             }
         }
         let total_multiscale_elapsed_ns = multiscale_started.elapsed().as_nanos();
