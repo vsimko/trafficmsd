@@ -1202,10 +1202,8 @@ fn fixed_threshold_westermo_multiscale_benchmark() {
                     "policy": "test-only-fixed-duration-multiscale"
                 });
                 let metadata_path = output_path.with_extension("json");
-                std::fs::write(
-                    metadata_path,
-                    serde_json::to_vec_pretty(&metadata).unwrap(),
-                ).expect("write streaming QPN reconstruction metadata");
+                std::fs::write(metadata_path, serde_json::to_vec_pretty(&metadata).unwrap())
+                    .expect("write streaming QPN reconstruction metadata");
             }
         }
         let total_multiscale_elapsed_ns = multiscale_started.elapsed().as_nanos();
