@@ -681,7 +681,6 @@ fn fixed_threshold_prefix_emissions_are_invariant_for_all_small_suffixes_and_hor
     }
 }
 
-
 /// Real-trace microbenchmark. Set TRAFFICMSD_STREAMING_TRACE to the verified
 /// trace.csv path and run the ignored test explicitly.
 ///
@@ -705,7 +704,9 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
         })
         .collect();
     assert_eq!(values.len(), 5_445, "unexpected Westermo trace length");
-    assert!(values.iter().all(|value| value.is_finite() && *value >= 0.0));
+    assert!(values
+        .iter()
+        .all(|value| value.is_finite() && *value >= 0.0));
 
     let offline_started = Instant::now();
     let offline = optimize_intervals(&values, 0.004);
@@ -754,9 +755,8 @@ fn fixed_threshold_westermo_packet_trace_benchmark() {
         let mut peak_pending = 0usize;
         for value in &values {
             records.extend(stream.push(*value).unwrap());
-            peak_pending = peak_pending.max(
-                stream.pending_positive_run.len() + stream.filtered.len(),
-            );
+            peak_pending =
+                peak_pending.max(stream.pending_positive_run.len() + stream.filtered.len());
         }
         records.extend(stream.finish().unwrap());
         let streaming_elapsed_ns = started.elapsed().as_nanos();
