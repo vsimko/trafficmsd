@@ -90,7 +90,7 @@ The three conditions use the exact same resolved model, workload mapping, backen
 
 ## Workload-distribution and temporal descriptors
 
-See [Westermo streaming workload descriptors v1](../../docs/research-results/westermo-streaming-workload-descriptors-v1.md) for signal quantiles, zero-bin share, lagged autocorrelation, burst runs, per-bin job batching, periodic interarrival distributions, and scale-wise retained-candidate counts derived from the same reproducible artifact. The report explicitly distinguishes comparable candidate counts from coefficient-amplitude comparisons, which remain unavailable because the streaming coefficient matrix is not yet exported.
+See [Westermo streaming workload descriptors v1](../../docs/research-results/westermo-streaming-workload-descriptors-v1.md) for signal quantiles, zero-bin share, lagged autocorrelation, burst runs, per-bin job batching, periodic interarrival distributions, and scale-wise retained-candidate counts derived from the same reproducible artifact. The report distinguishes comparable candidate counts from coefficient-amplitude comparisons. The per-scale coefficient matrix is now exported as `streaming-coefficients.csv`; see [Per-scale coefficient comparison](#per-scale-coefficient-comparison) below for the reproducible comparison and reconstruction checks.
 
 
 ## Per-scale coefficient comparison
