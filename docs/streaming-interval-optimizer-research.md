@@ -146,6 +146,22 @@ The maximum 2,048-second finality delay is caused by one-candidate interpolation
 
 The benchmark remains exploratory: one industrial trace, one observation point, one CI run, no held-out threshold calibration, no process RSS, and no downstream simulator comparison. The full JSON report contains per-scale candidate counts, retained intervals, thresholds, and delay distributions. No production optimizer or schema was changed.
 
+## Independent observation-point sweep
+
+The benchmark workflow now extracts and evaluates the left and bottom archives independently in addition to the immutable right-point trace. It never combines observation points, because the source dataset warns that packets may be duplicated across locations. The two additional archives are verified against the release `SHA256SUMS`; each derived trace is SHA-256 checked against its own manifest. The three-point run is [workflow 44045596539](https://github.com/vsimko/trafficmsd/actions/runs/44045596539), artifact `streaming-fixed-threshold-westermo`.
+
+For T_min = 32 seconds (the closest tested policy to offline on each point), the per-point comparison is:
+
+| Observation point | Samples | Offline MAE / RMSE | Fixed-duration MAE / RMSE | Offline volume error | Fixed-duration volume error | Finality p50 / p95 / p99 / max |
+|---|---:|---:|---:|---:|---:|---:|
+| right | 5,445 | 710.61 / 2,149.18 | 710.80 / 2,149.99 | +3.63% | +4.51% | 2 / 24 / 64 / 2,048 s |
+| left | 5,441 | 5,788.47 / 11,821.54 | 5,787.78 / 11,821.52 | +19.20% | +19.22% | 2 / 20 / 64 / 2,048 s |
+| bottom | 5,443 | 11,242.35 / 14,945.84 | 11,123.98 / 14,864.53 | −43.75% | −43.18% | 2 / 16 / 64 / 2,048 s |
+
+T_min = 32 s is the closest of the tested grid to the offline reconstruction at all three points, but this is only agreement with the legacy offline method. The volume errors show that offline reconstruction itself has substantial differences from the measured series at left and bottom. This is not evidence that the policy is a faithful traffic generator or a universally good threshold. The observation points belong to one dataset and may share duplicate packet observations; they are not independent datasets or an external validation set.
+
+The full pipeline timing remains a single CI invocation per point, with no repeated warmups or medians. It is retained as a reproducibility baseline only. All three points show the same coarse-scale maximum delay of 2,048 seconds, reinforcing that scale-window interpolation—not just the run-retention threshold—dominates the worst-case wall-clock finality.
+
 ## Current research conclusion
 
 The fixed-horizon prototype establishes an exact but potentially horizon-long-delay baseline for the local interval optimizer. The fixed-count prototype demonstrates a separate horizon-independent policy with bounded run-decision delay, but it intentionally changes semantics and has only initial synthetic tests. Neither prototype justifies selecting a production policy. The next acceptance gate is exhaustive adversarial and cross-horizon prefix-finality testing, followed by physical-duration mapping, trace-level fidelity, runtime/memory measurements, and downstream simulation impact. The legacy optimizer remains unchanged.
