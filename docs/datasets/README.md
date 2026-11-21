@@ -92,6 +92,26 @@ The following sources were screened on 2026-11-17. They are retained as document
 
 This is a strong candidate for a future independent-capture comparison because it provides raw packet traces rather than only flow aggregates. Do not download the full archive for this purpose. First inspect the published per-device summary and determine whether one device trace is small enough and scientifically suitable. The 95.51 MB flow archive is also above the ordinary-CI threshold and its flow aggregates are not a substitute for packet-level time-series extraction.
 
+#### Per-device PCAP screening (2026-11-21)
+
+The publisher's descriptor paper reports per-device packet counts, date ranges, and approximate PCAP sizes (Table 2). The following candidates are below the nominal 50 MB per-input threshold; these are published estimates, not independently measured file sizes:
+
+| Device PCAP | Capture dates | Packets | Flows | Published PCAP size |
+|---|---|---:|---:|---:|
+| BlipCareBPMeter_746a89002e25.pcap | 2016-10-04–2017-04-10 (188 days) | 620 | 54 | 106 KB |
+| HelloBarbie_28c2ddffa52d.pcap | 2017-03-02–2017-04-13 (42 days) | 5,123 | 150 | 1.94 MB |
+| PixStarPhotoFrame_e076d033bb85.pcap | 2016-09-30–2017-04-06 (188 days) | 83,832 | 15,358 | 16.2 MB |
+| RingDoorBell_884aea31669d.pcap | 2017-03-07–2017-04-13 (37 days) | 39,107 | 1,105 | 23.1 MB |
+| TPLinkSmartPlug_50c7bf005639.pcap | 2016-09-30–2017-03-07 (158 days) | 79,773 | 12,816 | 12.0 MB |
+| TPLinkCamera_f4f26d9351f1.pcap | 2016-09-30–2017-04-13 (195 days) | 435,198 | 48,007 | 49.8 MB |
+| WithingsSmartScale_0024e41b6f96.pcap | 2016-09-30–2017-04-13 (195 days) | 46,605 | 1,530 | 12.6 MB |
+
+**Research ranking:** TPLinkCamera is the strongest single-device candidate by packet and flow count and spans 195 days, but its reported 49.8 MB size is too close to the threshold to accept without exact byte verification. PixStarPhotoFrame is the more practical first candidate: 83,832 packets and 15,358 flows over 188 days at a reported 16.2 MB. TPLinkSmartPlug is a second practical alternative with a similar packet count and a 158-day span. BlipCareBPMeter and HelloBarbie are too small in packet/flow count for a primary temporal-fidelity validation.
+
+**Acquisition blocker:** the Dryad record exposes `pcaps.zip` as one 13.92 GB downloadable file and does not list the 27 nested PCAPs as separately downloadable Dryad files. It also lists a 1.84 KB `device_pcap_summary.csv`, but that summary does not provide per-PCAP checksums or an independently downloadable raw trace. Therefore, the published sub-50-MB member estimates do not currently provide a compliant retrieval path: do not fetch the 13.92 GB archive, use an unverified partial/range extraction, or treat a member's estimated size as an exact checksum-verified input. Ask the data authors for a direct immutable link to the selected PCAP (or a separately published per-device archive) before acquisition.
+
+No PCAP or dataset archive was downloaded in this screening. Exact byte sizes, SHA-256 checksums, and the selected member's contents remain unverified. The traces are full-header/full-payload captures taken on the LAN side of a gateway; review the source's privacy and reuse conditions before any processing or caching, and do not attempt to identify devices or users beyond the dataset's published labels. A selected per-device trace would be independent of the Westermo dataset, but it remains one device trace from the same UNSW lab/testbed campaign—not a collection of independent network environments.
+
 ### RIT General Packet Datasets for Network Research
 
 | Field | Value |
