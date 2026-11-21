@@ -94,7 +94,7 @@ This is a strong candidate for a future independent-capture comparison because i
 
 #### Per-device PCAP screening (2026-11-21)
 
-The publisher's descriptor paper reports per-device packet counts, date ranges, and approximate PCAP sizes (Table 2). The following candidates are below the nominal 50 MB per-input threshold; these are published estimates, not independently measured file sizes:
+The publisher's descriptor paper reports per-device packet counts, date ranges, and approximate PCAP sizes (Table 2; Wannigama et al., 2025, [DOI: 10.1109/IEEEDATA.2025.3602010](https://doi.org/10.1109/IEEEDATA.2025.3602010)). The following candidates have publisher-reported PCAP sizes below 50 MB individually; these are estimates, not independently measured file sizes. The repository policy's 50,000,000-byte limit applies to the combined committed test-data footprint and ordinary-CI dataset inputs, not as a per-file allowance:
 
 | Device PCAP | Capture dates | Packets | Flows | Published PCAP size |
 |---|---|---:|---:|---:|
