@@ -66,6 +66,40 @@ Before using this trace:
 5. Verify the PCAP/dump structure before parsing.
 6. Keep the raw file outside Git, in ignored `data/external/mawi-samplepoint-f-200610031400/`.
 7. Publish only compact derived aggregates and evaluation results, subject to the dataset terms.
+
+## Deakin IoT Traffic Dataset
+
+| Field | Value |
+|---|---|
+| Registry ID | `deakin-iot-traffic-v2` |
+| Source | [Deakin University repository, DOI 10.26187/deakin.28013234.v2](https://doi.org/10.26187/deakin.28013234.v2) |
+| Descriptor | Pasquini et al., *Descriptor: Deakin IoT Traffic*, IEEE Data Descriptions (2025), [DOI: 10.1109/IEEEDATA.2025.3549716](https://doi.org/10.1109/IEEEDATA.2025.3549716) |
+| Traffic type | Benign consumer IoT traffic; 24 devices, 19 distinct device types |
+| Capture period | 119 daily PCAP captures, 2023–2024; publisher reports 112.84 million packets |
+| Format | Raw PCAP; filtered IoT-only daily captures (`pcapIoT`), full network captures (`pcapFull`), device-to-MAC mapping, device-state CSV metadata, and processing scripts |
+| Capture point | LAN bridge of the Deakin Cyberlab gateway; pre-NAT; daily captures |
+| License | CC BY 4.0, as declared by the Deakin University research-data record; verify the current record and any embedded notices before reuse |
+| Published archive/member sizes | Not established from the metadata reviewed; exact per-day PCAP sizes and archive layout remain unknown |
+| SHA-256 | Unknown — no file has been acquired |
+| Acquisition status | Metadata reviewed only; no files downloaded or checksums verified |
+| CI policy | Candidate daily PCAPs may be considered only after exact byte size, immutable file identity, checksum, and combined CI fixture budget are verified |
+
+### Research suitability and limitations
+
+Deakin is a promising independent capture environment for the packet-length time-series task: it was collected by Deakin University in its Cyberlab, rather than the Westermo industrial network or the UNSW IoT lab. The descriptor reports 112.84 million packets over 119 days, with setup, idle, and interaction phases. The IoT-only PCAP files are filtered from the daily captures using the device MAC mapping; the full captures additionally contain non-IoT traffic. Prefer the filtered IoT captures for a device-traffic experiment and preserve the publisher's filtering provenance.
+
+The dataset is benign consumer IoT traffic, not industrial traffic or general Internet backbone traffic. It is also a different traffic domain from Westermo. A successful result would support cross-environment robustness for IoT traffic, not universal model validity. The paper describes daily files and a pre-NAT LAN-bridge capture, but the current metadata review did not establish individual file sizes, checksums, exact archive/member names, or whether a selected daily file can be downloaded independently.
+
+### Acquisition requirements
+
+1. Resolve the versioned Deakin repository record and inspect its current file manifest, README, license, and access conditions.
+2. Identify a representative daily IoT-only PCAP with enough packets and activity phases for a meaningful temporal evaluation; record the exact member path and byte size.
+3. Prefer one immutable daily file that fits the repository's **combined 50,000,000-byte test-data / ordinary-CI budget**. The policy is not a per-file allowance.
+4. Download only the selected file, verify its SHA-256, inspect its PCAP structure and timestamps, and document the device-filtering provenance.
+5. Keep raw files outside Git unless the complete combined fixture budget and redistribution terms explicitly permit it. Larger inputs require a separately approved on-demand or local research workflow.
+
+Do not infer a checksum, exact file size, or direct-download capability from the paper's daily-capture description. Do not download the complete dataset merely to discover member sizes. The record remains a candidate, not an approved or acquired TrafficMSD input.
+
 ## Adding a dataset
 
 Add a new section with a stable registry ID and the fields above. Explicitly distinguish metadata review from actual acquisition and validation. Datasets over 50 MB require an on-demand acquisition path before they can become CI inputs.
